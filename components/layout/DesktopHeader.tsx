@@ -31,6 +31,9 @@ export function DesktopHeader() {
   };
 
   useEffect(() => {
+    // Baca sesi dari localStorage saat mount (sumber data di luar React),
+    // lalu tetap sinkron lewat event listener. Bukan kasus "effect tak perlu".
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     syncAuth();
     window.addEventListener("maschan:auth-change", syncAuth);
     window.addEventListener("storage", syncAuth);

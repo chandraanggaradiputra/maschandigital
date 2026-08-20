@@ -9,6 +9,9 @@ export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
 
   useEffect(() => {
+    // Pola resmi next-themes untuk cegah hydration mismatch SSR vs client
+    // (tema hanya diketahui di client). Bukan kasus "effect tak perlu".
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

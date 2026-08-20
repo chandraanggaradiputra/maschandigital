@@ -59,10 +59,12 @@ export function MediaUploader({
           data.message || "Gagal mengunggah gambar ke server WordPress.",
         );
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error Media Upload:", err);
       setErrorMessage(
-        err.message || "Terjadi kesalahan saat mengunggah gambar.",
+        err instanceof Error
+          ? err.message
+          : "Terjadi kesalahan saat mengunggah gambar.",
       );
       const localUrl = URL.createObjectURL(file);
       setPreviewUrl(localUrl);

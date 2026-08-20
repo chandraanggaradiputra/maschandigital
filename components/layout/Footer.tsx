@@ -25,12 +25,9 @@ export async function Footer() {
         return false;
       }
 
-      // 2. Jika ada data parent > 0, dipastikan subkategori
-      if (c.parent && c.parent > 0) {
-        return true;
-      }
-
-      return true;
+      // 2. Hanya lolos jika benar-benar subkategori (punya parent > 0).
+      //    Kategori induk lain (di luar 4 nama eksplisit di atas) ikut dikecualikan di sini.
+      return Boolean(c.parent && c.parent > 0);
     })
     .slice(0, 6); // Tampilkan hingga 6 subkategori
 

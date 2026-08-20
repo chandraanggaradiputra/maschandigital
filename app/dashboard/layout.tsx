@@ -33,7 +33,10 @@ export default function DashboardLayout({
 
   useEffect(() => {
     const session = getVendorSession();
+    // Baca sesi dari localStorage saat mount untuk memutuskan proteksi akses
+    // dashboard — sumber data di luar React, bukan kasus "effect tak perlu".
     if (session && session.user && session.token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsAuth(true);
       setVendorSlug(session.user.slug || "chanstore");
       setVendorStoreName(

@@ -6,11 +6,24 @@ const WP_API_URL =
 const GRAPHQL_URL = `${WP_API_URL}/graphql`;
 
 /**
+ * Bentuk data mentah dari GraphQL/REST WordPress belum bisa dipastikan
+ * strukturnya secara statis (tergantung skema WPGraphQL & WCFM di server),
+ * jadi dipakai alias longgar ini di titik-titik "batas" API saja —
+ * bukan `any` yang menyebar bebas ke seluruh kode.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RawApiNode = Record<string, any>;
+
+function getErrorMessage(err: unknown, fallback: string): string {
+  return err instanceof Error ? err.message : fallback;
+}
+
+/**
  * Universal GraphQL Fetcher
  */
 async function fetchGraphQL(
   query: string,
-  variables: Record<string, any> = {},
+  variables: Record<string, unknown> = {},
 ) {
   try {
     const res = await fetch(GRAPHQL_URL, {
@@ -26,7 +39,7 @@ async function fetchGraphQL(
     if (!res.ok) return null;
     const json = await res.json();
     return json.data || null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -34,7 +47,10 @@ async function fetchGraphQL(
 /**
  * Format Data Produk (ID dijamin > 0 dan Unik)
  */
-function formatGraphQLProduct(node: any, fallbackIndex: number = 0): Product {
+function formatGraphQLProduct(
+  node: RawApiNode,
+  fallbackIndex: number = 0,
+): Product {
   const isExternal =
     node.type === "EXTERNAL" ||
     node.type === "affiliate" ||
@@ -79,7 +95,7 @@ function formatGraphQLProduct(node: any, fallbackIndex: number = 0): Product {
     node.productCategories?.nodes &&
     Array.isArray(node.productCategories.nodes)
   ) {
-    categories = node.productCategories.nodes.map((c: any) => ({
+    categories = node.productCategories.nodes.map((c: RawApiNode) => ({
       id: c.databaseId || 1,
       name: c.name,
       slug: c.slug,
@@ -109,7 +125,7 @@ function formatGraphQLProduct(node: any, fallbackIndex: number = 0): Product {
     images = node.images;
   }
   if (node.galleryImages?.nodes && Array.isArray(node.galleryImages.nodes)) {
-    node.galleryImages.nodes.forEach((g: any, idx: number) => {
+    node.galleryImages.nodes.forEach((g: RawApiNode, idx: number) => {
       if (g.sourceUrl) {
         images.push({
           id: g.databaseId || idx + 2,
@@ -182,7 +198,7 @@ function formatGraphQLProduct(node: any, fallbackIndex: number = 0): Product {
 /**
  * Format Data Vendor Lengkap
  */
-function formatGraphQLVendor(v: any): Vendor {
+function formatGraphQLVendor(v: RawApiNode): Vendor {
   const storeName = v.storeName || v.store_name || "Chan Store";
   const slug =
     v.slug ||
@@ -349,7 +365,7 @@ export async function getProducts(
   let list: Product[] = [];
   const data = await fetchGraphQL(query);
   if (data?.products?.nodes && Array.isArray(data.products.nodes)) {
-    list = data.products.nodes.map((node: any, idx: number) =>
+    list = data.products.nodes.map((node: RawApiNode, idx: number) =>
       formatGraphQLProduct(node, idx),
     );
   } else {
@@ -361,11 +377,13 @@ export async function getProducts(
       if (res.ok) {
         const restData = await res.json();
         if (Array.isArray(restData))
-          list = restData.map((node: any, idx: number) =>
+          list = restData.map((node: RawApiNode, idx: number) =>
             formatGraphQLProduct(node, idx),
           );
       }
-    } catch (e) {}
+    } catch {
+      // diamkan: fallback berikutnya tetap dicoba
+    }
   }
 
   if (vendorId) {
@@ -398,10 +416,14 @@ export async function getProducts(
 export async function getMyVendorProducts(): Promise<Product[]> {
   try {
     const session = getVendorSession();
-    let targetVendorId = 2;
-    if (session && session.user?.id) {
-      targetVendorId = Number(session.user.id);
+
+    // Tidak ada lagi fallback ke vendor tertentu atau "tampilkan semua produk"
+    // saat sesi tidak terdeteksi — itu bisa membocorkan katalog vendor lain
+    // ke akun yang salah/belum login. Kalau tidak ada sesi valid, kembalikan kosong.
+    if (!session || !session.user?.id) {
+      return [];
     }
+    const targetVendorId = Number(session.user.id);
 
     // 1. Coba panggil REST API langsung dengan filter author vendor_id
     const res = await fetch(
@@ -413,23 +435,17 @@ export async function getMyVendorProducts(): Promise<Product[]> {
     if (res.ok) {
       const restData = await res.json();
       if (Array.isArray(restData) && restData.length > 0) {
-        return restData.map((node: any, idx: number) =>
+        return restData.map((node: RawApiNode, idx: number) =>
           formatGraphQLProduct(node, idx),
         );
       }
     }
 
     // 2. Fallback: ambil semua produk lalu filter berdasarkan vendor ID
+    //    (tetap disaring per-vendor, tidak pernah mengembalikan katalog vendor lain)
     const all = await getProducts();
     const matched = all.filter((p) => Number(p.vendor?.id) === targetVendorId);
-    if (matched.length > 0) return matched;
-
-    // 3. Fallback jika admin atau testing account
-    if (!session || session.user?.email === "admin@maschandigital.com") {
-      return all;
-    }
-
-    return [];
+    return matched;
   } catch (err) {
     console.error("Gagal mengambil produk vendor:", err);
     return [];
@@ -599,7 +615,9 @@ export async function getVendors(
         if (Array.isArray(restData))
           vendors = restData.map(formatGraphQLVendor);
       }
-    } catch (e) {}
+    } catch {
+      // diamkan: fallback berikutnya tetap dicoba
+    }
   }
 
   if (district && district !== "Semua") {
@@ -660,12 +678,14 @@ export async function getVendorProducts(vendorId: number): Promise<Product[]> {
     if (res.ok) {
       const restData = await res.json();
       if (Array.isArray(restData) && restData.length > 0) {
-        return restData.map((node: any, idx: number) =>
+        return restData.map((node: RawApiNode, idx: number) =>
           formatGraphQLProduct(node, idx),
         );
       }
     }
-  } catch (e) {}
+  } catch {
+    // diamkan: fallback berikutnya tetap dicoba
+  }
 
   return getProducts(undefined, undefined, vendorId);
 }
@@ -674,7 +694,7 @@ export async function getVendorProducts(vendorId: number): Promise<Product[]> {
  * TAMBAH PRODUK BARU
  */
 export async function createProduct(
-  productData: any,
+  productData: Record<string, unknown>,
 ): Promise<{ success: boolean; product?: Product; message?: string }> {
   try {
     const session = getVendorSession();
@@ -702,10 +722,10 @@ export async function createProduct(
       success: false,
       message: data.message || "Gagal menambahkan produk ke backend.",
     };
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      message: err?.message || "Gagal menghubungkan ke server WordPress.",
+      message: getErrorMessage(err, "Gagal menghubungkan ke server WordPress."),
     };
   }
 }
@@ -715,7 +735,7 @@ export async function createProduct(
  */
 export async function updateProduct(
   id: number | string,
-  productData: any,
+  productData: Record<string, unknown>,
 ): Promise<{ success: boolean; message?: string }> {
   try {
     const session = getVendorSession();
@@ -743,10 +763,10 @@ export async function updateProduct(
       success: false,
       message: data.message || "Gagal menyimpan perubahan produk.",
     };
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      message: err?.message || "Gagal menghubungkan ke server WordPress.",
+      message: getErrorMessage(err, "Gagal menghubungkan ke server WordPress."),
     };
   }
 }
@@ -766,7 +786,7 @@ export async function deleteProduct(id: number | string): Promise<boolean> {
     });
     const data = await res.json();
     return Boolean(res.ok && data.success);
-  } catch (err) {
+  } catch {
     return false;
   }
 }
@@ -776,7 +796,7 @@ export async function deleteProduct(id: number | string): Promise<boolean> {
  */
 export async function updateVendorProfile(
   vendorId: number | string,
-  profileData: any,
+  profileData: Record<string, unknown>,
 ): Promise<{ success: boolean; message?: string }> {
   try {
     const session = getVendorSession();
@@ -802,10 +822,10 @@ export async function updateVendorProfile(
       success: false,
       message: data.message || "Gagal menyimpan pengaturan vendor.",
     };
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      message: err?.message || "Gagal menghubungi server WordPress.",
+      message: getErrorMessage(err, "Gagal menghubungi server WordPress."),
     };
   }
 }
@@ -822,7 +842,9 @@ export async function getCategories(): Promise<ProductCategory[]> {
       const data = await res.json();
       if (Array.isArray(data)) return data;
     }
-  } catch (e) {}
+  } catch {
+    // diamkan: fallback berikutnya tetap dicoba
+  }
 
   return [];
 }
@@ -853,10 +875,10 @@ export async function createCategory(
       success: false,
       message: data.message || "Gagal menambahkan kategori.",
     };
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      message: err?.message || "Gagal menghubungi server.",
+      message: getErrorMessage(err, "Gagal menghubungi server."),
     };
   }
 }

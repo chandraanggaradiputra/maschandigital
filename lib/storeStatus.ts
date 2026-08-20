@@ -1,4 +1,4 @@
-import { StoreHours, VacationMode } from "@/types";
+import { StoreHours } from "@/types";
 
 export interface StoreStatus {
   isOpen: boolean;
@@ -9,31 +9,46 @@ export interface StoreStatus {
   todaySchedule?: string;
 }
 
+// Backend WCFM/GraphQL bisa mengirim vacation mode dalam beberapa bentuk:
+// object camelCase (GraphQL), object snake_case (REST lama), boolean, atau string 'yes'/'no'.
+type VacationModeInput =
+  | boolean
+  | string
+  | {
+      isEnabled?: boolean | string;
+      vacationMessage?: string;
+      is_enabled?: boolean | string;
+      vacation_message?: string;
+    }
+  | undefined;
+
 /**
  * Cek status operasional toko secara real-time berdasarkan Jam Buka & Mode Libur
  */
 export function checkStoreStatus(
   storeHours?: StoreHours,
-  vacationMode?: any,
+  vacationMode?: VacationModeInput,
 ): StoreStatus {
   // 1. Cek Mode Libur (Vacation Mode) - Deteksi fleksibel (boolean / string 'yes' / objek)
+  const vacationObj =
+    typeof vacationMode === "object" && vacationMode !== null
+      ? vacationMode
+      : null;
+
   const isVacation = Boolean(
-    vacationMode &&
-    (vacationMode.isEnabled === true ||
-      vacationMode.isEnabled === "yes" ||
-      vacationMode.is_enabled === true ||
-      vacationMode.is_enabled === "yes" ||
-      vacationMode === true ||
-      vacationMode === "yes"),
+    vacationMode === true ||
+    vacationMode === "yes" ||
+    vacationObj?.isEnabled === true ||
+    vacationObj?.isEnabled === "yes" ||
+    vacationObj?.is_enabled === true ||
+    vacationObj?.is_enabled === "yes",
   );
 
   if (isVacation) {
     const msg =
-      typeof vacationMode === "object"
-        ? vacationMode.vacationMessage ||
-          vacationMode.vacation_message ||
-          "Toko kami sedang libur sementara waktu."
-        : "Toko kami sedang libur sementara waktu.";
+      vacationObj?.vacationMessage ||
+      vacationObj?.vacation_message ||
+      "Toko kami sedang libur sementara waktu.";
 
     return {
       isOpen: false,

@@ -17,6 +17,10 @@ const WP_API_URL =
   process.env.NEXT_PUBLIC_WORDPRESS_URL || "https://app.maschandigital.id";
 const STORAGE_KEY = "maschan_vendor_session";
 
+function getErrorMessage(err: unknown, fallback: string): string {
+  return err instanceof Error ? err.message : fallback;
+}
+
 /**
  * Simpan Sesi Vendor di LocalStorage & Picu Event Notifikasi
  */
@@ -26,7 +30,9 @@ export function saveVendorSession(session: AuthSession): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
     window.dispatchEvent(new Event("maschan:auth-change"));
     window.dispatchEvent(new Event("storage"));
-  } catch (e) {}
+  } catch {
+    // gagal akses localStorage (mis. private mode) - diamkan
+  }
 }
 
 /**
@@ -38,7 +44,7 @@ export function getVendorSession(): AuthSession | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     return JSON.parse(raw);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -60,7 +66,9 @@ export function clearVendorSession(): void {
     localStorage.removeItem(STORAGE_KEY);
     window.dispatchEvent(new Event("maschan:auth-change"));
     window.dispatchEvent(new Event("storage"));
-  } catch (e) {}
+  } catch {
+    // gagal akses localStorage (mis. private mode) - diamkan
+  }
 }
 
 /**
@@ -105,10 +113,10 @@ export async function loginVendor(
       message:
         data.message || "Login gagal. Periksa kembali email dan password Anda.",
     };
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      message: err?.message || "Gagal menghubungi server WordPress.",
+      message: getErrorMessage(err, "Gagal menghubungi server WordPress."),
     };
   }
 }
@@ -146,10 +154,10 @@ export async function registerVendor(formData: {
       message:
         data.message || "Registrasi gagal. Silakan periksa kembali data Anda.",
     };
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      message: err?.message || "Gagal menghubungi server WordPress.",
+      message: getErrorMessage(err, "Gagal menghubungi server WordPress."),
     };
   }
 }
