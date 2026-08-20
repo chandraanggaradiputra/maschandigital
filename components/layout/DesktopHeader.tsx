@@ -1,15 +1,44 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Store, Info, UserPlus, LogIn } from "lucide-react";
+import {
+  Search,
+  Store,
+  Info,
+  UserPlus,
+  LogIn,
+  LayoutDashboard,
+  LogOut,
+  Tag,
+} from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "@/components/ui/Button";
+import {
+  getVendorSession,
+  clearVendorSession,
+  AuthSession,
+} from "@/lib/api/auth";
 
 export function DesktopHeader() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [session, setSession] = useState<AuthSession | null>(null);
   const router = useRouter();
+
+  const syncAuth = () => {
+    setSession(getVendorSession());
+  };
+
+  useEffect(() => {
+    syncAuth();
+    window.addEventListener("maschan:auth-change", syncAuth);
+    window.addEventListener("storage", syncAuth);
+    return () => {
+      window.removeEventListener("maschan:auth-change", syncAuth);
+      window.removeEventListener("storage", syncAuth);
+    };
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,11 +47,21 @@ export function DesktopHeader() {
     }
   };
 
+  const handleLogout = () => {
+    // 1. Bersihkan token & sesi vendor dari localStorage
+    clearVendorSession();
+    // 2. Arahkan langsung ke Beranda sebagai pengunjung biasa
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
+  };
+
   return (
     <header
       role="banner"
       className="hidden md:block top-0 z-40 sticky bg-white/90 dark:bg-surface-darkCard/90 backdrop-blur-md border-slate-200/80 dark:border-slate-800 border-b w-full transition-colors"
     >
+      {/* Top Tagline Announcement */}
       <aside
         aria-label="Pengumuman Marketplace"
         className="bg-brand-gradient px-4 py-1.5 font-medium text-white text-xs text-center tracking-wide"
@@ -33,11 +72,11 @@ export function DesktopHeader() {
 
       <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         <div className="flex justify-between items-center gap-6 h-20">
-          {/* Logo Brand */}
+          {/* Brand Logo */}
           <Link
             href="/"
             className="group flex items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 shrink-0"
-            aria-label="Mas Chan Digital - Beranda"
+            aria-label="Mas Chan Digital - Kembali ke Beranda"
           >
             <div className="flex justify-center items-center bg-brand-gradient shadow-subtle p-2.5 rounded-2xl w-11 h-11 text-white group-hover:scale-105 transition-transform">
               <Store className="w-6 h-6" aria-hidden="true" />
@@ -52,18 +91,18 @@ export function DesktopHeader() {
             </div>
           </Link>
 
-          {/* Semantic Search Box */}
+          {/* Accessible Search Bar */}
           <search role="search" className="flex-1 max-w-lg">
             <form onSubmit={handleSearch} className="relative">
               <label htmlFor="desktop-search-input" className="sr-only">
-                Cari produk, oleh-oleh Serang, atau nama vendor
+                Cari produk, oleh-oleh Serang, atau nama toko vendor
               </label>
               <input
                 id="desktop-search-input"
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari produk, oleh-oleh Serang, atau nama vendor..."
+                placeholder="Cari produk, madu akasia, sate bandeng..."
                 className="bg-slate-100 focus:bg-white dark:bg-slate-800 dark:focus:bg-slate-900 py-2.5 pr-4 pl-11 border border-transparent focus:border-brand-500 rounded-full outline-none w-full text-slate-800 dark:text-slate-100 text-sm transition-all placeholder-slate-400"
               />
               <Search
@@ -73,7 +112,7 @@ export function DesktopHeader() {
             </form>
           </search>
 
-          {/* Navigation */}
+          {/* Navigation Links */}
           <nav
             aria-label="Navigasi Utama Desktop"
             className="flex items-center gap-5"
@@ -85,6 +124,15 @@ export function DesktopHeader() {
                   className="focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
                 >
                   Beranda
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/categories"
+                  className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
+                >
+                  <Tag className="w-4 h-4" aria-hidden="true" />
+                  <span>Kategori</span>
                 </Link>
               </li>
               <li>
@@ -113,21 +161,49 @@ export function DesktopHeader() {
             />
             <ThemeToggle />
 
-            {/* Auth Buttons */}
-            <div className="flex items-center gap-2.5">
-              <Link href="/vendor/login">
-                <Button variant="outline" size="sm">
-                  <LogIn className="w-4 h-4" aria-hidden="true" />
-                  <span>Masuk Vendor</span>
-                </Button>
-              </Link>
-              <Link href="/vendor/register">
-                <Button variant="primary" size="sm">
-                  <UserPlus className="w-4 h-4" aria-hidden="true" />
-                  <span>Daftar Toko</span>
-                </Button>
-              </Link>
-            </div>
+            {/* Dynamic Vendor Auth State */}
+            {session && session.user ? (
+              <div className="flex items-center gap-2">
+                <Link href="/dashboard">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="flex items-center gap-1.5 font-bold"
+                  >
+                    <LayoutDashboard className="w-4 h-4" aria-hidden="true" />
+                    <span>
+                      {session.user.store_name ||
+                        session.user.name ||
+                        "Dashboard"}
+                    </span>
+                  </Button>
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="hover:bg-rose-50 dark:hover:bg-rose-950/40 p-2 rounded-xl text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                  title="Keluar dari akun vendor"
+                >
+                  <LogOut className="w-4 h-4" aria-hidden="true" />
+                  <span className="sr-only">Logout</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5">
+                <Link href="/vendor/login">
+                  <Button variant="outline" size="sm">
+                    <LogIn className="w-4 h-4" aria-hidden="true" />
+                    <span>Masuk Vendor</span>
+                  </Button>
+                </Link>
+                <Link href="/vendor/register">
+                  <Button variant="primary" size="sm">
+                    <UserPlus className="w-4 h-4" aria-hidden="true" />
+                    <span>Daftar Toko</span>
+                  </Button>
+                </Link>
+              </div>
+            )}
           </nav>
         </div>
       </div>

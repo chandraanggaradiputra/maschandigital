@@ -1,20 +1,39 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Store, Search, LayoutDashboard, Info } from "lucide-react";
+import { Home, Store, LayoutDashboard, Tag, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getVendorSession, AuthSession } from "@/lib/api/auth";
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const [session, setSession] = useState<AuthSession | null>(null);
+
+  const syncAuth = () => {
+    setSession(getVendorSession());
+  };
+
+  useEffect(() => {
+    syncAuth();
+    window.addEventListener("maschan:auth-change", syncAuth);
+    window.addEventListener("storage", syncAuth);
+    return () => {
+      window.removeEventListener("maschan:auth-change", syncAuth);
+      window.removeEventListener("storage", syncAuth);
+    };
+  }, []);
 
   const navItems = [
     { label: "Beranda", href: "/", icon: Home },
+    { label: "Kategori", href: "/categories", icon: Tag },
     { label: "Vendor", href: "/vendors", icon: Store },
-    { label: "Cari", href: "/vendors", icon: Search },
-    { label: "Tentang", href: "/tentang-kami", icon: Info },
-    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    {
+      label: session ? "Dashboard" : "Masuk",
+      href: session ? "/dashboard" : "/vendor/login",
+      icon: session ? LayoutDashboard : LogIn,
+    },
   ];
 
   return (

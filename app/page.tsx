@@ -25,33 +25,82 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { getProducts, getVendors, getCategories } from "@/lib/api/wordpress";
 
+function getCategoryIcon(slug: string, className: string = "w-6 h-6") {
+  const s = slug.toLowerCase();
+  if (
+    s.includes("kuliner") ||
+    s.includes("makan") ||
+    s.includes("food") ||
+    s.includes("snack") ||
+    s.includes("bandeng")
+  ) {
+    return (
+      <Utensils className={`${className} text-amber-500`} aria-hidden="true" />
+    );
+  }
+  if (
+    s.includes("herbal") ||
+    s.includes("madu") ||
+    s.includes("kesehatan") ||
+    s.includes("obat")
+  ) {
+    return (
+      <HeartPulse
+        className={`${className} text-emerald-500`}
+        aria-hidden="true"
+      />
+    );
+  }
+  if (
+    s.includes("fashion") ||
+    s.includes("batik") ||
+    s.includes("baju") ||
+    s.includes("pakaian")
+  ) {
+    return (
+      <Shirt className={`${className} text-rose-500`} aria-hidden="true" />
+    );
+  }
+  if (
+    s.includes("digital") ||
+    s.includes("jasa") ||
+    s.includes("it") ||
+    s.includes("web") ||
+    s.includes("app")
+  ) {
+    return (
+      <Laptop className={`${className} text-brand-500`} aria-hidden="true" />
+    );
+  }
+  if (s.includes("elektronik") || s.includes("gadget") || s.includes("hp")) {
+    return (
+      <Smartphone
+        className={`${className} text-indigo-500`}
+        aria-hidden="true"
+      />
+    );
+  }
+  if (
+    s.includes("tani") ||
+    s.includes("kebun") ||
+    s.includes("bibit") ||
+    s.includes("tanaman")
+  ) {
+    return (
+      <Sprout className={`${className} text-lime-600`} aria-hidden="true" />
+    );
+  }
+  return (
+    <ShoppingBag className={`${className} text-brand-600`} aria-hidden="true" />
+  );
+}
+
 export default async function HomePage() {
   const products = await getProducts();
   const vendors = await getVendors();
   const categories = await getCategories();
 
   const featuredProducts = products.slice(0, 4);
-
-  const categoryIcons: Record<string, React.ReactNode> = {
-    "kuliner-serang": (
-      <Utensils className="w-6 h-6 text-amber-500" aria-hidden="true" />
-    ),
-    "fashion-batik": (
-      <Shirt className="w-6 h-6 text-rose-500" aria-hidden="true" />
-    ),
-    "herbal-madu": (
-      <HeartPulse className="w-6 h-6 text-emerald-500" aria-hidden="true" />
-    ),
-    "jasa-digital": (
-      <Laptop className="w-6 h-6 text-brand-500" aria-hidden="true" />
-    ),
-    "elektronik-gadget": (
-      <Smartphone className="w-6 h-6 text-indigo-500" aria-hidden="true" />
-    ),
-    "pertanian-lokal": (
-      <Sprout className="w-6 h-6 text-lime-600" aria-hidden="true" />
-    ),
-  };
 
   return (
     <div className="space-y-6 sm:space-y-10">
@@ -193,40 +242,47 @@ export default async function HomePage() {
             </p>
           </div>
           <Link
-            href="/vendors"
+            href="/categories"
             className="inline-flex items-center gap-1 focus-visible:outline-none font-semibold text-brand-800 dark:text-brand-400 text-xs sm:text-sm hover:underline focus-visible:underline"
           >
-            Lihat Semua
+            <span>Lihat Semua</span>
             <ArrowRight className="w-4 h-4" aria-hidden="true" />
           </Link>
         </header>
 
-        <ul className="gap-3 sm:gap-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 m-0 p-0 list-none">
-          {categories.map((cat) => (
-            <li key={cat.id}>
-              <Link
-                href={`/vendors?category=${cat.slug}`}
-                className="group flex flex-col items-center bg-white dark:bg-surface-darkCard shadow-subtle hover:shadow-card-hover p-4 border border-slate-200/80 dark:border-slate-800 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 text-center transition-all duration-200"
-                aria-label={`Kategori ${cat.name}, total ${cat.count} produk`}
+        {categories.length > 0 ? (
+          <ul className="gap-3 sm:gap-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 m-0 p-0 list-none">
+            {categories.map((cat, idx) => (
+              <li
+                key={
+                  cat.id
+                    ? `cat-list-${cat.id}-${cat.slug}`
+                    : `cat-list-idx-${idx}`
+                }
               >
-                <div className="flex justify-center items-center bg-slate-50 dark:bg-slate-800 mb-3 rounded-2xl w-12 h-12 group-hover:scale-110 transition-transform">
-                  {categoryIcons[cat.slug] || (
-                    <ShoppingBag
-                      className="w-6 h-6 text-brand-600"
-                      aria-hidden="true"
-                    />
-                  )}
-                </div>
-                <span className="font-bold text-slate-800 dark:group-hover:text-brand-400 dark:text-slate-200 group-hover:text-brand-800 text-xs sm:text-sm line-clamp-1">
-                  {cat.name}
-                </span>
-                <span className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">
-                  {cat.count} Produk
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+                <Link
+                  href={`/categories/${cat.slug}`}
+                  className="group flex flex-col items-center bg-white dark:bg-surface-darkCard shadow-subtle hover:shadow-card-hover p-5 border border-slate-200/80 dark:border-slate-800 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 text-center transition-all duration-200"
+                  aria-label={`Kategori ${cat.name}, total ${cat.count || 0} produk`}
+                >
+                  <div className="flex justify-center items-center bg-slate-50 dark:bg-slate-800 shadow-xs mb-3 rounded-2xl w-14 h-14 group-hover:scale-110 transition-transform">
+                    {getCategoryIcon(cat.slug, "w-7 h-7")}
+                  </div>
+                  <span className="font-slab font-bold text-slate-900 dark:group-hover:text-brand-400 dark:text-slate-100 group-hover:text-brand-800 text-xs sm:text-sm line-clamp-1">
+                    {cat.name}
+                  </span>
+                  <span className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+                    {cat.count ? `${cat.count} Produk` : "Lihat Produk"}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="bg-white dark:bg-surface-darkCard p-8 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-400 text-xs text-center">
+            Sedang memuat kategori produk...
+          </div>
+        )}
       </SectionContainer>
 
       {/* 3. VENDOR UNGGULAN KOTA SERANG */}
@@ -263,8 +319,15 @@ export default async function HomePage() {
         </header>
 
         <div className="gap-4 sm:gap-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          {vendors.slice(0, 4).map((vendor) => (
-            <VendorCard key={vendor.id} vendor={vendor} />
+          {vendors.slice(0, 4).map((vendor, idx) => (
+            <VendorCard
+              key={
+                vendor.id
+                  ? `vendor-item-${vendor.id}-${vendor.slug}`
+                  : `vendor-idx-${idx}`
+              }
+              vendor={vendor}
+            />
           ))}
         </div>
       </SectionContainer>

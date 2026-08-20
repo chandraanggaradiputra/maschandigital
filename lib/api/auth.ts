@@ -18,12 +18,14 @@ const WP_API_URL =
 const STORAGE_KEY = "maschan_vendor_session";
 
 /**
- * Simpan Sesi Vendor di LocalStorage
+ * Simpan Sesi Vendor di LocalStorage & Picu Event Notifikasi
  */
 export function saveVendorSession(session: AuthSession): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    window.dispatchEvent(new Event("maschan:auth-change"));
+    window.dispatchEvent(new Event("storage"));
   } catch (e) {}
 }
 
@@ -42,13 +44,33 @@ export function getVendorSession(): AuthSession | null {
 }
 
 /**
- * Hapus Sesi Vendor (Logout)
+ * Periksa Apakah Vendor Sedang Terautentikasi
+ */
+export function isVendorAuthenticated(): boolean {
+  const session = getVendorSession();
+  return Boolean(session && session.token && session.user);
+}
+
+/**
+ * Hapus Sesi Vendor (Clear Session)
  */
 export function clearVendorSession(): void {
   if (typeof window === "undefined") return;
   try {
     localStorage.removeItem(STORAGE_KEY);
+    window.dispatchEvent(new Event("maschan:auth-change"));
+    window.dispatchEvent(new Event("storage"));
   } catch (e) {}
+}
+
+/**
+ * Logout Vendor Sepenuhnya & Arahkan Kembali Sebagai Pengunjung Biasa ke Beranda
+ */
+export function logoutVendor(redirectTo: string = "/"): void {
+  clearVendorSession();
+  if (typeof window !== "undefined") {
+    window.location.href = redirectTo;
+  }
 }
 
 /**

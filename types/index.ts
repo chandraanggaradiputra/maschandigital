@@ -31,6 +31,8 @@ export interface VendorSummary {
   avatar?: string;
   city?: string;
   is_verified?: boolean;
+  store_hours?: StoreHours;
+  vacation_mode?: VacationMode;
 }
 
 export type ProductType = "simple" | "external" | "affiliate";

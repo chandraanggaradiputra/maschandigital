@@ -1,8 +1,39 @@
 import React from "react";
 import Link from "next/link";
-import { Store, Phone, MapPin, Mail, Heart } from "lucide-react";
+import { Store, Phone, MapPin, Mail, Heart, ArrowRight } from "lucide-react";
+import { getCategories } from "@/lib/api/wordpress";
 
-export function Footer() {
+export async function Footer() {
+  const allCategories = await getCategories();
+
+  // Filter khusus subkategori saja (mengecualikan 'Produk Fisik', 'Produk Digital', 'Tanpa Kategori', dan 'Umum')
+  const subCategories = allCategories
+    .filter((c) => {
+      const s = c.slug.toLowerCase().trim();
+      const n = c.name.toLowerCase().trim();
+
+      // 1. Kecualikan parent categories eksplisit
+      if (
+        s === "produk-fisik" ||
+        s === "produk-digital" ||
+        n === "produk fisik" ||
+        n === "produk digital" ||
+        s === "uncategorized" ||
+        s === "tanpa-kategori" ||
+        s === "umum"
+      ) {
+        return false;
+      }
+
+      // 2. Jika ada data parent > 0, dipastikan subkategori
+      if (c.parent && c.parent > 0) {
+        return true;
+      }
+
+      return true;
+    })
+    .slice(0, 6); // Tampilkan hingga 6 subkategori
+
   return (
     <footer
       role="contentinfo"
@@ -34,7 +65,7 @@ export function Footer() {
             </address>
           </div>
 
-          {/* Navigasi Utama */}
+          {/* Quick Navigation */}
           <nav aria-label="Navigasi Footer Utama" className="space-y-4">
             <h4 className="font-slab font-bold text-white text-base tracking-wide">
               Navigasi Utama
@@ -54,6 +85,14 @@ export function Footer() {
                   className="focus-visible:outline-none hover:text-brand-300 focus-visible:underline transition-colors"
                 >
                   Daftar Toko & Vendor
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/categories"
+                  className="focus-visible:outline-none hover:text-brand-300 focus-visible:underline transition-colors"
+                >
+                  Semua Kategori
                 </Link>
               </li>
               <li>
@@ -83,48 +122,52 @@ export function Footer() {
             </ul>
           </nav>
 
-          {/* Kategori Populer */}
-          <nav aria-label="Navigasi Kategori Footer" className="space-y-4">
+          {/* Subkategori Produk Aktif */}
+          <nav aria-label="Navigasi Sub Kategori Footer" className="space-y-4">
             <h4 className="font-slab font-bold text-white text-base tracking-wide">
-              Kategori Populer
+              Kategori Produk
             </h4>
-            <ul className="space-y-2.5 m-0 p-0 text-sm list-none">
-              <li>
-                <Link
-                  href="/vendors?category=kuliner-serang"
-                  className="focus-visible:outline-none hover:text-brand-300 focus-visible:underline transition-colors"
-                >
-                  Kuliner Sate Bandeng
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/vendors?category=herbal-madu"
-                  className="focus-visible:outline-none hover:text-brand-300 focus-visible:underline transition-colors"
-                >
-                  Madu Akasia Murni
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/vendors?category=fashion-batik"
-                  className="focus-visible:outline-none hover:text-brand-300 focus-visible:underline transition-colors"
-                >
-                  Batik Khas Banten
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/vendors?category=jasa-digital"
-                  className="focus-visible:outline-none hover:text-brand-300 focus-visible:underline transition-colors"
-                >
-                  Jasa Website & Digital
-                </Link>
-              </li>
-            </ul>
+            {subCategories.length > 0 ? (
+              <ul className="space-y-2.5 m-0 p-0 text-sm list-none">
+                {subCategories.map((cat, idx) => (
+                  <li
+                    key={
+                      cat.id
+                        ? `footer-cat-${cat.id}-${cat.slug}`
+                        : `footer-cat-idx-${idx}`
+                    }
+                  >
+                    <Link
+                      href={`/categories/${cat.slug}`}
+                      className="group flex justify-between items-center focus-visible:outline-none hover:text-brand-300 focus-visible:underline transition-colors"
+                    >
+                      <span>{cat.name}</span>
+                      {cat.count !== undefined && cat.count > 0 && (
+                        <span className="bg-slate-800 px-2 py-0.5 rounded-full text-[11px] text-slate-400 group-hover:text-brand-300 transition-colors">
+                          {cat.count}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+                <li className="pt-1">
+                  <Link
+                    href="/categories"
+                    className="inline-flex items-center gap-1 font-semibold text-brand-400 hover:text-brand-300 text-xs transition-colors"
+                  >
+                    <span>Lihat Semua Kategori</span>
+                    <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+                  </Link>
+                </li>
+              </ul>
+            ) : (
+              <p className="text-slate-500 text-xs">
+                Kategori sedang disinkronkan...
+              </p>
+            )}
           </nav>
 
-          {/* Kontak Bantuan */}
+          {/* Contact Support */}
           <div className="space-y-4">
             <h4 className="font-slab font-bold text-white text-base tracking-wide">
               Kontak Bantuan
