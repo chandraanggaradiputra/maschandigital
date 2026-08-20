@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SectionContainer } from "@/components/layout/SectionContainer";
-import { getVendors } from "@/lib/api/wordpress";
+import { getVendorSession } from "@/lib/api/auth";
 
 export default function DashboardLayout({
   children,
@@ -25,13 +25,10 @@ export default function DashboardLayout({
   const [vendorSlug, setVendorSlug] = useState("vendor-serang");
 
   useEffect(() => {
-    async function loadVendor() {
-      const vendors = await getVendors();
-      if (vendors && vendors.length > 0) {
-        setVendorSlug(vendors[0].slug);
-      }
+    const session = getVendorSession();
+    if (session?.user?.slug) {
+      setVendorSlug(session.user.slug);
     }
-    loadVendor();
   }, []);
 
   const sidebarLinks = [
