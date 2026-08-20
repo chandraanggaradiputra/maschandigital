@@ -1,26 +1,76 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Konfigurasi Dark Mode untuk class selector (next-themes) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Definisi Design Tokens & Brand Colors Mas Chan Digital */
+@theme {
+  /* Brand Palette: #093c96 */
+  --color-brand-50: #eef4ff;
+  --color-brand-100: #d9e6ff;
+  --color-brand-200: #bcd3ff;
+  --color-brand-300: #8eb8ff;
+  --color-brand-400: #5993ff;
+  --color-brand-500: #326ffc;
+  --color-brand-600: #1b4ff1;
+  --color-brand-700: #133bd9;
+  --color-brand-800: #093c96; /* Warna Utama */
+  --color-brand-900: #062561; /* Warna Gelap Gradient */
+  --color-brand-950: #03153b;
+
+  /* WhatsApp Brand Color */
+  --color-whatsapp-500: #25d366;
+  --color-whatsapp-600: #128c7e;
+
+  /* Surface & Background */
+  --color-surface-light: #f8fafc;
+  --color-surface-card: #ffffff;
+  --color-surface-dark: #0f172a;
+  --color-surface-darkCard: #1e293b;
+
+  /* Font Roboto Slab */
+  --font-sans: var(--font-roboto-slab), "Roboto Slab", serif;
+  --font-slab: var(--font-roboto-slab), "Roboto Slab", serif;
+
+  /* Gradients */
+  --background-image-brand-gradient: linear-gradient(
+    135deg,
+    #093c96 0%,
+    #062561 100%
+  );
+  --background-image-brand-gradient-hover: linear-gradient(
+    135deg,
+    #133bd9 0%,
+    #093c96 100%
+  );
+
+  /* Shadows */
+  --shadow-subtle:
+    0 2px 8px -2px rgba(9, 60, 150, 0.08), 0 1px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover:
+    0 12px 24px -4px rgba(9, 60, 150, 0.12), 0 4px 8px -2px rgba(0, 0, 0, 0.06);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    background-color: var(--color-surface-light);
+    color: #1e293b;
+    font-family: var(--font-sans);
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 5rem; /* Ruang untuk mobile bottom navigation */
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  .dark body {
+    background-color: var(--color-surface-dark);
+    color: #f8fafc;
+  }
+
+  @media (min-width: 768px) {
+    body {
+      padding-bottom: 0;
+    }
+  }
 }
