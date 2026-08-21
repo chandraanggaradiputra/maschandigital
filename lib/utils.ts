@@ -67,3 +67,23 @@ export function generateWhatsAppVendorUrl(params: {
 
   return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(text)}`;
 }
+
+// Nomor WhatsApp resmi admin Mas Chan Digital untuk konfirmasi pembayaran langganan.
+export const MASCHAN_ADMIN_WHATSAPP = "6282298148474";
+
+export function generateWhatsAppBillingConfirmationUrl(params: {
+  invoiceNumber: string;
+  storeName: string;
+  planName: string;
+  amount: number;
+}): string {
+  const { invoiceNumber, storeName, planName, amount } = params;
+  const text =
+    `Halo Admin Mas Chan Digital, saya *${storeName}* ingin konfirmasi pembayaran langganan:\n\n` +
+    `🧾 *No. Invoice:* ${invoiceNumber}\n` +
+    `📦 *Paket:* ${planName}\n` +
+    `💰 *Nominal:* ${formatRupiah(amount)}\n\n` +
+    `Foto bukti transfer sudah saya unggah di dashboard. Mohon dicek dan disetujui ya, terima kasih!`;
+
+  return `https://wa.me/${MASCHAN_ADMIN_WHATSAPP}?text=${encodeURIComponent(text)}`;
+}

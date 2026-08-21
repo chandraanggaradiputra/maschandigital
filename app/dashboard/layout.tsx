@@ -8,6 +8,7 @@ import {
   Package,
   PlusCircle,
   Store,
+  CreditCard,
   ExternalLink,
   LogOut,
   ShieldCheck,
@@ -68,6 +69,11 @@ export default function DashboardLayout({
       label: "Pengaturan Profil Toko",
       href: "/dashboard/profile",
       icon: Store,
+    },
+    {
+      label: "Langganan & Tagihan",
+      href: "/dashboard/billing",
+      icon: CreditCard,
     },
   ];
 
