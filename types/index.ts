@@ -137,3 +137,67 @@ export interface VendorAuthSession {
   vendor_slug?: string;
   role: string;
 }
+
+// ---------------------------------------------------------------------
+// SISTEM LANGGANAN VENDOR (SUBSCRIPTION / BILLING)
+// ---------------------------------------------------------------------
+
+export type PlanId =
+  | "trial_30d"
+  | "monthly_1m"
+  | "quarterly_3m"
+  | "biannual_6m"
+  | "annual_1y";
+
+export interface SubscriptionPlan {
+  plan_id: PlanId;
+  name: string;
+  duration_days: number;
+  price: number;
+  max_products: number; // -1 = unlimited
+}
+
+// 7 status siklus hidup langganan — HARUS persis sama dengan definisi backend
+// (maschan_subscription_statuses_can_add_product / maschan_subscription_closes_store)
+export type SubscriptionStatus =
+  | "trial"
+  | "active"
+  | "renewal_due"
+  | "pending_approval"
+  | "payment_rejected"
+  | "grace_period"
+  | "expired";
+
+export interface VendorSubscription {
+  status: SubscriptionStatus;
+  plan_id: PlanId | "exempt"; // "exempt" = akun internal/demo, dikecualikan dari sistem langganan
+  plan_name: string;
+  end_date: string | null; // ISO datetime, null kalau belum pernah punya langganan ATAU exempt (tidak pernah berakhir)
+  max_products: number; // -1 = unlimited
+  is_unlimited: boolean;
+  products_used: number;
+  can_add_product: boolean; // dihitung backend — jangan hitung ulang tanggal/kuota di frontend
+}
+
+export type InvoiceStatus =
+  | "unpaid"
+  | "waiting_approval"
+  | "approved"
+  | "rejected";
+
+export interface BillingInvoice {
+  id: number;
+  invoice_number: string;
+  vendor_id: number;
+  plan_id: PlanId;
+  amount: number;
+  payment_method: string;
+  sender_account_name: string;
+  proof_image_url: string;
+  invoice_status: InvoiceStatus;
+  admin_note?: string;
+  rejected_reason?: string;
+  approved_at?: string | null;
+  approved_by?: number | null;
+  created_at: string;
+}
