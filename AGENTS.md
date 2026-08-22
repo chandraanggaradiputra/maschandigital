@@ -95,6 +95,14 @@ if (\!$admin\_id) { ... }
 - **Kebijakan Downgrade**: Produk lama tidak pernah dihapus/disembunyikan. Sistem hanya memblokir penambahan produk BARU jika total produk saat ini $\\ge$ kuota paket aktif.  
 - **Hak Tambah Produk**: `renewal_due` diperbolehkan tambah produk (masa aktif masih sah). `grace_period` dan `payment_rejected` diblokir untuk tambah produk.
 
+### E. Kebijakan Terbaru: Auto-Downgrade ke Starter (BUKAN Auto-Expire) — 21 Agustus 2026
+
+- **Perubahan penting**: cron harian (saat dibangun nanti) yang mengevaluasi `grace_period` **TIDAK PERNAH** lagi mengubah status jadi `expired`. Vendor berbayar yang lewat masa tenggang tanpa bayar **otomatis diturunkan ke `active` + `free_forever`** (Paket Starter UMKM, kuota 3 produk) — toko TETAP TAMPIL di publik, cuma kuota produknya turun.
+- **Konsekuensi**: status `expired` pada praktiknya tidak akan pernah dipicu otomatis oleh sistem lagi. Status ini dipertahankan di kode (`maschan_subscription_closes_store()`) HANYA untuk kemungkinan aksi manual admin di masa depan (belum dibangun) — jangan hapus dari union type/enum, tapi jangan andalkan sebagai bagian dari alur otomatis.
+- **Status `trial` juga dipensiunkan** dari alur baru (pendaftar baru langsung `active` + `free_forever`, bukan `trial`). Tetap ada di kode untuk kompatibilitas data lama.
+- **Downgrade manual oleh vendor**: vendor berbayar boleh pindah balik ke Starter kapan saja lewat `POST /billing/renew` dengan `plan_id: 'free_forever'`. Karena harganya Rp 0, endpoint ini **auto-approve langsung** (skip alur upload bukti transfer/`pending_approval`/approval admin sepenuhnya) — jangan tambahkan validasi bukti bayar untuk paket berharga Rp 0.
+- **Endpoint migrasi vendor lama** (`POST /admin/billing/migrate-legacy-vendor`): mode `'trial'` sudah diganti jadi mode `'starter'` (karena `trial_30d` sudah tidak ada, digantikan `free_forever`). Kalau ada kode/dokumentasi lain yang masih menyebut mode `'trial'`, itu sudah usang — update ke `'starter'`.
+
 ---
 
 ## 5\. UI, Komponen, & Alur Navigasi
@@ -118,4 +126,3 @@ if (\!$admin\_id) { ... }
 - [ ] Uji kasus *data kosong* (tidak ada sesi login $\\rightarrow$ pastikan tampil error 401 / array kosong, bukan data vendor lain).  
 - [ ] Pastikan seluruh evaluasi filter boolean bersifat eksplisit tanpa *dangling `return true`*.  
 - [ ] Pastikan nomor kontak resmi yang digunakan adalah **`0822-9814-8474`**.
-

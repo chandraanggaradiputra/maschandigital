@@ -143,7 +143,7 @@ export interface VendorAuthSession {
 // ---------------------------------------------------------------------
 
 export type PlanId =
-  | "trial_30d"
+  | "free_forever"
   | "monthly_1m"
   | "quarterly_3m"
   | "biannual_6m"
@@ -152,13 +152,17 @@ export type PlanId =
 export interface SubscriptionPlan {
   plan_id: PlanId;
   name: string;
-  duration_days: number;
+  duration_days: number; // -1 = permanen/tidak pernah kedaluwarsa (beda makna dari max_products -1)
   price: number;
   max_products: number; // -1 = unlimited
 }
 
 // 7 status siklus hidup langganan — HARUS persis sama dengan definisi backend
-// (maschan_subscription_statuses_can_add_product / maschan_subscription_closes_store)
+// (maschan_subscription_statuses_can_add_product / maschan_subscription_closes_store).
+// CATATAN (21 Agt 2026): 'trial' dan 'expired' dipertahankan untuk kompatibilitas
+// data lama, TAPI tidak lagi dipakai alur otomatis — pendaftar baru langsung
+// 'active' + 'free_forever', dan vendor yang lewat grace_period diturunkan ke
+// 'active' + 'free_forever' (BUKAN 'expired'). Lihat AGENTS.md bagian 4E.
 export type SubscriptionStatus =
   | "trial"
   | "active"

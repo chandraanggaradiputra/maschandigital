@@ -47,7 +47,7 @@ const BANK_ACCOUNTS = [
 ];
 
 const PLAN_ORDER: PlanId[] = [
-  "trial_30d",
+  "free_forever",
   "monthly_1m",
   "quarterly_3m",
   "biannual_6m",
@@ -550,7 +550,9 @@ export default function DashboardBillingPage() {
                     {plan.price === 0 ? "Gratis" : formatRupiah(plan.price)}
                   </p>
                   <p className="mb-1 text-slate-500 dark:text-slate-400 text-xs">
-                    {plan.duration_days} hari masa aktif
+                    {plan.duration_days === -1
+                      ? "Berlaku selamanya"
+                      : `${plan.duration_days} hari masa aktif`}
                   </p>
                   <p className="mb-4 text-slate-500 dark:text-slate-400 text-xs">
                     Kuota{" "}
@@ -559,10 +561,10 @@ export default function DashboardBillingPage() {
                       : `${plan.max_products} produk`}
                   </p>
                   <Button
-                    variant={planId === "trial_30d" ? "outline" : "primary"}
+                    variant={isCurrentPlan ? "outline" : "primary"}
                     size="sm"
                     fullWidth
-                    disabled={renewingPlan !== null || planId === "trial_30d"}
+                    disabled={renewingPlan !== null || isCurrentPlan}
                     onClick={() => handleRenew(planId)}
                     className="mt-auto"
                   >
@@ -575,9 +577,11 @@ export default function DashboardBillingPage() {
                       <CreditCard className="w-3.5 h-3.5" aria-hidden="true" />
                     )}
                     <span>
-                      {planId === "trial_30d"
-                        ? "Otomatis saat daftar"
-                        : "Pilih Paket Ini"}
+                      {isCurrentPlan
+                        ? "Paket Saat Ini"
+                        : plan.price === 0
+                          ? "Turun ke Paket Ini"
+                          : "Pilih Paket Ini"}
                     </span>
                   </Button>
                 </div>
