@@ -1,6 +1,15 @@
 import React from "react";
 import Link from "next/link";
-import { Store, Phone, MapPin, Mail, Heart, ArrowRight } from "lucide-react";
+import {
+  Store,
+  Phone,
+  MapPin,
+  Mail,
+  Heart,
+  ArrowRight,
+  ShieldCheck,
+  Lock,
+} from "lucide-react";
 import { getCategories } from "@/lib/api/wordpress";
 
 export async function Footer() {
@@ -9,10 +18,9 @@ export async function Footer() {
   // Filter khusus subkategori saja (mengecualikan 'Produk Fisik', 'Produk Digital', 'Tanpa Kategori', dan 'Umum')
   const subCategories = allCategories
     .filter((c) => {
-      const s = c.slug.toLowerCase().trim();
-      const n = c.name.toLowerCase().trim();
+      const s = typeof c.slug === "string" ? c.slug.toLowerCase().trim() : "";
+      const n = typeof c.name === "string" ? c.name.toLowerCase().trim() : "";
 
-      // 1. Kecualikan parent categories eksplisit
       if (
         s === "produk-fisik" ||
         s === "produk-digital" ||
@@ -25,11 +33,13 @@ export async function Footer() {
         return false;
       }
 
-      // 2. Hanya lolos jika benar-benar subkategori (punya parent > 0).
-      //    Kategori induk lain (di luar 4 nama eksplisit di atas) ikut dikecualikan di sini.
-      return Boolean(c.parent && c.parent > 0);
+      if (c.parent && Number(c.parent) > 0) {
+        return true;
+      }
+
+      return true;
     })
-    .slice(0, 6); // Tampilkan hingga 6 subkategori
+    .slice(0, 6);
 
   return (
     <footer
@@ -78,18 +88,18 @@ export async function Footer() {
               </li>
               <li>
                 <Link
-                  href="/vendors"
-                  className="focus-visible:outline-none hover:text-brand-300 focus-visible:underline transition-colors"
-                >
-                  Daftar Toko & Vendor
-                </Link>
-              </li>
-              <li>
-                <Link
                   href="/categories"
                   className="focus-visible:outline-none hover:text-brand-300 focus-visible:underline transition-colors"
                 >
                   Semua Kategori
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/vendors"
+                  className="focus-visible:outline-none hover:text-brand-300 focus-visible:underline transition-colors"
+                >
+                  Daftar Toko & Vendor
                 </Link>
               </li>
               <li>
@@ -105,7 +115,7 @@ export async function Footer() {
                   href="/vendor/register"
                   className="focus-visible:outline-none hover:text-brand-300 focus-visible:underline transition-colors"
                 >
-                  Daftar Sebagai Vendor
+                  Daftar Toko (Gratis)
                 </Link>
               </li>
               <li>
@@ -113,7 +123,7 @@ export async function Footer() {
                   href="/vendor/login"
                   className="focus-visible:outline-none hover:text-brand-300 focus-visible:underline transition-colors"
                 >
-                  Login Dashboard
+                  Login Vendor
                 </Link>
               </li>
             </ul>
@@ -164,17 +174,17 @@ export async function Footer() {
             )}
           </nav>
 
-          {/* Contact Support */}
+          {/* Contact Support & Legal Quick Links */}
           <div className="space-y-4">
             <h4 className="font-slab font-bold text-white text-base tracking-wide">
-              Kontak Bantuan
+              Kontak & Legalitas
             </h4>
             <address className="space-y-2.5 text-slate-400 text-sm not-italic">
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-brand-400" aria-hidden="true" />
                 <a
                   href="tel:+6282298148474"
-                  className="hover:text-white transition-colors"
+                  className="font-medium hover:text-white transition-colors"
                 >
                   0822-9814-8474 (Mas Chan)
                 </a>
@@ -182,28 +192,62 @@ export async function Footer() {
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-brand-400" aria-hidden="true" />
                 <a
-                  href="mailto:support@maschandigital.com"
+                  href="mailto:admin@maschandigital.id"
                   className="hover:text-white transition-colors"
                 >
-                  support@maschandigital.com
+                  admin@maschandigital.id
                 </a>
               </div>
             </address>
+
+            <div className="space-y-1.5 pt-2 border-slate-800/80 border-t text-slate-400 text-xs">
+              <Link
+                href="/syarat-ketentuan"
+                className="flex items-center gap-1.5 hover:text-brand-300 transition-colors"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-slate-500" />
+                <span>Syarat & Ketentuan</span>
+              </Link>
+              <Link
+                href="/kebijakan-privasi"
+                className="flex items-center gap-1.5 hover:text-brand-300 transition-colors"
+              >
+                <Lock className="w-3.5 h-3.5 text-slate-500" />
+                <span>Kebijakan Privasi</span>
+              </Link>
+            </div>
           </div>
         </div>
 
+        {/* Bottom Bar */}
         <div className="flex sm:flex-row flex-col justify-between items-center gap-4 mt-12 pt-8 border-slate-800 border-t text-slate-500 text-xs">
           <p>
             © {new Date().getFullYear()} Mas Chan Digital. All rights reserved.
           </p>
-          <p className="flex items-center gap-1">
-            Dibuat dengan{" "}
-            <Heart
-              className="fill-rose-500 w-3.5 h-3.5 text-rose-500"
-              aria-hidden="true"
-            />{" "}
-            untuk kemajuan UMKM Kota Serang
-          </p>
+          <div className="flex items-center gap-4 text-slate-400 text-xs">
+            <Link
+              href="/syarat-ketentuan"
+              className="hover:text-white transition-colors"
+            >
+              Syarat & Ketentuan
+            </Link>
+            <span>•</span>
+            <Link
+              href="/kebijakan-privasi"
+              className="hover:text-white transition-colors"
+            >
+              Kebijakan Privasi
+            </Link>
+            <span>•</span>
+            <span className="flex items-center gap-1 text-slate-500">
+              Kota Serang{" "}
+              <Heart
+                className="fill-rose-500 w-3.5 h-3.5 text-rose-500"
+                aria-hidden="true"
+              />{" "}
+              Banten
+            </span>
+          </div>
         </div>
       </div>
     </footer>
