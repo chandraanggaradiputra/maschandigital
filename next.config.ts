@@ -44,14 +44,6 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "app.maschandigital.com",
-      },
-      {
-        protocol: "https",
-        hostname: "maschandigital.com",
-      },
-      {
-        protocol: "https",
         hostname: "images.unsplash.com",
       },
       {
