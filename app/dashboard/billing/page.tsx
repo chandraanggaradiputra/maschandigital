@@ -344,6 +344,13 @@ export default function DashboardBillingPage() {
               {formatRupiah(pendingApprovalInvoice.amount)}
             </dd>
           </dl>
+          {pendingApprovalInvoice.is_overdue && (
+            <p className="mt-3 text-amber-600 dark:text-amber-400 text-xs">
+              Verifikasi sedang memakan waktu lebih lama dari biasanya — toko
+              Anda tetap buka seperti biasa selama menunggu. Kalau ingin lebih
+              cepat, silakan hubungi Admin lewat WhatsApp.
+            </p>
+          )}
         </div>
       )}
 

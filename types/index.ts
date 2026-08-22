@@ -202,6 +202,8 @@ export interface BillingInvoice {
   admin_note?: string;
   rejected_reason?: string;
   approved_at?: string | null;
+  confirmed_at?: string | null; // Kapan vendor unggah bukti bayar — dipakai cron hitung toleransi 3 hari
+  is_overdue?: boolean; // true kalau sudah lewat toleransi verifikasi tapi admin belum approve/reject
   approved_by?: number | null;
   created_at: string;
 }
