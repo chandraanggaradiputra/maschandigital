@@ -15,9 +15,33 @@ import { SectionContainer } from "@/components/layout/SectionContainer";
 import { Button } from "@/components/ui/Button";
 
 export const metadata: Metadata = {
-  title: "Syarat & Ketentuan Layanan - Mas Chan Digital Kota Serang",
+  title: "Syarat & Ketentuan - Mas Chan Digital",
   description:
-    "Ketentuan dan panduan transaksi aman jual beli langsung via WhatsApp di platform marketplace lokal Mas Chan Digital Kota Serang, Banten.",
+    "Syarat dan ketentuan resmi penggunaan platform marketplace direktori Mas Chan Digital bagi pengunjung dan vendor UMKM di Kota Serang.",
+  openGraph: {
+    title: "Syarat & Ketentuan - Mas Chan Digital",
+    description:
+      "Syarat dan ketentuan resmi penggunaan platform marketplace direktori Mas Chan Digital.",
+    url: "https://maschandigital.id/syarat-ketentuan",
+    siteName: "Mas Chan Digital",
+    locale: "id_ID",
+    type: "website",
+    images: [
+      {
+        url: "/mas-chan-digital.webp",
+        width: 1200,
+        height: 630,
+        alt: "Syarat & Ketentuan - Mas Chan Digital Serang",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Syarat & Ketentuan - Mas Chan Digital",
+    description:
+      "Syarat dan ketentuan resmi penggunaan platform marketplace Mas Chan Digital.",
+    images: ["/mas-chan-digital.webp"],
+  },
 };
 
 export default function TermsPage() {

@@ -45,7 +45,9 @@ export async function generateMetadata({
   const seoDesc =
     product.seo?.meta_description ||
     product.short_description ||
-    `Beli ${product.name} langsung dari vendor lokal Serang via WhatsApp.`;
+    `Beli ${product.name} langsung dari vendor lokal ${product.vendor?.store_name || "Serang"} via WhatsApp. Bebas biaya admin.`;
+  const mainImg =
+    product.images[0]?.src || "https://maschandigital.id/mas-chan-digital.webp";
 
   return {
     title: seoTitle,
@@ -56,7 +58,24 @@ export async function generateMetadata({
     openGraph: {
       title: seoTitle,
       description: seoDesc,
-      images: product.images[0]?.src ? [{ url: product.images[0].src }] : [],
+      url: `https://maschandigital.id/products/${product.slug}`,
+      siteName: "Mas Chan Digital",
+      locale: "id_ID",
+      type: "article",
+      images: [
+        {
+          url: mainImg,
+          width: 1200,
+          height: 630,
+          alt: `Foto produk ${product.name} di Mas Chan Digital`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: seoTitle,
+      description: seoDesc,
+      images: [mainImg],
     },
   };
 }

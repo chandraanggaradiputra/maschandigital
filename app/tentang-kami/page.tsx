@@ -20,6 +20,30 @@ export const metadata: Metadata = {
   title: "Tentang Kami - Mas Chan Digital | Marketplace Lokal Kota Serang",
   description:
     "Mengenal Mas Chan Digital, platform marketplace direktori lokal untuk memajukan UMKM di Kota Serang melalui transaksi langsung ke WhatsApp vendor tanpa potongan biaya gateway.",
+  openGraph: {
+    title: "Tentang Kami - Mas Chan Digital | Marketplace Lokal Kota Serang",
+    description:
+      "Mengenal Mas Chan Digital, platform marketplace direktori lokal untuk memajukan UMKM di Kota Serang melalui transaksi langsung ke WhatsApp vendor.",
+    url: "https://maschandigital.id/tentang-kami",
+    siteName: "Mas Chan Digital",
+    locale: "id_ID",
+    type: "website",
+    images: [
+      {
+        url: "/mas-chan-digital.webp",
+        width: 1200,
+        height: 630,
+        alt: "Tentang Mas Chan Digital - Marketplace UMKM Kota Serang",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Tentang Kami - Mas Chan Digital | Marketplace Lokal Kota Serang",
+    description:
+      "Platform marketplace lokal untuk memajukan UMKM di Kota Serang.",
+    images: ["/mas-chan-digital.webp"],
+  },
 };
 
 export default function TentangKamiPage() {

@@ -14,6 +14,29 @@ export const metadata: Metadata = {
   title: "Katalog Produk UMKM Kota Serang - Mas Chan Digital",
   description:
     "Jelajahi seluruh katalog produk kuliner, madu & herbal, fashion batik, dan jasa lokal dari UMKM di 6 kecamatan Kota Serang. Beli langsung via WhatsApp tanpa perantara.",
+  openGraph: {
+    title: "Katalog Produk UMKM Kota Serang - Mas Chan Digital",
+    description:
+      "Jelajahi seluruh katalog produk kuliner, madu & herbal, fashion batik, dan jasa lokal dari UMKM di 6 kecamatan Kota Serang.",
+    url: "https://maschandigital.id/products",
+    siteName: "Mas Chan Digital",
+    locale: "id_ID",
+    type: "website",
+    images: [
+      {
+        url: "/mas-chan-digital.webp",
+        width: 1200,
+        height: 630,
+        alt: "Katalog Produk UMKM Kota Serang - Mas Chan Digital",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Katalog Produk UMKM Kota Serang - Mas Chan Digital",
+    description: "Jelajahi seluruh katalog produk UMKM pilihan di Kota Serang.",
+    images: ["/mas-chan-digital.webp"],
+  },
 };
 
 export default async function ProductsIndexPage() {

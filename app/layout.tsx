@@ -25,18 +25,63 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Mas Chan Digital - Marketplace Lokal Kota Serang",
+  title: {
+    default: "Mas Chan Digital - Marketplace Lokal Kota Serang",
+    template: "%s | Mas Chan Digital",
+  },
   description:
-    "Pusat belanja produk, oleh-oleh khas, dan jasa UMKM lokal Kota Serang. Transaksi langsung via WhatsApp dan link affiliasi resmi.",
+    "Pusat belanja produk, oleh-oleh khas, dan jasa UMKM lokal Kota Serang. Transaksi langsung via WhatsApp dan link affiliasi resmi tanpa payment gateway.",
   metadataBase: new URL("https://maschandigital.id"),
+  keywords: [
+    "Marketplace Serang",
+    "UMKM Kota Serang",
+    "Kuliner Serang",
+    "Sate Bandeng Serang",
+    "Madu Akasia Serang",
+    "Batik Banten",
+    "Mas Chan Digital",
+  ],
+  authors: [
+    { name: "Chandra Anggara Diputra", url: "https://maschandigital.id" },
+  ],
+  creator: "Chandra Anggara Diputra",
+  publisher: "Mas Chan Digital",
   openGraph: {
     title: "Mas Chan Digital - Marketplace Lokal Kota Serang",
     description:
-      "Beli madu akasia, sate bandeng, batik Banten, dan jasa lokal langsung ke WhatsApp vendor tanpa perantara.",
+      "Beli madu akasia, sate bandeng, batik Banten, dan aneka produk lokal langsung ke WhatsApp vendor tanpa potongan biaya.",
     url: "https://maschandigital.id",
     siteName: "Mas Chan Digital",
     locale: "id_ID",
     type: "website",
+    images: [
+      {
+        url: "/mas-chan-digital.webp",
+        width: 1200,
+        height: 630,
+        alt: "Mas Chan Digital - Direktori & Marketplace UMKM Kota Serang",
+        type: "image/webp",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Mas Chan Digital - Marketplace Lokal Kota Serang",
+    description:
+      "Beli produk UMKM lokal Serang langsung via WhatsApp tanpa perantara.",
+    images: ["/mas-chan-digital.webp"],
+    creator: "@maschandigital",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 

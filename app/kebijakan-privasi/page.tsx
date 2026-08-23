@@ -6,9 +6,32 @@ import { SectionContainer } from "@/components/layout/SectionContainer";
 import { Button } from "@/components/ui/Button";
 
 export const metadata: Metadata = {
-  title: "Kebijakan Privasi - Mas Chan Digital Kota Serang",
+  title: "Kebijakan Privasi - Mas Chan Digital",
   description:
-    "Kebijakan perlindungan data pribadi, informasi kontak WhatsApp vendor, dan keamanan pengguna di Mas Chan Digital Kota Serang.",
+    "Kebijakan privasi dan perlindungan data pribadi pengguna serta mitra vendor terdaftar di platform marketplace Mas Chan Digital Kota Serang.",
+  openGraph: {
+    title: "Kebijakan Privasi - Mas Chan Digital",
+    description:
+      "Kebijakan privasi dan perlindungan data pribadi pengguna serta mitra vendor terdaftar di platform marketplace Mas Chan Digital.",
+    url: "https://maschandigital.id/kebijakan-privasi",
+    siteName: "Mas Chan Digital",
+    locale: "id_ID",
+    type: "website",
+    images: [
+      {
+        url: "/mas-chan-digital.webp",
+        width: 1200,
+        height: 630,
+        alt: "Kebijakan Privasi - Mas Chan Digital Serang",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Kebijakan Privasi - Mas Chan Digital",
+    description: "Kebijakan privasi dan perlindungan data di Mas Chan Digital.",
+    images: ["/mas-chan-digital.webp"],
+  },
 };
 
 export default function PrivacyPage() {
