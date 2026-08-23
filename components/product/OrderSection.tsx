@@ -114,8 +114,8 @@ export function OrderSection({
               <span>Toko Sedang Libur (Pemesanan Ditutup)</span>
             </Button>
             <p className="text-[11px] text-slate-400 text-center">
-              Tombol pemesanan dinonaktifkan sementara karena toko sedang
-              dalam masa libur.
+              Tombol pemesanan dinonaktifkan sementara karena toko sedang dalam
+              masa libur.
             </p>
           </div>
         ) : !storeStatus.isOpen ? (
@@ -148,7 +148,10 @@ export function OrderSection({
               className="shadow-card-hover py-4 font-bold text-sm sm:text-base"
               aria-haspopup="dialog"
             >
-              <MessageCircle className="fill-white mr-1 w-5 h-5" aria-hidden="true" />
+              <MessageCircle
+                className="fill-white mr-1 w-5 h-5"
+                aria-hidden="true"
+              />
               <span>Pesan Langsung via WhatsApp Vendor</span>
             </Button>
 
