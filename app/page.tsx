@@ -18,6 +18,10 @@ import {
   Users,
   CheckCircle2,
 } from "lucide-react";
+
+// Halaman ini menampilkan status buka/tutup toko yang berubah tiap menit —
+// jangan pernah dibiarkan Next.js render statis sekali lalu disajikan basi.
+export const dynamic = "force-dynamic";
 import { SectionContainer } from "@/components/layout/SectionContainer";
 import { ProductCard } from "@/components/cards/ProductCard";
 import { VendorCard } from "@/components/cards/VendorCard";

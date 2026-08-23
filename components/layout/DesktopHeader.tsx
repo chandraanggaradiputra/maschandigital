@@ -133,7 +133,7 @@ export function DesktopHeader() {
                   className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
                 >
                   <Package className="w-4 h-4" aria-hidden="true" />
-                  <span>Semua Produk</span>
+                  <span>Produk</span>
                 </Link>
               </li>
               <li>
@@ -151,7 +151,7 @@ export function DesktopHeader() {
                   className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
                 >
                   <Store className="w-4 h-4" aria-hidden="true" />
-                  <span>Daftar Vendor</span>
+                  <span>Vendor</span>
                 </Link>
               </li>
               <li>

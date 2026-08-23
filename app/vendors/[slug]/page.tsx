@@ -25,6 +25,10 @@ import { generateWhatsAppVendorUrl } from "@/lib/utils";
 import { checkStoreStatus } from "@/lib/storeStatus";
 import { StoreHours } from "@/types";
 
+// Halaman ini menampilkan status buka/tutup toko yang berubah tiap menit —
+// jangan pernah dibiarkan Next.js render statis sekali lalu disajikan basi.
+export const dynamic = "force-dynamic";
+
 type VendorPageProps = {
   params: Promise<{ slug: string }>;
 };

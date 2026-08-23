@@ -3,13 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import {
-  Store,
-  ShieldCheck,
-  MapPin,
-  Tag,
-  CheckCircle2,
-} from "lucide-react";
+import { Store, ShieldCheck, MapPin, Tag, CheckCircle2 } from "lucide-react";
 import { SectionContainer } from "@/components/layout/SectionContainer";
 import { ProductCard } from "@/components/cards/ProductCard";
 import { Button } from "@/components/ui/Button";
@@ -22,6 +16,10 @@ import {
 } from "@/lib/api/wordpress";
 import { formatRupiah } from "@/lib/utils";
 import { checkStoreStatus } from "@/lib/storeStatus";
+
+// Jaring pengaman eksplisit — konsisten dengan halaman lain yang menampilkan
+// status buka/tutup toko (lihat catatan yang sama di app/page.tsx dkk).
+export const dynamic = "force-dynamic";
 
 type ProductPageProps = {
   params: Promise<{ slug: string }>;
@@ -295,7 +293,9 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
               initialStoreStatus={storeStatus}
               storeHours={vendor?.store_hours}
               vacationMode={vendor?.vacation_mode}
-              whatsappNumber={product.vendor?.whatsapp_number || "6285213655126"}
+              whatsappNumber={
+                product.vendor?.whatsapp_number || "6285213655126"
+              }
               vendorName={product.vendor?.store_name || "Admin Toko"}
               productName={product.name}
               unitPrice={parseFloat(currentPrice) || 0}
