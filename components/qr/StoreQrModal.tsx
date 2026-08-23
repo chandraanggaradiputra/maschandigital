@@ -37,142 +37,212 @@ export function StoreQrModal({
   const targetUrl = `https://maschandigital.id/vendors/${cleanSlug}`;
   const districtName = storeDistrict ? `Kec. ${storeDistrict}` : "Kota Serang";
 
-  // Dibungkus useCallback untuk menghilangkan warning React Hook
-  const drawStandeeCard = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const renderCanvas = useCallback(
+    (logoImage?: HTMLImageElement | null) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
 
-    // Dimensi Kanvas Kualitas Tinggi (Standee A5 rasio: 600 x 850 px)
-    const width = 600;
-    const height = 850;
-    canvas.width = width;
-    canvas.height = height;
+      // Dimensi Kanvas Kualitas Tinggi (Standee A5 rasio: 600 x 850 px)
+      const width = 600;
+      const height = 850;
+      canvas.width = width;
+      canvas.height = height;
 
-    // 1. Background Dasar Putih
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0, 0, width, height);
+      // 1. Background Dasar Putih Bersih
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, width, height);
 
-    // 2. Header Brand Gradient
-    const grad = ctx.createLinearGradient(0, 0, width, 180);
-    grad.addColorStop(0, "#093c96");
-    grad.addColorStop(1, "#1e3a8a");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, width, 180);
+      // 2. Header Brand Gradient Banner
+      const grad = ctx.createLinearGradient(0, 0, width, 180);
+      grad.addColorStop(0, "#093c96");
+      grad.addColorStop(1, "#1e3a8a");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, width, 180);
 
-    // Header Text
-    ctx.fillStyle = "#fde047";
-    ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("DIREKTORI & MARKETPLACE RESMI KOTA SERANG", width / 2, 45);
+      // Header Pattern Accent
+      ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+      for (let i = 0; i < width; i += 20) {
+        ctx.fillRect(i, 0, 10, 180);
+      }
 
-    ctx.fillStyle = "#FFFFFF";
-    ctx.font = "900 28px system-ui, -apple-system, sans-serif";
-    ctx.fillText("MAS CHAN DIGITAL", width / 2, 85);
+      // Gambar Logo Mas Chan Digital di Header jika tersedia
+      if (logoImage && logoImage.complete && logoImage.naturalWidth > 0) {
+        const logoSize = 46;
+        const logoX = width / 2 - logoSize / 2;
+        const logoY = 22;
 
-    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-    ctx.font = "14px system-ui, -apple-system, sans-serif";
-    ctx.fillText(
-      "Beli Produk UMKM Lokal Langsung via WhatsApp",
-      width / 2,
-      115,
-    );
+        // Bingkai Lingkaran Putih untuk Logo
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(
+          width / 2,
+          logoY + logoSize / 2,
+          logoSize / 2 + 3,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fill();
+        ctx.clip();
+        ctx.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
+        ctx.restore();
 
-    // 3. Nama Toko & Badge Lokasi
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "900 26px system-ui, -apple-system, sans-serif";
-    ctx.fillText(storeName || "Toko Vendor", width / 2, 235);
+        // Brand Text di Bawah Logo
+        ctx.fillStyle = "#fde047"; // Amber yellow
+        ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(
+          "DIREKTORI & MARKETPLACE RESMI KOTA SERANG",
+          width / 2,
+          92,
+        );
 
-    ctx.fillStyle = "#f1f5f9";
-    if (ctx.roundRect) {
-      ctx.beginPath();
-      ctx.roundRect(width / 2 - 130, 255, 260, 32, 16);
-      ctx.fill();
-    } else {
-      ctx.fillRect(width / 2 - 130, 255, 260, 32);
-    }
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "900 24px system-ui, -apple-system, sans-serif";
+        ctx.fillText("MAS CHAN DIGITAL", width / 2, 122);
 
-    ctx.fillStyle = "#093c96";
-    ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
-    ctx.fillText(`📍 ${districtName}, Kota Serang`, width / 2, 276);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+        ctx.font = "13px system-ui, -apple-system, sans-serif";
+        ctx.fillText(
+          "Beli Produk UMKM Lokal Langsung via WhatsApp",
+          width / 2,
+          146,
+        );
+      } else {
+        // Fallback Layout jika gambar belum termuat
+        ctx.fillStyle = "#fde047";
+        ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(
+          "DIREKTORI & MARKETPLACE RESMI KOTA SERANG",
+          width / 2,
+          45,
+        );
 
-    // 4. Generate & Gambar QR Code Matriks
-    const matrix = QRCodeGenerator.generateMatrix(targetUrl);
-    const matrixSize = matrix.length;
-    const qrSize = 340;
-    const qrX = (width - qrSize) / 2;
-    const qrY = 320;
-    const cellSize = qrSize / matrixSize;
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "900 28px system-ui, -apple-system, sans-serif";
+        ctx.fillText("MAS CHAN DIGITAL", width / 2, 85);
 
-    ctx.fillStyle = "#f8fafc";
-    ctx.strokeStyle = "#cbd5e1";
-    ctx.lineWidth = 2;
-    if (ctx.roundRect) {
-      ctx.beginPath();
-      ctx.roundRect(qrX - 15, qrY - 15, qrSize + 30, qrY + 30, 20);
-      ctx.fill();
-      ctx.stroke();
-    } else {
-      ctx.fillRect(qrX - 15, qrY - 15, qrSize + 30, qrSize + 30);
-    }
+        ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+        ctx.font = "14px system-ui, -apple-system, sans-serif";
+        ctx.fillText(
+          "Beli Produk UMKM Lokal Langsung via WhatsApp",
+          width / 2,
+          115,
+        );
+      }
 
-    ctx.fillStyle = "#0f172a";
-    for (let r = 0; r < matrixSize; r++) {
-      for (let c = 0; c < matrixSize; c++) {
-        if (matrix[r][c]) {
-          ctx.fillRect(
-            qrX + c * cellSize,
-            qrY + r * cellSize,
-            cellSize + 0.4,
-            cellSize + 0.4,
-          );
+      // 3. Nama Toko & Badge Lokasi
+      ctx.fillStyle = "#0f172a";
+      ctx.font = "900 26px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(storeName || "Toko Vendor", width / 2, 235);
+
+      ctx.fillStyle = "#f1f5f9";
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(width / 2 - 130, 255, 260, 32, 16);
+        ctx.fill();
+      } else {
+        ctx.fillRect(width / 2 - 130, 255, 260, 32);
+      }
+
+      ctx.fillStyle = "#093c96";
+      ctx.font = "bold 13px system-ui, -apple-system, sans-serif";
+      ctx.fillText(`📍 ${districtName}, Kota Serang`, width / 2, 276);
+
+      // 4. Generate & Gambar QR Code Matriks
+      const matrix = QRCodeGenerator.generateMatrix(targetUrl);
+      const matrixSize = matrix.length;
+      const qrSize = 340;
+      const qrX = (width - qrSize) / 2;
+      const qrY = 320;
+      const cellSize = qrSize / matrixSize;
+
+      ctx.fillStyle = "#f8fafc";
+      ctx.strokeStyle = "#cbd5e1";
+      ctx.lineWidth = 2;
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(qrX - 15, qrY - 15, qrSize + 30, qrSize + 30, 20);
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        ctx.fillRect(qrX - 15, qrY - 15, qrSize + 30, qrSize + 30);
+      }
+
+      ctx.fillStyle = "#0f172a";
+      for (let r = 0; r < matrixSize; r++) {
+        for (let c = 0; c < matrixSize; c++) {
+          if (matrix[r][c]) {
+            ctx.fillRect(
+              qrX + c * cellSize,
+              qrY + r * cellSize,
+              cellSize + 0.4,
+              cellSize + 0.4,
+            );
+          }
         }
       }
-    }
 
-    // 5. Teks Panduan Pindai
-    ctx.fillStyle = "#1e293b";
-    ctx.font = "bold 15px system-ui, -apple-system, sans-serif";
-    ctx.fillText("Pindai QR ini dengan Kamera HP Anda", width / 2, 705);
+      // 5. Teks Panduan Pindai
+      ctx.fillStyle = "#1e293b";
+      ctx.font = "bold 15px system-ui, -apple-system, sans-serif";
+      ctx.fillText("Pindai QR ini dengan Kamera HP Anda", width / 2, 705);
 
-    ctx.fillStyle = "#64748b";
-    ctx.font = "12px system-ui, -apple-system, sans-serif";
-    ctx.fillText(
-      "Lihat seluruh katalog produk kami & pesan mudah via WhatsApp",
-      width / 2,
-      730,
-    );
+      ctx.fillStyle = "#64748b";
+      ctx.font = "12px system-ui, -apple-system, sans-serif";
+      ctx.fillText(
+        "Lihat seluruh katalog produk kami & pesan mudah via WhatsApp",
+        width / 2,
+        730,
+      );
 
-    // 6. Footer Standee
-    ctx.strokeStyle = "#e2e8f0";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(40, 765);
-    ctx.lineTo(width - 40, 765);
-    ctx.stroke();
+      // 6. Footer Standee
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(40, 765);
+      ctx.lineTo(width - 40, 765);
+      ctx.stroke();
 
-    ctx.fillStyle = "#059669";
-    ctx.font = "bold 12px system-ui, -apple-system, sans-serif";
-    ctx.fillText(
-      "✓ 0% Biaya Admin  •  ✓ 100% Produk Lokal Asli  •  maschandigital.id",
-      width / 2,
-      800,
-    );
+      ctx.fillStyle = "#059669";
+      ctx.font = "bold 12px system-ui, -apple-system, sans-serif";
+      ctx.fillText(
+        "✓ 0% Biaya Admin  •  ✓ 100% Produk Lokal Asli  •  maschandigital.id",
+        width / 2,
+        800,
+      );
 
-    setIsReady(true);
-  }, [cleanSlug, districtName, storeName, targetUrl]);
+      setIsReady(true);
+    },
+    [cleanSlug, districtName, storeName, targetUrl],
+  );
 
   useEffect(() => {
     if (!isOpen) return;
 
+    // Muat gambar logo secara asinkron dari folder /public
+    const logoImg = new Image();
+    logoImg.src = "/maschandigital.webp";
+
+    logoImg.onload = () => {
+      renderCanvas(logoImg);
+    };
+
+    logoImg.onerror = () => {
+      renderCanvas(null);
+    };
+
     const timer = setTimeout(() => {
-      drawStandeeCard();
+      renderCanvas(logoImg.complete ? logoImg : null);
     }, 50);
 
     return () => clearTimeout(timer);
-  }, [isOpen, drawStandeeCard]);
+  }, [isOpen, renderCanvas]);
 
   const handleDownload = () => {
     const canvas = canvasRef.current;
