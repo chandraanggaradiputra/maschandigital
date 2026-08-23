@@ -22,6 +22,8 @@ interface ProductCardProps {
   vendorStoreStatus?: StoreStatus;
 }
 
+const CANONICAL_SITE_URL = "https://maschandigital.id";
+
 export function ProductCard({
   product,
   className,
@@ -41,7 +43,7 @@ export function ProductCard({
     product.regular_price || product.price,
   );
 
-  // Evaluasi Status Jam Buka & Libur Toko Vendor (Prioritas dari prop parent jika tersedia)
+  // Evaluasi Status Jam Buka & Libur Toko Vendor
   const storeStatus =
     vendorStoreStatus ||
     checkStoreStatus(
@@ -49,14 +51,14 @@ export function ProductCard({
       product.vendor?.vacation_mode,
     );
 
+  // Gunakan URL deterministik konsisten antara Server dan Client (Anti-Hydration Mismatch)
+  const productUrl = `${CANONICAL_SITE_URL}/products/${product.slug}`;
+
   const waUrl = generateWhatsAppProductUrl({
     whatsappNumber: product.vendor?.whatsapp_number || "6282298148474",
     productName: product.name,
     price: hasSale ? formattedSalePrice : formattedRegularPrice,
-    productUrl:
-      typeof window !== "undefined"
-        ? `${window.location.origin}/products/${product.slug}`
-        : `https://maschandigital.id/products/${product.slug}`,
+    productUrl: productUrl,
     vendorName: product.vendor?.store_name,
   });
 
@@ -175,7 +177,7 @@ export function ProductCard({
           )}
         </div>
 
-        {/* Action Buttons: Dihilangkan & Dinonaktifkan Jika Toko Libur / Tutup */}
+        {/* Action Buttons */}
         <footer className="flex @[280px]:flex-row flex-col gap-2 pt-1 border-slate-100 dark:border-slate-800/80 border-t">
           {storeStatus.isVacation ? (
             <Button

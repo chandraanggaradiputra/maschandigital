@@ -1,0 +1,72 @@
+import React from "react";
+import Link from "next/link";
+import type { Metadata } from "next";
+import { Sparkles } from "lucide-react";
+import { SectionContainer } from "@/components/layout/SectionContainer";
+import { ProductCatalogView } from "@/components/product/ProductCatalogView";
+import { getProducts, getCategories } from "@/lib/api/wordpress";
+
+export const metadata: Metadata = {
+  title: "Katalog Produk UMKM Kota Serang - Mas Chan Digital",
+  description:
+    "Jelajahi seluruh katalog produk kuliner, madu & herbal, fashion batik, dan jasa lokal dari UMKM di 6 kecamatan Kota Serang. Beli langsung via WhatsApp tanpa perantara.",
+};
+
+export default async function ProductsIndexPage() {
+  const allProducts = await getProducts();
+  const allCategories = await getCategories();
+
+  return (
+    <div className="space-y-8 sm:space-y-12 pb-16">
+      {/* 1. Header Banner */}
+      <header className="relative bg-brand-gradient py-12 sm:py-16 overflow-hidden text-white">
+        <div
+          className="absolute inset-0 bg-[radial-gradient(#fff_1px,transparent_1px)] opacity-10 pointer-events-none [background-size:16px_16px]"
+          aria-hidden="true"
+        />
+
+        <SectionContainer className="z-10 relative space-y-4 mx-auto py-0 max-w-4xl text-center">
+          {/* Breadcrumb */}
+          <nav
+            aria-label="Breadcrumb"
+            className="inline-block text-slate-200 text-xs"
+          >
+            <ol className="flex justify-center items-center gap-2 m-0 p-0 list-none">
+              <li>
+                <Link href="/" className="hover:underline">
+                  Beranda
+                </Link>
+              </li>
+              <li aria-hidden="true">/</li>
+              <li aria-current="page" className="font-bold text-amber-300">
+                Semua Produk
+              </li>
+            </ol>
+          </nav>
+
+          <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-3 py-1 border border-white/20 rounded-full font-semibold text-amber-300 text-xs">
+            <Sparkles className="w-4 h-4" aria-hidden="true" />
+            <span>Katalog Lengkap Kota Serang</span>
+          </div>
+
+          <h1 className="font-slab font-black text-2xl sm:text-4xl leading-tight">
+            Katalog Produk UMKM Kota Serang
+          </h1>
+          <p className="mx-auto max-w-2xl text-slate-200 text-xs sm:text-sm">
+            Temukan aneka produk lokal pilihan, kuliner khas, madu murni,
+            fashion batik, dan jasa dari mitra UMKM di 6 kecamatan Kota Serang.
+            Transaksi langsung via WhatsApp tanpa potongan biaya.
+          </p>
+        </SectionContainer>
+      </header>
+
+      {/* 2. Main Product Catalog Section */}
+      <SectionContainer className="py-0">
+        <ProductCatalogView
+          initialProducts={allProducts}
+          categories={allCategories}
+        />
+      </SectionContainer>
+    </div>
+  );
+}
