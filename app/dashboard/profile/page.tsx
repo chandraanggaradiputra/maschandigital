@@ -1,78 +1,99 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Store, 
-  MessageCircle, 
-  Save, 
-  CheckCircle2, 
-  Loader2, 
-  Share2, 
-  Clock, 
-  Sun, 
-  Search, 
-  Sparkles, 
-  AlertCircle 
-} from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { MediaUploader } from '@/components/forms/MediaUploader';
-import { getVendorProfileById, getVendorBySlug, getVendors, updateVendorProfile } from '@/lib/api/wordpress';
-import { getVendorSession } from '@/lib/api/auth';
-import { Vendor, StoreHours, VacationMode, StoreSEO, VendorSocials } from '@/types';
+import React, { useState, useEffect } from "react";
+import {
+  Store,
+  MessageCircle,
+  Save,
+  CheckCircle2,
+  Loader2,
+  Share2,
+  Clock,
+  Sun,
+  Search,
+  Sparkles,
+  AlertCircle,
+  QrCode,
+  Download,
+  Printer,
+} from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { MediaUploader } from "@/components/forms/MediaUploader";
+import { StoreQrModal } from "@/components/qr/StoreQrModal";
+import {
+  getVendorProfileById,
+  getVendorBySlug,
+  getVendors,
+  updateVendorProfile,
+} from "@/lib/api/wordpress";
+import { getVendorSession } from "@/lib/api/auth";
+import {
+  Vendor,
+  StoreHours,
+  VacationMode,
+  StoreSEO,
+  VendorSocials,
+} from "@/types";
 
 export default function VendorProfilePage() {
-  const [activeTab, setActiveTab] = useState<'profile' | 'media' | 'socials' | 'hours' | 'seo'>('profile');
+  const [activeTab, setActiveTab] = useState<
+    "profile" | "media" | "socials" | "hours" | "seo" | "qr"
+  >("profile");
   const [vendorId, setVendorId] = useState<number>(2);
+  const [vendorSlug, setVendorSlug] = useState("");
 
   // Tab 1: Profile
-  const [storeName, setStoreName] = useState('');
-  const [ownerName, setOwnerName] = useState('');
-  const [email, setEmail] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
-  const [district, setDistrict] = useState('Cipocok Jaya');
-  const [address, setAddress] = useState('');
-  const [description, setDescription] = useState('');
+  const [storeName, setStoreName] = useState("");
+  const [ownerName, setOwnerName] = useState("");
+  const [email, setEmail] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [district, setDistrict] = useState("Cipocok Jaya");
+  const [address, setAddress] = useState("");
+  const [description, setDescription] = useState("");
 
   // Tab 2: Media
-  const [avatar, setAvatar] = useState('');
-  const [banner, setBanner] = useState('');
+  const [avatar, setAvatar] = useState("");
+  const [banner, setBanner] = useState("");
 
   // Tab 3: Socials
   const [socials, setSocials] = useState<VendorSocials>({
-    instagram: '',
-    tiktok: '',
-    facebook: '',
-    youtube: '',
-    website: '',
+    instagram: "",
+    tiktok: "",
+    facebook: "",
+    youtube: "",
+    website: "",
   });
 
   // Tab 4: Store Hours & Vacation
   const [vacationMode, setVacationMode] = useState<VacationMode>({
     isEnabled: false,
-    vacationMessage: 'Toko kami sedang libur sementara waktu.',
+    vacationMessage: "Toko kami sedang libur sementara waktu.",
   });
 
   const [storeHours, setStoreHours] = useState<StoreHours>({
-    senin: { isOpen: true, openTime: '08:00', closeTime: '17:00' },
-    selasa: { isOpen: true, openTime: '08:00', closeTime: '17:00' },
-    rabu: { isOpen: true, openTime: '08:00', closeTime: '17:00' },
-    kamis: { isOpen: true, openTime: '08:00', closeTime: '17:00' },
-    jumat: { isOpen: true, openTime: '08:00', closeTime: '17:00' },
-    sabtu: { isOpen: true, openTime: '08:00', closeTime: '17:00' },
-    minggu: { isOpen: false, openTime: '08:00', closeTime: '17:00' },
+    senin: { isOpen: true, openTime: "08:00", closeTime: "17:00" },
+    selasa: { isOpen: true, openTime: "08:00", closeTime: "17:00" },
+    rabu: { isOpen: true, openTime: "08:00", closeTime: "17:00" },
+    kamis: { isOpen: true, openTime: "08:00", closeTime: "17:00" },
+    jumat: { isOpen: true, openTime: "08:00", closeTime: "17:00" },
+    sabtu: { isOpen: true, openTime: "08:00", closeTime: "17:00" },
+    minggu: { isOpen: false, openTime: "08:00", closeTime: "17:00" },
   });
 
   // Tab 5: SEO
   const [storeSeo, setStoreSeo] = useState<StoreSEO>({
-    seoTitle: '',
-    metaDescription: '',
-    metaKeywords: '',
+    seoTitle: "",
+    metaDescription: "",
+    metaKeywords: "",
   });
+
+  // Modal QR Code
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     async function loadVendorProfile() {
@@ -86,6 +107,9 @@ export default function VendorProfilePage() {
         }
 
         setVendorId(targetUserId);
+        if (session?.user?.slug) {
+          setVendorSlug(session.user.slug);
+        }
 
         // 1. Ambil data vendor spesifik per ID
         let currentV = await getVendorProfileById(targetUserId);
@@ -97,42 +121,49 @@ export default function VendorProfilePage() {
         if (!currentV) {
           const allVendors = await getVendors();
           if (allVendors && allVendors.length > 0) {
-            currentV = allVendors.find(v => v.id === targetUserId) || allVendors[0];
+            currentV =
+              allVendors.find((v) => v.id === targetUserId) || allVendors[0];
           }
         }
 
         if (currentV) {
-          setStoreName(currentV.store_name || session?.user?.store_name || '');
-          setOwnerName(currentV.owner_name || session?.user?.name || '');
-          setEmail(currentV.email || session?.user?.email || '');
-          setWhatsapp(currentV.whatsapp_number || session?.user?.phone || '');
-          setDistrict(currentV.location_district || session?.user?.district || 'Cipocok Jaya');
-          setAddress(currentV.address?.street_1 || '');
-          setDescription(currentV.description || '');
-          setAvatar(currentV.avatar || '');
-          setBanner(currentV.banner || '');
-          
+          setStoreName(currentV.store_name || session?.user?.store_name || "");
+          setVendorSlug(currentV.slug || session?.user?.slug || "toko-vendor");
+          setOwnerName(currentV.owner_name || session?.user?.name || "");
+          setEmail(currentV.email || session?.user?.email || "");
+          setWhatsapp(currentV.whatsapp_number || session?.user?.phone || "");
+          setDistrict(
+            currentV.location_district ||
+              session?.user?.district ||
+              "Cipocok Jaya",
+          );
+          setAddress(currentV.address?.street_1 || "");
+          setDescription(currentV.description || "");
+          setAvatar(currentV.avatar || "");
+          setBanner(currentV.banner || "");
+
           if (currentV.socials) {
             setSocials({
-              instagram: currentV.socials.instagram || '',
-              tiktok: currentV.socials.tiktok || '',
-              facebook: currentV.socials.facebook || '',
-              youtube: currentV.socials.youtube || '',
-              website: currentV.socials.website || '',
+              instagram: currentV.socials.instagram || "",
+              tiktok: currentV.socials.tiktok || "",
+              facebook: currentV.socials.facebook || "",
+              youtube: currentV.socials.youtube || "",
+              website: currentV.socials.website || "",
             });
           }
           if (currentV.store_hours) setStoreHours(currentV.store_hours);
           if (currentV.vacation_mode) setVacationMode(currentV.vacation_mode);
           if (currentV.store_seo) setStoreSeo(currentV.store_seo);
         } else if (session?.user) {
-          setStoreName(session.user.store_name || '');
-          setOwnerName(session.user.name || '');
-          setEmail(session.user.email || '');
-          setWhatsapp(session.user.phone || '');
-          setDistrict(session.user.district || 'Cipocok Jaya');
+          setStoreName(session.user.store_name || "");
+          setVendorSlug(session.user.slug || "toko-vendor");
+          setOwnerName(session.user.name || "");
+          setEmail(session.user.email || "");
+          setWhatsapp(session.user.phone || "");
+          setDistrict(session.user.district || "Cipocok Jaya");
         }
-      } catch (err) {
-        console.error('Gagal mengambil profil vendor:', err);
+      } catch (err: unknown) {
+        console.error("Gagal mengambil profil vendor:", err);
       } finally {
         setIsFetching(false);
       }
@@ -144,7 +175,7 @@ export default function VendorProfilePage() {
     e.preventDefault();
     setIsLoading(true);
     setIsSaved(false);
-    setErrorMessage('');
+    setErrorMessage("");
 
     const payload = {
       store_name: storeName,
@@ -167,7 +198,7 @@ export default function VendorProfilePage() {
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 4000);
     } else {
-      setErrorMessage(res.message || 'Gagal menyimpan pengaturan toko.');
+      setErrorMessage(res.message || "Gagal menyimpan pengaturan toko.");
     }
     setIsLoading(false);
   };
@@ -176,56 +207,89 @@ export default function VendorProfilePage() {
     return (
       <div className="flex flex-col justify-center items-center gap-2 p-12 text-slate-500 text-center">
         <Loader2 className="w-6 h-6 text-brand-700 dark:text-brand-400 animate-spin" />
-        <span className="font-semibold text-xs">Memuat profil toko Anda...</span>
+        <span className="font-semibold text-xs">
+          Memuat profil toko Anda...
+        </span>
       </div>
     );
   }
 
   const daysLabel: { key: keyof StoreHours; label: string }[] = [
-    { key: 'senin', label: 'Senin' },
-    { key: 'selasa', label: 'Selasa' },
-    { key: 'rabu', label: 'Rabu' },
-    { key: 'kamis', label: 'Kamis' },
-    { key: 'jumat', label: 'Jumat' },
-    { key: 'sabtu', label: 'Sabtu' },
-    { key: 'minggu', label: 'Minggu' },
+    { key: "senin", label: "Senin" },
+    { key: "selasa", label: "Selasa" },
+    { key: "rabu", label: "Rabu" },
+    { key: "kamis", label: "Kamis" },
+    { key: "jumat", label: "Jumat" },
+    { key: "sabtu", label: "Sabtu" },
+    { key: "minggu", label: "Minggu" },
   ];
 
   return (
     <form onSubmit={handleSave} className="space-y-6 pb-12 max-w-4xl">
-      <header>
-        <h2 className="font-slab font-bold text-slate-900 dark:text-white text-xl">
-          Pengaturan Toko {storeName || 'Vendor'}
-        </h2>
-        <p className="text-slate-500 dark:text-slate-400 text-xs">
-          Kelola profil, media sosial, jam operasional, mode libur, dan SEO toko Anda di Kota Serang
-        </p>
+      <header className="flex sm:flex-row flex-col justify-between sm:items-center gap-4">
+        <div>
+          <h2 className="font-slab font-bold text-slate-900 dark:text-white text-xl">
+            Pengaturan Toko {storeName || "Vendor"}
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 text-xs">
+            Kelola profil, media sosial, jam operasional, mode libur, QR Code,
+            dan SEO toko Anda di Kota Serang
+          </p>
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setIsQrModalOpen(true)}
+          className="flex items-center gap-1.5 font-bold text-xs shrink-0"
+        >
+          <QrCode className="w-4 h-4 text-brand-600" />
+          <span>Lihat QR Code Toko</span>
+        </Button>
       </header>
 
       {/* Alerts */}
       {isSaved && (
-        <aside aria-live="polite" className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/80 p-4 border border-emerald-200 dark:border-emerald-800 rounded-2xl text-emerald-800 dark:text-emerald-200 text-xs">
-          <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" aria-hidden="true" />
-          <span>Semua pengaturan toko berhasil diperbarui ke database WordPress!</span>
+        <aside
+          aria-live="polite"
+          className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/80 p-4 border border-emerald-200 dark:border-emerald-800 rounded-2xl text-emerald-800 dark:text-emerald-200 text-xs"
+        >
+          <CheckCircle2
+            className="w-5 h-5 text-emerald-500 shrink-0"
+            aria-hidden="true"
+          />
+          <span>
+            Semua pengaturan toko berhasil diperbarui ke database WordPress!
+          </span>
         </aside>
       )}
 
       {errorMessage && (
-        <aside aria-live="assertive" className="flex items-center gap-2 bg-rose-50 dark:bg-rose-950/80 p-4 border border-rose-200 dark:border-rose-800 rounded-2xl text-rose-700 dark:text-rose-300 text-xs">
-          <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" aria-hidden="true" />
+        <aside
+          aria-live="assertive"
+          className="flex items-center gap-2 bg-rose-50 dark:bg-rose-950/80 p-4 border border-rose-200 dark:border-rose-800 rounded-2xl text-rose-700 dark:text-rose-300 text-xs"
+        >
+          <AlertCircle
+            className="w-5 h-5 text-rose-500 shrink-0"
+            aria-hidden="true"
+          />
           <span>{errorMessage}</span>
         </aside>
       )}
 
       {/* Tab Navigation */}
-      <nav aria-label="Tab Pengaturan Toko" className="flex items-center gap-2 pb-1 border-slate-200 dark:border-slate-800 border-b overflow-x-auto no-scrollbar">
+      <nav
+        aria-label="Tab Pengaturan Toko"
+        className="flex items-center gap-2 pb-1 border-slate-200 dark:border-slate-800 border-b overflow-x-auto no-scrollbar"
+      >
         <button
           type="button"
-          onClick={() => setActiveTab('profile')}
+          onClick={() => setActiveTab("profile")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all border shrink-0 ${
-            activeTab === 'profile'
-              ? 'bg-brand-gradient text-white border-transparent shadow-subtle'
-              : 'bg-white dark:bg-surface-darkCard text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
+            activeTab === "profile"
+              ? "bg-brand-gradient text-white border-transparent shadow-subtle"
+              : "bg-white dark:bg-surface-darkCard text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50"
           }`}
         >
           <Store className="w-4 h-4" />
@@ -234,11 +298,11 @@ export default function VendorProfilePage() {
 
         <button
           type="button"
-          onClick={() => setActiveTab('media')}
+          onClick={() => setActiveTab("media")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all border shrink-0 ${
-            activeTab === 'media'
-              ? 'bg-brand-gradient text-white border-transparent shadow-subtle'
-              : 'bg-white dark:bg-surface-darkCard text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
+            activeTab === "media"
+              ? "bg-brand-gradient text-white border-transparent shadow-subtle"
+              : "bg-white dark:bg-surface-darkCard text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50"
           }`}
         >
           <Sun className="w-4 h-4" />
@@ -247,11 +311,11 @@ export default function VendorProfilePage() {
 
         <button
           type="button"
-          onClick={() => setActiveTab('socials')}
+          onClick={() => setActiveTab("socials")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all border shrink-0 ${
-            activeTab === 'socials'
-              ? 'bg-brand-gradient text-white border-transparent shadow-subtle'
-              : 'bg-white dark:bg-surface-darkCard text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
+            activeTab === "socials"
+              ? "bg-brand-gradient text-white border-transparent shadow-subtle"
+              : "bg-white dark:bg-surface-darkCard text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50"
           }`}
         >
           <Share2 className="w-4 h-4" />
@@ -260,11 +324,11 @@ export default function VendorProfilePage() {
 
         <button
           type="button"
-          onClick={() => setActiveTab('hours')}
+          onClick={() => setActiveTab("hours")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all border shrink-0 ${
-            activeTab === 'hours'
-              ? 'bg-brand-gradient text-white border-transparent shadow-subtle'
-              : 'bg-white dark:bg-surface-darkCard text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
+            activeTab === "hours"
+              ? "bg-brand-gradient text-white border-transparent shadow-subtle"
+              : "bg-white dark:bg-surface-darkCard text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50"
           }`}
         >
           <Clock className="w-4 h-4" />
@@ -273,29 +337,51 @@ export default function VendorProfilePage() {
 
         <button
           type="button"
-          onClick={() => setActiveTab('seo')}
+          onClick={() => setActiveTab("seo")}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all border shrink-0 ${
-            activeTab === 'seo'
-              ? 'bg-brand-gradient text-white border-transparent shadow-subtle'
-              : 'bg-white dark:bg-surface-darkCard text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50'
+            activeTab === "seo"
+              ? "bg-brand-gradient text-white border-transparent shadow-subtle"
+              : "bg-white dark:bg-surface-darkCard text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50"
           }`}
         >
           <Search className="w-4 h-4" />
           <span>5. SEO Toko & Meta</span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("qr")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all border shrink-0 ${
+            activeTab === "qr"
+              ? "bg-brand-gradient text-white border-transparent shadow-subtle"
+              : "bg-white dark:bg-surface-darkCard text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50"
+          }`}
+        >
+          <QrCode className="w-4 h-4" />
+          <span>6. QR Code Standee</span>
+        </button>
       </nav>
 
       {/* TAB 1: PROFIL & ALAMAT */}
-      {activeTab === 'profile' && (
-        <section aria-labelledby="store-details-heading" className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
-          <h3 id="store-details-heading" className="pb-3 border-slate-100 dark:border-slate-800 border-b font-slab font-bold text-slate-900 dark:text-white text-base">
+      {activeTab === "profile" && (
+        <section
+          aria-labelledby="store-details-heading"
+          className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl"
+        >
+          <h3
+            id="store-details-heading"
+            className="pb-3 border-slate-100 dark:border-slate-800 border-b font-slab font-bold text-slate-900 dark:text-white text-base"
+          >
             Detail Toko & Kontak Penjual
           </h3>
 
           <div className="space-y-4">
             <div className="gap-4 grid grid-cols-1 sm:grid-cols-2">
               <div>
-                <label htmlFor="prof-store-name" className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs">
+                <label
+                  htmlFor="prof-store-name"
+                  className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs"
+                >
                   Nama Toko <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -309,7 +395,10 @@ export default function VendorProfilePage() {
               </div>
 
               <div>
-                <label htmlFor="prof-owner-name" className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs">
+                <label
+                  htmlFor="prof-owner-name"
+                  className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs"
+                >
                   Nama Pemilik Usaha
                 </label>
                 <input
@@ -324,7 +413,10 @@ export default function VendorProfilePage() {
 
             <div className="gap-4 grid grid-cols-1 sm:grid-cols-2">
               <div>
-                <label htmlFor="prof-whatsapp" className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs">
+                <label
+                  htmlFor="prof-whatsapp"
+                  className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs"
+                >
                   Nomor WhatsApp Toko <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
@@ -337,13 +429,20 @@ export default function VendorProfilePage() {
                     placeholder="081234567890"
                     className="bg-slate-50 dark:bg-slate-900 py-2.5 pr-3.5 pl-9 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm"
                   />
-                  <MessageCircle className="top-1/2 left-3 absolute w-4 h-4 text-whatsapp-500 -translate-y-1/2" aria-hidden="true" />
+                  <MessageCircle
+                    className="top-1/2 left-3 absolute w-4 h-4 text-whatsapp-500 -translate-y-1/2"
+                    aria-hidden="true"
+                  />
                 </div>
               </div>
 
               <div>
-                <label htmlFor="prof-district" className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs">
-                  Kecamatan di Kota Serang <span className="text-rose-500">*</span>
+                <label
+                  htmlFor="prof-district"
+                  className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs"
+                >
+                  Kecamatan di Kota Serang{" "}
+                  <span className="text-rose-500">*</span>
                 </label>
                 <select
                   id="prof-district"
@@ -362,7 +461,10 @@ export default function VendorProfilePage() {
             </div>
 
             <div>
-              <label htmlFor="prof-address" className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs">
+              <label
+                htmlFor="prof-address"
+                className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs"
+              >
                 Alamat Lengkap Toko
               </label>
               <textarea
@@ -375,7 +477,10 @@ export default function VendorProfilePage() {
             </div>
 
             <div>
-              <label htmlFor="prof-desc" className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs">
+              <label
+                htmlFor="prof-desc"
+                className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs"
+              >
                 Deskripsi Profil Toko
               </label>
               <textarea
@@ -391,9 +496,15 @@ export default function VendorProfilePage() {
       )}
 
       {/* TAB 2: BRANDING */}
-      {activeTab === 'media' && (
-        <section aria-labelledby="store-media-heading" className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
-          <h3 id="store-media-heading" className="pb-3 border-slate-100 dark:border-slate-800 border-b font-slab font-bold text-slate-900 dark:text-white text-base">
+      {activeTab === "media" && (
+        <section
+          aria-labelledby="store-media-heading"
+          className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl"
+        >
+          <h3
+            id="store-media-heading"
+            className="pb-3 border-slate-100 dark:border-slate-800 border-b font-slab font-bold text-slate-900 dark:text-white text-base"
+          >
             Foto Profil & Banner Toko
           </h3>
 
@@ -416,9 +527,15 @@ export default function VendorProfilePage() {
       )}
 
       {/* TAB 3: SOCIALS */}
-      {activeTab === 'socials' && (
-        <section aria-labelledby="store-socials-heading" className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
-          <h3 id="store-socials-heading" className="pb-3 border-slate-100 dark:border-slate-800 border-b font-slab font-bold text-slate-900 dark:text-white text-base">
+      {activeTab === "socials" && (
+        <section
+          aria-labelledby="store-socials-heading"
+          className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl"
+        >
+          <h3
+            id="store-socials-heading"
+            className="pb-3 border-slate-100 dark:border-slate-800 border-b font-slab font-bold text-slate-900 dark:text-white text-base"
+          >
             Tautan Media Sosial Toko
           </h3>
 
@@ -429,8 +546,10 @@ export default function VendorProfilePage() {
               </label>
               <input
                 type="url"
-                value={socials.instagram || ''}
-                onChange={(e) => setSocials({ ...socials, instagram: e.target.value })}
+                value={socials.instagram || ""}
+                onChange={(e) =>
+                  setSocials({ ...socials, instagram: e.target.value })
+                }
                 placeholder="https://instagram.com/tokoanda"
                 className="bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm"
               />
@@ -442,8 +561,10 @@ export default function VendorProfilePage() {
               </label>
               <input
                 type="url"
-                value={socials.tiktok || ''}
-                onChange={(e) => setSocials({ ...socials, tiktok: e.target.value })}
+                value={socials.tiktok || ""}
+                onChange={(e) =>
+                  setSocials({ ...socials, tiktok: e.target.value })
+                }
                 placeholder="https://tiktok.com/@tokoanda"
                 className="bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm"
               />
@@ -455,8 +576,10 @@ export default function VendorProfilePage() {
               </label>
               <input
                 type="url"
-                value={socials.facebook || ''}
-                onChange={(e) => setSocials({ ...socials, facebook: e.target.value })}
+                value={socials.facebook || ""}
+                onChange={(e) =>
+                  setSocials({ ...socials, facebook: e.target.value })
+                }
                 placeholder="https://facebook.com/tokoanda"
                 className="bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm"
               />
@@ -468,8 +591,10 @@ export default function VendorProfilePage() {
               </label>
               <input
                 type="url"
-                value={socials.youtube || ''}
-                onChange={(e) => setSocials({ ...socials, youtube: e.target.value })}
+                value={socials.youtube || ""}
+                onChange={(e) =>
+                  setSocials({ ...socials, youtube: e.target.value })
+                }
                 placeholder="https://youtube.com/@channelanda"
                 className="bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm"
               />
@@ -481,8 +606,10 @@ export default function VendorProfilePage() {
               </label>
               <input
                 type="url"
-                value={socials.website || ''}
-                onChange={(e) => setSocials({ ...socials, website: e.target.value })}
+                value={socials.website || ""}
+                onChange={(e) =>
+                  setSocials({ ...socials, website: e.target.value })
+                }
                 placeholder="https://tokoanda.com"
                 className="bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm"
               />
@@ -492,9 +619,15 @@ export default function VendorProfilePage() {
       )}
 
       {/* TAB 4: JAM OPERASIONAL & LIBUR */}
-      {activeTab === 'hours' && (
-        <section aria-labelledby="store-hours-heading" className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
-          <h3 id="store-hours-heading" className="pb-3 border-slate-100 dark:border-slate-800 border-b font-slab font-bold text-slate-900 dark:text-white text-base">
+      {activeTab === "hours" && (
+        <section
+          aria-labelledby="store-hours-heading"
+          className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl"
+        >
+          <h3
+            id="store-hours-heading"
+            className="pb-3 border-slate-100 dark:border-slate-800 border-b font-slab font-bold text-slate-900 dark:text-white text-base"
+          >
             Jam Buka & Mode Libur (Vacation Mode)
           </h3>
 
@@ -505,13 +638,19 @@ export default function VendorProfilePage() {
                   Mode Libur (Vacation Mode)
                 </span>
                 <p className="mt-0.5 text-amber-700 dark:text-amber-300 text-xs">
-                  Aktifkan jika toko Anda sedang tutup sementara waktu / cuti bersama.
+                  Aktifkan jika toko Anda sedang tutup sementara waktu / cuti
+                  bersama.
                 </p>
               </div>
               <input
                 type="checkbox"
                 checked={vacationMode.isEnabled}
-                onChange={(e) => setVacationMode({ ...vacationMode, isEnabled: e.target.checked })}
+                onChange={(e) =>
+                  setVacationMode({
+                    ...vacationMode,
+                    isEnabled: e.target.checked,
+                  })
+                }
                 className="rounded focus:ring-amber-500 w-5 h-5 text-amber-600 cursor-pointer"
               />
             </div>
@@ -524,7 +663,12 @@ export default function VendorProfilePage() {
                 <textarea
                   rows={2}
                   value={vacationMode.vacationMessage}
-                  onChange={(e) => setVacationMode({ ...vacationMode, vacationMessage: e.target.value })}
+                  onChange={(e) =>
+                    setVacationMode({
+                      ...vacationMode,
+                      vacationMessage: e.target.value,
+                    })
+                  }
                   placeholder="Toko kami sedang tutup untuk libur Idul Fitri hingga tanggal..."
                   className="bg-white dark:bg-slate-900 px-3 py-2 border border-amber-200 dark:border-amber-800 rounded-xl outline-none w-full text-slate-800 dark:text-slate-100 text-xs"
                 />
@@ -536,23 +680,30 @@ export default function VendorProfilePage() {
             <h4 className="font-slab font-bold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">
               Jadwal Operasional Toko
             </h4>
-            
+
             <div className="space-y-2">
               {daysLabel.map(({ key, label }) => {
                 const d = storeHours[key];
                 return (
-                  <div key={key} className="flex sm:flex-row flex-col justify-between sm:items-center gap-3 bg-slate-50 dark:bg-slate-900 p-3 border border-slate-100 dark:border-slate-800 rounded-2xl">
+                  <div
+                    key={key}
+                    className="flex sm:flex-row flex-col justify-between sm:items-center gap-3 bg-slate-50 dark:bg-slate-900 p-3 border border-slate-100 dark:border-slate-800 rounded-2xl"
+                  >
                     <label className="flex items-center gap-2.5 min-w-[120px] cursor-pointer">
                       <input
                         type="checkbox"
                         checked={d.isOpen}
-                        onChange={(e) => setStoreHours({
-                          ...storeHours,
-                          [key]: { ...d, isOpen: e.target.checked }
-                        })}
+                        onChange={(e) =>
+                          setStoreHours({
+                            ...storeHours,
+                            [key]: { ...d, isOpen: e.target.checked },
+                          })
+                        }
                         className="rounded focus:ring-brand-500 w-4 h-4 text-brand-800"
                       />
-                      <span className={`text-xs font-bold ${d.isOpen ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+                      <span
+                        className={`text-xs font-bold ${d.isOpen ? "text-slate-900 dark:text-white" : "text-slate-400"}`}
+                      >
                         {label}
                       </span>
                     </label>
@@ -563,25 +714,31 @@ export default function VendorProfilePage() {
                         <input
                           type="time"
                           value={d.openTime}
-                          onChange={(e) => setStoreHours({
-                            ...storeHours,
-                            [key]: { ...d, openTime: e.target.value }
-                          })}
+                          onChange={(e) =>
+                            setStoreHours({
+                              ...storeHours,
+                              [key]: { ...d, openTime: e.target.value },
+                            })
+                          }
                           className="bg-white dark:bg-slate-800 px-2 py-1 border border-slate-200 dark:border-slate-700 rounded-lg outline-none"
                         />
                         <span>Tutup:</span>
                         <input
                           type="time"
                           value={d.closeTime}
-                          onChange={(e) => setStoreHours({
-                            ...storeHours,
-                            [key]: { ...d, closeTime: e.target.value }
-                          })}
+                          onChange={(e) =>
+                            setStoreHours({
+                              ...storeHours,
+                              [key]: { ...d, closeTime: e.target.value },
+                            })
+                          }
                           className="bg-white dark:bg-slate-800 px-2 py-1 border border-slate-200 dark:border-slate-700 rounded-lg outline-none"
                         />
                       </div>
                     ) : (
-                      <span className="font-semibold text-rose-500 text-xs">Tutup</span>
+                      <span className="font-semibold text-rose-500 text-xs">
+                        Tutup
+                      </span>
                     )}
                   </div>
                 );
@@ -592,9 +749,15 @@ export default function VendorProfilePage() {
       )}
 
       {/* TAB 5: SEO TOKO */}
-      {activeTab === 'seo' && (
-        <section aria-labelledby="store-seo-heading" className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
-          <h3 id="store-seo-heading" className="flex items-center gap-2 pb-3 border-slate-100 dark:border-slate-800 border-b font-slab font-bold text-slate-900 dark:text-white text-base">
+      {activeTab === "seo" && (
+        <section
+          aria-labelledby="store-seo-heading"
+          className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl"
+        >
+          <h3
+            id="store-seo-heading"
+            className="flex items-center gap-2 pb-3 border-slate-100 dark:border-slate-800 border-b font-slab font-bold text-slate-900 dark:text-white text-base"
+          >
             <span>Optimasi SEO Toko WCFM</span>
             <Sparkles className="w-4 h-4 text-amber-500" />
           </h3>
@@ -606,8 +769,10 @@ export default function VendorProfilePage() {
               </label>
               <input
                 type="text"
-                value={storeSeo.seoTitle || ''}
-                onChange={(e) => setStoreSeo({ ...storeSeo, seoTitle: e.target.value })}
+                value={storeSeo.seoTitle || ""}
+                onChange={(e) =>
+                  setStoreSeo({ ...storeSeo, seoTitle: e.target.value })
+                }
                 placeholder="Contoh: Toko Oleh-Oleh Khas Serang Terlengkap - Mas Chan Digital"
                 className="bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm"
               />
@@ -619,8 +784,10 @@ export default function VendorProfilePage() {
               </label>
               <textarea
                 rows={3}
-                value={storeSeo.metaDescription || ''}
-                onChange={(e) => setStoreSeo({ ...storeSeo, metaDescription: e.target.value })}
+                value={storeSeo.metaDescription || ""}
+                onChange={(e) =>
+                  setStoreSeo({ ...storeSeo, metaDescription: e.target.value })
+                }
                 placeholder="Deskripsi profil toko yang akan tampil di hasil pencarian Google..."
                 className="bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm"
               />
@@ -632,8 +799,10 @@ export default function VendorProfilePage() {
               </label>
               <input
                 type="text"
-                value={storeSeo.metaKeywords || ''}
-                onChange={(e) => setStoreSeo({ ...storeSeo, metaKeywords: e.target.value })}
+                value={storeSeo.metaKeywords || ""}
+                onChange={(e) =>
+                  setStoreSeo({ ...storeSeo, metaKeywords: e.target.value })
+                }
                 placeholder="sate bandeng, madu serang, kuliner banten"
                 className="bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm"
               />
@@ -642,19 +811,106 @@ export default function VendorProfilePage() {
         </section>
       )}
 
-      {/* Save Button */}
-      <footer className="flex justify-end pt-2">
-        <Button
-          type="submit"
-          variant="primary"
-          size="lg"
-          disabled={isLoading}
-          className="min-w-[180px] font-bold"
+      {/* TAB 6: QR CODE TOKO SIAP CETAK */}
+      {activeTab === "qr" && (
+        <section
+          aria-labelledby="store-qr-heading"
+          className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl"
         >
-          <Save className="mr-2 w-4 h-4" aria-hidden="true" />
-          <span>{isLoading ? 'Menyimpan...' : 'Simpan Semua Pengaturan'}</span>
-        </Button>
-      </footer>
+          <div className="flex justify-between items-center pb-3 border-slate-100 dark:border-slate-800 border-b">
+            <div>
+              <h3
+                id="store-qr-heading"
+                className="flex items-center gap-2 font-slab font-bold text-slate-900 dark:text-white text-base"
+              >
+                <QrCode className="w-5 h-5 text-brand-600" />
+                <span>QR Code Standee Toko Siap Cetak</span>
+              </h3>
+              <p className="mt-0.5 text-slate-500 dark:text-slate-400 text-xs">
+                Cetak dan pajang QR Code ini di etalase, meja kasir, atau stiker
+                kemasan produk Anda
+              </p>
+            </div>
+
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => setIsQrModalOpen(true)}
+              className="flex items-center gap-1.5 shadow-subtle font-bold text-xs"
+            >
+              <QrCode className="w-4 h-4" />
+              <span>Buka Standee Siap Cetak</span>
+            </Button>
+          </div>
+
+          <div className="flex sm:flex-row flex-col justify-between items-center gap-4 bg-brand-50/60 dark:bg-brand-950/40 p-5 border border-brand-100 dark:border-brand-900/60 rounded-2xl">
+            <div className="space-y-1 sm:text-left text-center">
+              <h4 className="font-slab font-bold text-brand-900 dark:text-brand-200 text-sm">
+                Tautkan Pembeli Offline ke Katalog Online Anda
+              </h4>
+              <p className="text-slate-600 dark:text-slate-400 text-xs">
+                Pengunjung warung fisik yang memindai QR Code ini akan langsung
+                diarahkan ke:
+                <code className="block mt-1 font-mono text-brand-800 dark:text-brand-300">
+                  https://maschandigital.id/vendors/{vendorSlug || "toko-anda"}
+                </code>
+              </p>
+            </div>
+
+            <div className="flex gap-2 shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsQrModalOpen(true)}
+                className="font-bold text-xs"
+              >
+                <Download className="mr-1 w-3.5 h-3.5" />
+                <span>Unduh PNG</span>
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={() => setIsQrModalOpen(true)}
+                className="font-bold text-xs"
+              >
+                <Printer className="mr-1 w-3.5 h-3.5" />
+                <span>Cetak</span>
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Save Button (Disembunyikan saat membuka tab QR) */}
+      {activeTab !== "qr" && (
+        <footer className="flex justify-end pt-2">
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            disabled={isLoading}
+            className="min-w-[180px] font-bold"
+          >
+            <Save className="mr-2 w-4 h-4" aria-hidden="true" />
+            <span>
+              {isLoading ? "Menyimpan..." : "Simpan Semua Pengaturan"}
+            </span>
+          </Button>
+        </footer>
+      )}
+
+      {/* Modal QR Code Standee */}
+      <StoreQrModal
+        isOpen={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+        storeName={storeName || "Toko Vendor"}
+        storeSlug={vendorSlug || "toko-vendor"}
+        storeDistrict={district}
+        avatarUrl={avatar}
+      />
     </form>
   );
 }
