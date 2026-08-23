@@ -68,6 +68,71 @@ export function generateWhatsAppVendorUrl(params: {
   return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(text)}`;
 }
 
+export type KecamatanSerang =
+  | "Serang"
+  | "Cipocok Jaya"
+  | "Kasemen"
+  | "Curug"
+  | "Taktakan"
+  | "Walantaka";
+
+export type MetodeAntarProduk = "kurir_lokal" | "cod" | "ambil_di_toko";
+
+export const METODE_ANTAR_LABEL: Record<MetodeAntarProduk, string> = {
+  kurir_lokal: "Kurir Lokal",
+  cod: "COD (Titik Ketemuan)",
+  ambil_di_toko: "Ambil di Toko",
+};
+
+// Pesan pesanan terstruktur (Smart WhatsApp Order Form) — dipakai WhatsAppOrderModal.
+// Sengaja jadi fungsi terpisah di sini (bukan ditulis inline di komponen) supaya
+// satu-satunya tempat yang tahu cara membangun URL WA & normalisasi nomor tetap
+// file ini, konsisten dengan 3 fungsi WA lain di atas.
+export function generateWhatsAppOrderUrl(params: {
+  whatsappNumber: string;
+  vendorName: string;
+  productName: string;
+  unitPrice: number;
+  qty: number;
+  buyerName: string;
+  kecamatan: KecamatanSerang;
+  metodeAntar: MetodeAntarProduk;
+  catatan?: string;
+  productUrl: string;
+}): string {
+  const {
+    whatsappNumber,
+    vendorName,
+    productName,
+    unitPrice,
+    qty,
+    buyerName,
+    kecamatan,
+    metodeAntar,
+    catatan,
+    productUrl,
+  } = params;
+
+  const normalizedPhone = normalizeWhatsAppNumber(whatsappNumber);
+  const subtotal = unitPrice * qty;
+
+  const text =
+    `Halo ${vendorName || "Admin Toko"}, saya ingin memesan produk dari Mas Chan Digital:\n\n` +
+    `🛒 *RINCIAN PESANAN:*\n` +
+    `• Produk: ${productName}\n` +
+    `• Harga Satuan: ${formatRupiah(unitPrice)}\n` +
+    `• Jumlah: ${qty} pcs\n` +
+    `• Estimasi Total: ${formatRupiah(subtotal)}\n\n` +
+    `📍 *INFORMASI PEMESAN & TUJUAN:*\n` +
+    `• Nama Pemesan: ${buyerName}\n` +
+    `• Wilayah/Kecamatan: ${kecamatan}, Kota Serang\n` +
+    `• Pilihan Pengiriman: ${METODE_ANTAR_LABEL[metodeAntar]}\n` +
+    (catatan?.trim() ? `• Catatan: ${catatan.trim()}\n` : ``) +
+    `\n🔗 Tautan Produk: ${productUrl}`;
+
+  return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(text)}`;
+}
+
 // Nomor WhatsApp resmi admin Mas Chan Digital untuk konfirmasi pembayaran langganan.
 export const MASCHAN_ADMIN_WHATSAPP = "6282298148474";
 

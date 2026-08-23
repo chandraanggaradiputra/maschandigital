@@ -4,27 +4,23 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import {
-  MessageCircle,
-  ExternalLink,
   Store,
   ShieldCheck,
   MapPin,
   Tag,
   CheckCircle2,
-  Clock,
-  XCircle,
-  Lock,
 } from "lucide-react";
 import { SectionContainer } from "@/components/layout/SectionContainer";
 import { ProductCard } from "@/components/cards/ProductCard";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { OrderSection } from "@/components/product/OrderSection";
 import {
   getProductBySlug,
   getProducts,
   getVendorBySlug,
 } from "@/lib/api/wordpress";
-import { formatRupiah, generateWhatsAppProductUrl } from "@/lib/utils";
+import { formatRupiah } from "@/lib/utils";
 import { checkStoreStatus } from "@/lib/storeStatus";
 
 type ProductPageProps = {
@@ -113,13 +109,6 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
       : 0;
 
   const productUrl = `https://maschandigital.id/products/${product.slug}`;
-  const waOrderUrl = generateWhatsAppProductUrl({
-    whatsappNumber: product.vendor?.whatsapp_number || "6285213655126",
-    productName: product.name,
-    price: formatRupiah(currentPrice),
-    productUrl: productUrl,
-    vendorName: product.vendor?.store_name,
-  });
 
   return (
     <article
@@ -301,147 +290,37 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
               </p>
             </div>
 
-            {/* Store Status Notification (Vacation / Closed Hours) */}
-            {storeStatus.isVacation ? (
-              <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/60 p-4 border border-amber-200 dark:border-amber-800 rounded-2xl">
-                <XCircle
-                  className="mt-0.5 w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0"
+            {/* Store Status + Order Actions (Client Component — lihat komentar di OrderSection.tsx) */}
+            <OrderSection
+              initialStoreStatus={storeStatus}
+              storeHours={vendor?.store_hours}
+              vacationMode={vendor?.vacation_mode}
+              whatsappNumber={product.vendor?.whatsapp_number || "6285213655126"}
+              vendorName={product.vendor?.store_name || "Admin Toko"}
+              productName={product.name}
+              unitPrice={parseFloat(currentPrice) || 0}
+              productUrl={productUrl}
+              isAffiliate={isAffiliate}
+              affiliateUrl={product.external_url}
+              affiliateButtonText={product.button_text}
+            />
+
+            <ul className="flex justify-between items-center m-0 p-0 px-1 pt-2 text-slate-500 dark:text-slate-400 text-xs list-none">
+              <li className="flex items-center gap-1.5">
+                <CheckCircle2
+                  className="w-4 h-4 text-emerald-500"
                   aria-hidden="true"
                 />
-                <div>
-                  <h4 className="font-slab font-bold text-amber-900 dark:text-amber-200 text-sm">
-                    Pemberitahuan Toko Sedang Libur
-                  </h4>
-                  <p className="mt-0.5 text-amber-800 dark:text-amber-300 text-xs leading-relaxed">
-                    {storeStatus.vacationMessage}
-                  </p>
-                </div>
-              </div>
-            ) : !storeStatus.isOpen ? (
-              <div className="flex items-start gap-3 bg-rose-50 dark:bg-rose-950/60 p-4 border border-rose-200 dark:border-rose-800 rounded-2xl">
-                <Clock
-                  className="mt-0.5 w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0"
+                <span>Respon Cepat Vendor</span>
+              </li>
+              <li className="flex items-center gap-1.5">
+                <CheckCircle2
+                  className="w-4 h-4 text-emerald-500"
                   aria-hidden="true"
                 />
-                <div>
-                  <h4 className="font-slab font-bold text-rose-900 dark:text-rose-200 text-sm">
-                    Maaf, Toko kami sedang tutup
-                  </h4>
-                  <p className="mt-0.5 text-rose-800 dark:text-rose-300 text-xs leading-relaxed">
-                    {storeStatus.todaySchedule
-                      ? `${storeStatus.todaySchedule}. Pemesanan dibuka kembali saat jam operasional toko aktif.`
-                      : "Pemesanan hanya dapat dilakukan saat jam operasional toko."}
-                  </p>
-                </div>
-              </div>
-            ) : null}
-
-            {/* Action Buttons: Conditional based on Store Status */}
-            <div className="space-y-3 pt-2">
-              {storeStatus.isVacation ? (
-                <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    fullWidth
-                    disabled
-                    className="bg-slate-100 dark:bg-slate-900 opacity-80 py-4 border-slate-300 dark:border-slate-800 font-bold text-slate-500 text-sm sm:text-base cursor-not-allowed"
-                  >
-                    <XCircle
-                      className="mr-2 w-5 h-5 text-amber-500 shrink-0"
-                      aria-hidden="true"
-                    />
-                    <span>Toko Sedang Libur (Pemesanan Ditutup)</span>
-                  </Button>
-                  <p className="text-[11px] text-slate-400 text-center">
-                    Tombol pemesanan dinonaktifkan sementara karena toko sedang
-                    dalam masa libur.
-                  </p>
-                </div>
-              ) : !storeStatus.isOpen ? (
-                <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    fullWidth
-                    disabled
-                    className="bg-slate-100 dark:bg-slate-900 opacity-80 py-4 border-slate-300 dark:border-slate-800 font-bold text-slate-500 text-sm sm:text-base cursor-not-allowed"
-                  >
-                    <Lock
-                      className="mr-2 w-5 h-5 text-rose-500 shrink-0"
-                      aria-hidden="true"
-                    />
-                    <span>Maaf, Toko kami sedang tutup</span>
-                  </Button>
-                  <p className="text-[11px] text-slate-400 text-center">
-                    Silakan hubungi kembali saat toko mulai beroperasi.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <a
-                    href={waOrderUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp-500 w-full"
-                    aria-label={`Pesan produk ${product.name} langsung ke WhatsApp vendor ${product.vendor?.store_name}`}
-                  >
-                    <Button
-                      variant="whatsapp"
-                      size="lg"
-                      fullWidth
-                      className="shadow-card-hover py-4 font-bold text-sm sm:text-base"
-                    >
-                      <MessageCircle
-                        className="fill-white mr-1 w-5 h-5"
-                        aria-hidden="true"
-                      />
-                      <span>Pesan Langsung via WhatsApp Vendor</span>
-                    </Button>
-                  </a>
-
-                  {isAffiliate && (
-                    <a
-                      href={product.external_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 w-full"
-                      aria-label={`Buka tautan affiliasi resmi produk ${product.name}`}
-                    >
-                      <Button
-                        variant="primary"
-                        size="lg"
-                        fullWidth
-                        className="py-4 font-bold text-sm sm:text-base"
-                      >
-                        <ExternalLink
-                          className="mr-1 w-5 h-5"
-                          aria-hidden="true"
-                        />
-                        <span>{product.button_text || "Beli via Link"}</span>
-                      </Button>
-                    </a>
-                  )}
-                </>
-              )}
-
-              <ul className="flex justify-between items-center m-0 p-0 px-1 pt-2 text-slate-500 dark:text-slate-400 text-xs list-none">
-                <li className="flex items-center gap-1.5">
-                  <CheckCircle2
-                    className="w-4 h-4 text-emerald-500"
-                    aria-hidden="true"
-                  />
-                  <span>Respon Cepat Vendor</span>
-                </li>
-                <li className="flex items-center gap-1.5">
-                  <CheckCircle2
-                    className="w-4 h-4 text-emerald-500"
-                    aria-hidden="true"
-                  />
-                  <span>100% Produk Lokal Asli</span>
-                </li>
-              </ul>
-            </div>
+                <span>100% Produk Lokal Asli</span>
+              </li>
+            </ul>
 
             {/* Full Description */}
             <section
