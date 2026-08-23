@@ -147,7 +147,7 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
             <li aria-hidden="true">/</li>
             <li>
               <Link
-                href="/vendors"
+                href="/products"
                 className="focus-visible:outline-none hover:text-brand-800 dark:hover:text-brand-400 focus-visible:underline transition-colors"
               >
                 Produk
