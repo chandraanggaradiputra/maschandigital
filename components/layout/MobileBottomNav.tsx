@@ -3,7 +3,14 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Store, LayoutDashboard, Tag, LogIn } from "lucide-react";
+import {
+  Home,
+  Store,
+  LayoutDashboard,
+  Tag,
+  LogIn,
+  Package,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getVendorSession, AuthSession } from "@/lib/api/auth";
 
@@ -11,17 +18,16 @@ export function MobileBottomNav() {
   const pathname = usePathname();
   const [session, setSession] = useState<AuthSession | null>(null);
 
-  const syncAuth = () => {
-    setSession(getVendorSession());
-  };
-
   useEffect(() => {
-    // Baca sesi dari localStorage saat mount (sumber data di luar React),
-    // lalu tetap sinkron lewat event listener. Bukan kasus "effect tak perlu".
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // Definisikan handler di dalam useEffect agar mematuhi aturan React Hooks exhaustive-deps
+    const syncAuth = () => {
+      setSession(getVendorSession());
+    };
+
     syncAuth();
     window.addEventListener("maschan:auth-change", syncAuth);
     window.addEventListener("storage", syncAuth);
+
     return () => {
       window.removeEventListener("maschan:auth-change", syncAuth);
       window.removeEventListener("storage", syncAuth);
@@ -30,10 +36,11 @@ export function MobileBottomNav() {
 
   const navItems = [
     { label: "Beranda", href: "/", icon: Home },
+    { label: "Produk", href: "/products", icon: Package },
     { label: "Kategori", href: "/categories", icon: Tag },
     { label: "Vendor", href: "/vendors", icon: Store },
     {
-      label: session ? "Dashboard" : "Masuk",
+      label: session ? "Dashboard" : "Akun",
       href: session ? "/dashboard" : "/vendor/login",
       icon: session ? LayoutDashboard : LogIn,
     },
@@ -57,7 +64,7 @@ export function MobileBottomNav() {
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex flex-col justify-center items-center px-2 py-1.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 w-full transition-all duration-150",
+                  "flex flex-col justify-center items-center px-1 py-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 w-full transition-all duration-150",
                   isActive
                     ? "text-brand-800 dark:text-brand-400 font-bold scale-105"
                     : "text-slate-500 dark:text-slate-400 font-medium hover:text-slate-800 dark:hover:text-slate-200",
@@ -70,9 +77,9 @@ export function MobileBottomNav() {
                       "bg-brand-50 dark:bg-brand-950/80 text-brand-800 dark:text-brand-400",
                   )}
                 >
-                  <Icon className="w-5 h-5" aria-hidden="true" />
+                  <Icon className="w-4 sm:w-5 h-4 sm:h-5" aria-hidden="true" />
                 </div>
-                <span className="mt-0.5 font-slab text-[10px] tracking-tight">
+                <span className="mt-0.5 font-slab text-[9px] sm:text-[10px] truncate tracking-tight">
                   {item.label}
                 </span>
               </Link>

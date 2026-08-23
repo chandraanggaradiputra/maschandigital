@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   LogOut,
   Tag,
+  Package,
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "@/components/ui/Button";
@@ -26,17 +27,16 @@ export function DesktopHeader() {
   const [session, setSession] = useState<AuthSession | null>(null);
   const router = useRouter();
 
-  const syncAuth = () => {
-    setSession(getVendorSession());
-  };
-
   useEffect(() => {
-    // Baca sesi dari localStorage saat mount (sumber data di luar React),
-    // lalu tetap sinkron lewat event listener. Bukan kasus "effect tak perlu".
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // Definisikan handler di dalam useEffect agar mematuhi aturan React Hooks exhaustive-deps
+    const syncAuth = () => {
+      setSession(getVendorSession());
+    };
+
     syncAuth();
     window.addEventListener("maschan:auth-change", syncAuth);
     window.addEventListener("storage", syncAuth);
+
     return () => {
       window.removeEventListener("maschan:auth-change", syncAuth);
       window.removeEventListener("storage", syncAuth);
@@ -46,14 +46,12 @@ export function DesktopHeader() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/vendors?q=${encodeURIComponent(searchQuery.trim())}`);
+      router.push(`/products?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
   const handleLogout = () => {
-    // 1. Bersihkan token & sesi vendor dari localStorage
     clearVendorSession();
-    // 2. Arahkan langsung ke Beranda sebagai pengunjung biasa
     if (typeof window !== "undefined") {
       window.location.href = "/";
     }
@@ -127,6 +125,15 @@ export function DesktopHeader() {
                   className="focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
                 >
                   Beranda
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/products"
+                  className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
+                >
+                  <Package className="w-4 h-4" aria-hidden="true" />
+                  <span>Semua Produk</span>
                 </Link>
               </li>
               <li>
