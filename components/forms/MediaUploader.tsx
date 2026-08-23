@@ -10,6 +10,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { getVendorSession } from "@/lib/api/auth";
 
 interface MediaUploaderProps {
   initialImage?: string;
@@ -44,8 +45,13 @@ export function MediaUploader({
       const formData = new FormData();
       formData.append("file", file);
 
+      const session = getVendorSession();
+      const headers: Record<string, string> = {};
+      if (session?.token) headers["Authorization"] = `Bearer ${session.token}`;
+
       const res = await fetch(`${WP_API_URL}/wp-json/maschan/v1/media/upload`, {
         method: "POST",
+        headers,
         body: formData,
       });
 
@@ -66,9 +72,12 @@ export function MediaUploader({
           ? err.message
           : "Terjadi kesalahan saat mengunggah gambar.",
       );
-      const localUrl = URL.createObjectURL(file);
-      setPreviewUrl(localUrl);
-      onImageChange(localUrl);
+      // TIDAK memanggil onImageChange() dengan blob URL lokal di sini.
+      // Blob URL cuma valid di sesi browser ini — kalau tersimpan ke database
+      // (mis. form produk disubmit), akan jadi link rusak permanen begitu
+      // halaman ditutup/dibuka orang lain. Lebih aman biarkan preview kosong
+      // dan pesan error terlihat jelas, daripada terlihat "berhasil" padahal tidak.
+      setPreviewUrl(initialImage);
     } finally {
       setIsUploading(false);
     }
