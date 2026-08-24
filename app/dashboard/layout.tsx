@@ -34,8 +34,6 @@ export default function DashboardLayout({
 
   useEffect(() => {
     const session = getVendorSession();
-    // Baca sesi dari localStorage saat mount untuk memutuskan proteksi akses
-    // dashboard — sumber data di luar React, bukan kasus "effect tak perlu".
     if (session && session.user && session.token) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsAuth(true);
@@ -45,7 +43,6 @@ export default function DashboardLayout({
       );
     } else {
       setIsAuth(false);
-      // Pengunjung yang belum login otomatis diarahkan ke halaman login vendor
       router.replace("/vendor/login");
     }
   }, [router]);
@@ -77,7 +74,6 @@ export default function DashboardLayout({
     },
   ];
 
-  // 1. Loading State saat memeriksa sesi
   if (isAuth === null) {
     return (
       <div className="flex flex-col justify-center items-center gap-3 px-4 py-16 w-full min-h-[60vh] text-center">
@@ -89,7 +85,6 @@ export default function DashboardLayout({
     );
   }
 
-  // 2. Unauthenticated State (Tampilan Centered Rapi jika belum teralihkan)
   if (!isAuth) {
     return (
       <div className="flex justify-center items-center bg-slate-50/60 dark:bg-slate-950/40 px-4 py-16 w-full min-h-[calc(100vh-140px)]">
@@ -130,7 +125,6 @@ export default function DashboardLayout({
     );
   }
 
-  // 3. Authenticated Dashboard Layout
   return (
     <div className="bg-slate-50/60 dark:bg-slate-950/40 py-6 sm:py-10 w-full min-h-[calc(100vh-140px)]">
       <SectionContainer className="py-0">
@@ -178,12 +172,12 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        {/* Layout Grid */}
-        <div className="items-start gap-6 grid grid-cols-1 lg:grid-cols-12">
+        {/* Layout Grid (Dengan min-w-0 w-full Anti-Blowout) */}
+        <div className="items-start gap-6 grid grid-cols-1 lg:grid-cols-12 w-full min-w-0">
           {/* Sidebar */}
           <aside
             aria-label="Navigasi Menu Dashboard"
-            className="space-y-2 lg:col-span-3"
+            className="space-y-2 lg:col-span-3 min-w-0"
           >
             <nav className="bg-white dark:bg-surface-darkCard shadow-subtle p-3 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
               <ul className="space-y-1 m-0 p-0 list-none">
@@ -224,8 +218,10 @@ export default function DashboardLayout({
             </nav>
           </aside>
 
-          {/* Main Area */}
-          <section className="space-y-6 lg:col-span-9">{children}</section>
+          {/* Main Area (min-w-0 w-full menjaga lebar 100% pas di layar HP) */}
+          <section className="space-y-6 lg:col-span-9 w-full min-w-0">
+            {children}
+          </section>
         </div>
       </SectionContainer>
     </div>
