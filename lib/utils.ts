@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import type { ProductCategory } from "@/types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -104,4 +105,104 @@ export function generateWhatsAppBillingConfirmationUrl(params: {
 export function truncateText(text: string, maxLength: number): string {
   if (!text || text.length <= maxLength) return text;
   return text.substring(0, maxLength) + "...";
+}
+
+// ---------------------------------------------------------------------
+// Smart WhatsApp Order Form (dipakai components/product/WhatsAppOrderModal.tsx)
+// Sengaja ditulis di sini (bukan inline di komponen), reuse normalizeWhatsAppNumber
+// di atas — satu-satunya tempat yang tahu cara membangun URL WA & normalisasi nomor.
+// ---------------------------------------------------------------------
+
+export type KecamatanSerang =
+  | "Serang"
+  | "Cipocok Jaya"
+  | "Kasemen"
+  | "Curug"
+  | "Taktakan"
+  | "Walantaka";
+
+export type MetodeAntarProduk = "kurir_lokal" | "cod" | "ambil_di_toko";
+
+export const METODE_ANTAR_LABEL: Record<MetodeAntarProduk, string> = {
+  kurir_lokal: "Kurir Lokal",
+  cod: "COD (Titik Ketemuan)",
+  ambil_di_toko: "Ambil di Toko",
+};
+
+export function generateWhatsAppOrderUrl(params: {
+  whatsappNumber: string;
+  vendorName: string;
+  productName: string;
+  unitPrice: number;
+  qty: number;
+  buyerName: string;
+  kecamatan: KecamatanSerang;
+  metodeAntar: MetodeAntarProduk;
+  catatan?: string;
+  productUrl: string;
+}): string {
+  const {
+    whatsappNumber,
+    vendorName,
+    productName,
+    unitPrice,
+    qty,
+    buyerName,
+    kecamatan,
+    metodeAntar,
+    catatan,
+    productUrl,
+  } = params;
+
+  const normalizedPhone = normalizeWhatsAppNumber(whatsappNumber);
+  const subtotal = unitPrice * qty;
+
+  const text =
+    `Halo ${vendorName || "Admin Toko"}, saya ingin memesan produk dari Mas Chan Digital:\n\n` +
+    `🛒 *RINCIAN PESANAN:*\n` +
+    `• Produk: ${productName}\n` +
+    `• Harga Satuan: ${formatRupiah(unitPrice)}\n` +
+    `• Jumlah: ${qty} pcs\n` +
+    `• Estimasi Total: ${formatRupiah(subtotal)}\n\n` +
+    `📍 *INFORMASI PEMESAN & TUJUAN:*\n` +
+    `• Nama Pemesan: ${buyerName}\n` +
+    `• Wilayah/Kecamatan: ${kecamatan}, Kota Serang\n` +
+    `• Pilihan Pengiriman: ${METODE_ANTAR_LABEL[metodeAntar]}\n` +
+    (catatan?.trim() ? `• Catatan: ${catatan.trim()}\n` : ``) +
+    `\n🔗 Tautan Produk: ${productUrl}`;
+
+  return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(text)}`;
+}
+
+// Nomor WhatsApp resmi admin Mas Chan Digital untuk konfirmasi pembayaran langganan.
+export const MASCHAN_ADMIN_WHATSAPP = "6282298148474";
+
+/**
+ * Ubah daftar kategori DATAR dari GET /categories (tiap item cuma tahu `parent`,
+ * tanpa `children`) jadi struktur POHON bersarang (`children` terisi).
+ * Satu-satunya tempat logika ini boleh berada — dipakai ProductForm.tsx dan
+ * komponen manapun yang butuh tampilan kategori hierarkis, supaya tidak ada
+ * dua cara berbeda membangun pohon yang sama dari data yang sama.
+ */
+export function buildCategoryTree(
+  flatCategories: ProductCategory[],
+): ProductCategory[] {
+  const byId = new Map<number, ProductCategory>();
+  flatCategories.forEach((cat) => {
+    byId.set(cat.id, { ...cat, children: [] });
+  });
+
+  const roots: ProductCategory[] = [];
+  byId.forEach((cat) => {
+    if (cat.parent && byId.has(cat.parent)) {
+      byId.get(cat.parent)!.children!.push(cat);
+    } else {
+      // parent = 0, atau parent merujuk ID yang tidak ada di daftar (data
+      // tidak konsisten) — perlakukan sebagai kategori level teratas, jangan
+      // sampai kategori itu hilang dari tampilan sama sekali.
+      roots.push(cat);
+    }
+  });
+
+  return roots;
 }

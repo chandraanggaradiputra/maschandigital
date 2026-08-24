@@ -1,80 +1,120 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { 
-  Sparkles, 
-  Save, 
-  CheckCircle2, 
-  Globe, 
-  Plus, 
-  FolderPlus, 
-  ChevronRight, 
-  AlertCircle 
-} from 'lucide-react';
-import { Product, ProductType, ProductCategory } from '@/types';
-import { Button } from '@/components/ui/Button';
-import { MediaUploader } from '@/components/forms/MediaUploader';
-import { createProduct, updateProduct, getCategories, createCategory } from '@/lib/api/wordpress';
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Sparkles,
+  Save,
+  CheckCircle2,
+  Globe,
+  Plus,
+  FolderPlus,
+  ChevronRight,
+  AlertCircle,
+} from "lucide-react";
+import { Product, ProductType, ProductCategory } from "@/types";
+import { Button } from "@/components/ui/Button";
+import { MediaUploader } from "@/components/forms/MediaUploader";
+import {
+  GalleryUploader,
+  GalleryImageItem,
+} from "@/components/forms/GalleryUploader";
+import {
+  createProduct,
+  updateProduct,
+  getCategories,
+  createCategory,
+} from "@/lib/api/wordpress";
+import { buildCategoryTree } from "@/lib/utils";
 
 interface ProductFormProps {
   initialData?: Partial<Product>;
   isEditing?: boolean;
 }
 
-export function ProductForm({ initialData, isEditing = false }: ProductFormProps) {
+export function ProductForm({
+  initialData,
+  isEditing = false,
+}: ProductFormProps) {
   const router = useRouter();
 
-  const [name, setName] = useState(initialData?.name || '');
-  const [productType, setProductType] = useState<ProductType>(initialData?.type || 'simple');
-  const [shortDesc, setShortDesc] = useState(initialData?.short_description || '');
-  const [description, setDescription] = useState(initialData?.description || '');
+  const [name, setName] = useState(initialData?.name || "");
+  const [productType, setProductType] = useState<ProductType>(
+    initialData?.type || "simple",
+  );
+  const [shortDesc, setShortDesc] = useState(
+    initialData?.short_description || "",
+  );
+  const [description, setDescription] = useState(
+    initialData?.description || "",
+  );
 
   // Hierarchical Categories State
-  const [availableCategories, setAvailableCategories] = useState<ProductCategory[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<
+    ProductCategory[]
+  >([]);
+  const [flatCategories, setFlatCategories] = useState<ProductCategory[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>(
-    initialData?.category_ids || (initialData?.categories?.map(c => c.id) || [])
+    initialData?.category_ids ||
+      initialData?.categories?.map((c) => c.id) ||
+      [],
   );
-  
+
   // Add Category Inline Form
   const [showAddCat, setShowAddCat] = useState(false);
-  const [newCatName, setNewCatName] = useState('');
+  const [newCatName, setNewCatName] = useState("");
   const [newCatParent, setNewCatParent] = useState<number>(0);
   const [isAddingCat, setIsAddingCat] = useState(false);
 
   // Pricing
-  const [regularPrice, setRegularPrice] = useState(initialData?.regular_price || initialData?.price || '');
+  const [regularPrice, setRegularPrice] = useState(
+    initialData?.regular_price || initialData?.price || "",
+  );
   const [onSale, setOnSale] = useState(Boolean(initialData?.on_sale));
-  const [salePrice, setSalePrice] = useState(initialData?.sale_price || '');
+  const [salePrice, setSalePrice] = useState(initialData?.sale_price || "");
 
   // Affiliate
-  const [externalUrl, setExternalUrl] = useState(initialData?.external_url || '');
-  const [buttonText, setButtonText] = useState(initialData?.button_text || 'Beli via Link');
+  const [externalUrl, setExternalUrl] = useState(
+    initialData?.external_url || "",
+  );
+  const [buttonText, setButtonText] = useState(
+    initialData?.button_text || "Beli via Link",
+  );
 
   // Media
-  const [imageUrl, setImageUrl] = useState(initialData?.images?.[0]?.src || '');
+  const [imageUrl, setImageUrl] = useState(initialData?.images?.[0]?.src || "");
+  const [galleryImages, setGalleryImages] = useState<GalleryImageItem[]>(
+    (initialData?.images || [])
+      .slice(1) // index 0 = foto utama, sisanya = galeri
+      .map((img) => ({ id: img.id, src: img.src })),
+  );
 
   // Rank Math SEO
-  const [focusKeyword, setFocusKeyword] = useState(initialData?.seo?.focus_keyword || '');
-  const [seoTitle, setSeoTitle] = useState(initialData?.seo?.meta_title || '');
-  const [metaDesc, setMetaDesc] = useState(initialData?.seo?.meta_description || '');
+  const [focusKeyword, setFocusKeyword] = useState(
+    initialData?.seo?.focus_keyword || "",
+  );
+  const [seoTitle, setSeoTitle] = useState(initialData?.seo?.meta_title || "");
+  const [metaDesc, setMetaDesc] = useState(
+    initialData?.seo?.meta_description || "",
+  );
 
   // Submit State
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     async function loadCats() {
       const cats = await getCategories();
-      setAvailableCategories(cats);
+      setFlatCategories(cats);
+      setAvailableCategories(buildCategoryTree(cats));
     }
     loadCats();
   }, []);
 
   const handleToggleCategory = (id: number) => {
-    setSelectedCategoryIds(prev => 
-      prev.includes(id) ? prev.filter(cId => cId !== id) : [...prev, id]
+    setSelectedCategoryIds((prev) =>
+      prev.includes(id) ? prev.filter((cId) => cId !== id) : [...prev, id],
     );
   };
 
@@ -86,12 +126,13 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
     const res = await createCategory(newCatName.trim(), newCatParent);
     if (res.success && res.category) {
       const updatedCats = await getCategories();
-      setAvailableCategories(updatedCats);
-      setSelectedCategoryIds(prev => [...prev, res.category!.id]);
-      setNewCatName('');
+      setFlatCategories(updatedCats);
+      setAvailableCategories(buildCategoryTree(updatedCats));
+      setSelectedCategoryIds((prev) => [...prev, res.category!.id]);
+      setNewCatName("");
       setShowAddCat(false);
     } else {
-      alert(res.message || 'Gagal menambahkan kategori.');
+      alert(res.message || "Gagal menambahkan kategori.");
     }
     setIsAddingCat(false);
   };
@@ -99,21 +140,31 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setSuccessMessage('');
-    setErrorMessage('');
+    setSuccessMessage("");
+    setErrorMessage("");
 
     const payload = {
       name,
       type: productType,
       regular_price: regularPrice,
-      sale_price: onSale ? salePrice : '',
+      sale_price: onSale ? salePrice : "",
       on_sale: onSale,
       short_description: shortDesc,
       description,
       category_ids: selectedCategoryIds,
-      images: imageUrl ? [{ src: imageUrl }] : [],
-      external_url: productType === 'affiliate' ? externalUrl : '',
-      button_text: productType === 'affiliate' ? buttonText : '',
+      // Index 0 SELALU dicadangkan untuk foto utama (dipakai backend untuk
+      // resolve thumbnail) — kalau foto utama kosong tapi galeri ada isinya,
+      // tetap kirim placeholder kosong di index 0 supaya galeri tidak ikut
+      // terpotong/salah tafsir sebagai foto utama oleh backend.
+      images:
+        imageUrl || galleryImages.length > 0
+          ? [
+              { src: imageUrl },
+              ...galleryImages.map((g) => ({ src: g.src, id: g.id })),
+            ]
+          : [],
+      external_url: productType === "affiliate" ? externalUrl : "",
+      button_text: productType === "affiliate" ? buttonText : "",
       seo: {
         focus_keyword: focusKeyword,
         meta_title: seoTitle || name,
@@ -129,24 +180,38 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
     }
 
     if (result.success) {
-      setSuccessMessage(result.message || (isEditing ? 'Perubahan produk berhasil disimpan!' : 'Produk berhasil diterbitkan ke WordPress!'));
+      setSuccessMessage(
+        result.message ||
+          (isEditing
+            ? "Perubahan produk berhasil disimpan!"
+            : "Produk berhasil diterbitkan ke WordPress!"),
+      );
       setTimeout(() => {
-        router.push('/dashboard/products');
+        router.push("/dashboard/products");
         router.refresh();
       }, 1200);
     } else {
-      setErrorMessage(result.message || 'Terjadi kendala saat menyimpan ke WordPress.');
+      setErrorMessage(
+        result.message || "Terjadi kendala saat menyimpan ke WordPress.",
+      );
     }
     setIsSubmitting(false);
   };
 
-  const previewTitle = seoTitle || (name ? `${name} - Mas Chan Digital Serang` : 'Nama Produk - Mas Chan Digital');
-  const previewDesc = metaDesc || shortDesc || 'Beli produk UMKM asli Kota Serang berkualitas. Hubungi langsung WhatsApp vendor tanpa biaya perantara.';
+  const previewTitle =
+    seoTitle ||
+    (name
+      ? `${name} - Mas Chan Digital Serang`
+      : "Nama Produk - Mas Chan Digital");
+  const previewDesc =
+    metaDesc ||
+    shortDesc ||
+    "Beli produk UMKM asli Kota Serang berkualitas. Hubungi langsung WhatsApp vendor tanpa biaya perantara.";
 
   const renderCategoryTree = (categories: ProductCategory[], level = 0) => {
-    return categories.map(cat => (
+    return categories.map((cat) => (
       <div key={cat.id} className="space-y-1">
-        <label 
+        <label
           className="flex items-center gap-2.5 py-1 text-slate-700 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-xs sm:text-sm cursor-pointer"
           style={{ paddingLeft: `${level * 18}px` }}
         >
@@ -156,13 +221,20 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
             onChange={() => handleToggleCategory(cat.id)}
             className="border-slate-300 rounded focus:ring-brand-500 w-4 h-4 text-brand-800 cursor-pointer"
           />
-          {level > 0 && <ChevronRight className="w-3 h-3 text-slate-400" aria-hidden="true" />}
+          {level > 0 && (
+            <ChevronRight
+              className="w-3 h-3 text-slate-400"
+              aria-hidden="true"
+            />
+          )}
           <span className="font-medium">{cat.name}</span>
           {cat.count !== undefined && (
             <span className="text-[11px] text-slate-400">({cat.count})</span>
           )}
         </label>
-        {cat.children && cat.children.length > 0 && renderCategoryTree(cat.children, level + 1)}
+        {cat.children &&
+          cat.children.length > 0 &&
+          renderCategoryTree(cat.children, level + 1)}
       </div>
     ));
   };
@@ -170,27 +242,45 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
   return (
     <form onSubmit={handleSubmit} className="space-y-8 pb-12 max-w-4xl">
       {successMessage && (
-        <aside aria-live="polite" className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950/80 p-4 border border-emerald-200 dark:border-emerald-800 rounded-2xl text-emerald-800 dark:text-emerald-200">
-          <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" aria-hidden="true" />
+        <aside
+          aria-live="polite"
+          className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950/80 p-4 border border-emerald-200 dark:border-emerald-800 rounded-2xl text-emerald-800 dark:text-emerald-200"
+        >
+          <CheckCircle2
+            className="w-5 h-5 text-emerald-500 shrink-0"
+            aria-hidden="true"
+          />
           <span className="font-semibold text-sm">{successMessage}</span>
         </aside>
       )}
 
       {errorMessage && (
-        <aside aria-live="assertive" className="flex items-center gap-3 bg-rose-50 dark:bg-rose-950/80 p-4 border border-rose-200 dark:border-rose-800 rounded-2xl text-rose-700 dark:text-rose-300">
-          <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" aria-hidden="true" />
+        <aside
+          aria-live="assertive"
+          className="flex items-center gap-3 bg-rose-50 dark:bg-rose-950/80 p-4 border border-rose-200 dark:border-rose-800 rounded-2xl text-rose-700 dark:text-rose-300"
+        >
+          <AlertCircle
+            className="w-5 h-5 text-rose-500 shrink-0"
+            aria-hidden="true"
+          />
           <span className="font-semibold text-sm">{errorMessage}</span>
         </aside>
       )}
 
       {/* 1. INFORMASI DASAR */}
-      <section aria-labelledby="basic-info-heading" className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
+      <section
+        aria-labelledby="basic-info-heading"
+        className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl"
+      >
         <header className="flex items-center gap-2.5 pb-4 border-slate-100 dark:border-slate-800 border-b">
           <div className="flex justify-center items-center bg-brand-100 dark:bg-brand-950/80 rounded-xl w-8 h-8 font-bold text-brand-700 dark:text-brand-400">
             1
           </div>
           <div>
-            <h2 id="basic-info-heading" className="font-slab font-bold text-slate-900 dark:text-white text-lg">
+            <h2
+              id="basic-info-heading"
+              className="font-slab font-bold text-slate-900 dark:text-white text-lg"
+            >
               Informasi Dasar Produk
             </h2>
             <p className="text-slate-500 dark:text-slate-400 text-xs">
@@ -201,7 +291,10 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
 
         <div className="space-y-4">
           <div>
-            <label htmlFor="product-name" className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
+            <label
+              htmlFor="product-name"
+              className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm"
+            >
               Nama Produk <span className="text-rose-500">*</span>
             </label>
             <input
@@ -219,7 +312,8 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <label className="block font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
-                Kategori Produk (Pilih satu atau lebih) <span className="text-rose-500">*</span>
+                Kategori Produk (Pilih satu atau lebih){" "}
+                <span className="text-rose-500">*</span>
               </label>
               <button
                 type="button"
@@ -227,7 +321,9 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                 className="inline-flex items-center gap-1 font-semibold text-brand-800 dark:text-brand-400 text-xs hover:underline"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>{showAddCat ? 'Tutup Form' : '+ Tambah Kategori Baru'}</span>
+                <span>
+                  {showAddCat ? "Tutup Form" : "+ Tambah Kategori Baru"}
+                </span>
               </button>
             </div>
 
@@ -255,9 +351,13 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                       onChange={(e) => setNewCatParent(Number(e.target.value))}
                       className="bg-white dark:bg-slate-900 px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-xl outline-none w-full text-xs cursor-pointer"
                     >
-                      <option value={0}>— Tanpa Induk (Kategori Utama) —</option>
-                      {availableCategories.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
+                      <option value={0}>
+                        — Tanpa Induk (Kategori Utama) —
+                      </option>
+                      {flatCategories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -271,7 +371,9 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                   className="text-xs"
                 >
                   <FolderPlus className="mr-1 w-3.5 h-3.5" />
-                  <span>{isAddingCat ? 'Menambahkan...' : 'Simpan Kategori'}</span>
+                  <span>
+                    {isAddingCat ? "Menambahkan..." : "Simpan Kategori"}
+                  </span>
                 </Button>
               </div>
             )}
@@ -288,7 +390,10 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
           </div>
 
           <div>
-            <label htmlFor="product-type" className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
+            <label
+              htmlFor="product-type"
+              className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm"
+            >
               Metode Transaksi Produk <span className="text-rose-500">*</span>
             </label>
             <select
@@ -303,7 +408,10 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
           </div>
 
           <div>
-            <label htmlFor="product-short-desc" className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
+            <label
+              htmlFor="product-short-desc"
+              className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm"
+            >
               Deskripsi Singkat (Ringkasan)
             </label>
             <textarea
@@ -317,7 +425,10 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
           </div>
 
           <div>
-            <label htmlFor="product-full-desc" className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
+            <label
+              htmlFor="product-full-desc"
+              className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm"
+            >
               Deskripsi Lengkap & Spesifikasi
             </label>
             <textarea
@@ -333,13 +444,19 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
       </section>
 
       {/* 2. HARGA & TRANSAKSI */}
-      <section aria-labelledby="pricing-heading" className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
+      <section
+        aria-labelledby="pricing-heading"
+        className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl"
+      >
         <header className="flex items-center gap-2.5 pb-4 border-slate-100 dark:border-slate-800 border-b">
           <div className="flex justify-center items-center bg-brand-100 dark:bg-brand-950/80 rounded-xl w-8 h-8 font-bold text-brand-700 dark:text-brand-400">
             2
           </div>
           <div>
-            <h2 id="pricing-heading" className="font-slab font-bold text-slate-900 dark:text-white text-lg">
+            <h2
+              id="pricing-heading"
+              className="font-slab font-bold text-slate-900 dark:text-white text-lg"
+            >
               Harga & Detail Transaksi
             </h2>
             <p className="text-slate-500 dark:text-slate-400 text-xs">
@@ -351,7 +468,10 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
         <div className="space-y-4">
           <div className="gap-4 grid grid-cols-1 sm:grid-cols-2">
             <div>
-              <label htmlFor="regular-price" className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
+              <label
+                htmlFor="regular-price"
+                className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm"
+              >
                 Harga Normal (Rp) <span className="text-rose-500">*</span>
               </label>
               <input
@@ -367,7 +487,10 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
 
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label htmlFor="sale-price" className="block font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
+                <label
+                  htmlFor="sale-price"
+                  className="block font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm"
+                >
                   Harga Diskon / Promo (Rp)
                 </label>
                 <label className="inline-flex items-center gap-1.5 text-brand-700 dark:text-brand-400 text-xs cursor-pointer">
@@ -392,11 +515,15 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
             </div>
           </div>
 
-          {productType === 'affiliate' && (
+          {productType === "affiliate" && (
             <div className="space-y-4 bg-brand-50/60 dark:bg-brand-950/40 p-4 border border-brand-100 dark:border-brand-900 rounded-2xl">
               <div>
-                <label htmlFor="external-url" className="block mb-1 font-slab font-bold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">
-                  Tautan / Link Affiliasi Vendor <span className="text-rose-500">*</span>
+                <label
+                  htmlFor="external-url"
+                  className="block mb-1 font-slab font-bold text-slate-800 dark:text-slate-200 text-xs sm:text-sm"
+                >
+                  Tautan / Link Affiliasi Vendor{" "}
+                  <span className="text-rose-500">*</span>
                 </label>
                 <input
                   id="external-url"
@@ -410,7 +537,10 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
               </div>
 
               <div>
-                <label htmlFor="button-text" className="block mb-1 font-slab font-bold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">
+                <label
+                  htmlFor="button-text"
+                  className="block mb-1 font-slab font-bold text-slate-800 dark:text-slate-200 text-xs sm:text-sm"
+                >
                   Teks Tombol Aksi
                 </label>
                 <input
@@ -428,13 +558,19 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
       </section>
 
       {/* 3. FOTO PRODUK */}
-      <section aria-labelledby="media-heading" className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
+      <section
+        aria-labelledby="media-heading"
+        className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl"
+      >
         <header className="flex items-center gap-2.5 pb-4 border-slate-100 dark:border-slate-800 border-b">
           <div className="flex justify-center items-center bg-brand-100 dark:bg-brand-950/80 rounded-xl w-8 h-8 font-bold text-brand-700 dark:text-brand-400">
             3
           </div>
           <div>
-            <h2 id="media-heading" className="font-slab font-bold text-slate-900 dark:text-white text-lg">
+            <h2
+              id="media-heading"
+              className="font-slab font-bold text-slate-900 dark:text-white text-lg"
+            >
               Foto Produk (WordPress Media Library)
             </h2>
             <p className="text-slate-500 dark:text-slate-400 text-xs">
@@ -447,28 +583,46 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
           initialImage={imageUrl}
           onImageChange={(url) => setImageUrl(url)}
         />
+
+        <div className="mt-6 pt-6 border-slate-100 dark:border-slate-800 border-t">
+          <GalleryUploader
+            images={galleryImages}
+            onImagesChange={setGalleryImages}
+            maxImages={5}
+          />
+        </div>
       </section>
 
       {/* 4. OPTIMASI SEO RANK MATH */}
-      <section aria-labelledby="seo-heading" className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
+      <section
+        aria-labelledby="seo-heading"
+        className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl"
+      >
         <header className="flex items-center gap-2.5 pb-4 border-slate-100 dark:border-slate-800 border-b">
           <div className="flex justify-center items-center bg-brand-100 dark:bg-brand-950/80 rounded-xl w-8 h-8 font-bold text-brand-700 dark:text-brand-400">
             4
           </div>
           <div>
-            <h2 id="seo-heading" className="flex items-center gap-2 font-slab font-bold text-slate-900 dark:text-white text-lg">
+            <h2
+              id="seo-heading"
+              className="flex items-center gap-2 font-slab font-bold text-slate-900 dark:text-white text-lg"
+            >
               <span>Optimasi SEO Rank Math</span>
               <Sparkles className="w-4 h-4 text-amber-500" />
             </h2>
             <p className="text-slate-500 dark:text-slate-400 text-xs">
-              Atur kata kunci dan meta deskripsi agar produk Anda mudah ditemukan di Google
+              Atur kata kunci dan meta deskripsi agar produk Anda mudah
+              ditemukan di Google
             </p>
           </div>
         </header>
 
         <div className="space-y-4">
           <div>
-            <label htmlFor="focus-keyword" className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
+            <label
+              htmlFor="focus-keyword"
+              className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm"
+            >
               Focus Keyword (Kata Kunci Utama)
             </label>
             <input
@@ -482,7 +636,10 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
           </div>
 
           <div>
-            <label htmlFor="seo-title" className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
+            <label
+              htmlFor="seo-title"
+              className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm"
+            >
               SEO Meta Title
             </label>
             <input
@@ -490,13 +647,20 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
               type="text"
               value={seoTitle}
               onChange={(e) => setSeoTitle(e.target.value)}
-              placeholder={name ? `${name} - Mas Chan Digital` : 'Judul Produk di Hasil Pencarian'}
+              placeholder={
+                name
+                  ? `${name} - Mas Chan Digital`
+                  : "Judul Produk di Hasil Pencarian"
+              }
               className="bg-slate-50 dark:bg-slate-900 px-4 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm"
             />
           </div>
 
           <div>
-            <label htmlFor="meta-description" className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
+            <label
+              htmlFor="meta-description"
+              className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm"
+            >
               SEO Meta Description (Maks. 160 Karakter)
             </label>
             <textarea
@@ -538,7 +702,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
           type="button"
           variant="outline"
           size="md"
-          onClick={() => router.push('/dashboard/products')}
+          onClick={() => router.push("/dashboard/products")}
         >
           Batal
         </Button>
@@ -550,7 +714,13 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
           className="min-w-[160px] font-bold"
         >
           <Save className="mr-2 w-4 h-4" aria-hidden="true" />
-          <span>{isSubmitting ? 'Menyimpan...' : (isEditing ? 'Simpan Perubahan' : 'Terbitkan Produk')}</span>
+          <span>
+            {isSubmitting
+              ? "Menyimpan..."
+              : isEditing
+                ? "Simpan Perubahan"
+                : "Terbitkan Produk"}
+          </span>
         </Button>
       </footer>
     </form>
