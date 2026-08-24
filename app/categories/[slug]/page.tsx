@@ -108,7 +108,7 @@ export async function generateMetadata({
     slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 
   return {
-    title: `Produk Kategori ${titleName} - Mas Chan Digital Kota Serang`,
+    title: `Kategori ${titleName} - Mas Chan Digital Kota Serang`,
     description: `Temukan daftar produk dan jasa ${titleName} terbaik dari UMKM lokal Kota Serang. Hubungi langsung vendor via WhatsApp tanpa potongan biaya.`,
   };
 }
