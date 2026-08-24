@@ -14,6 +14,7 @@ import {
   Building2,
   MessageCircle,
   Crown,
+  Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -22,6 +23,7 @@ import {
   getBillingInfo,
   renewSubscription,
   confirmPayment,
+  cancelInvoice,
   type BillingInfoResponse,
 } from "@/lib/api/billing";
 import {
@@ -31,10 +33,6 @@ import {
 import { getVendorSession } from "@/lib/api/auth";
 import { PlanId, SubscriptionStatus } from "@/types";
 
-// PENTING: lengkapi nomor rekening lain di bawah ini kalau sudah ada — yang
-// masih "GANTI-NOMOR-REKENING" otomatis TIDAK ditampilkan ke vendor (lihat
-// filter di BANK_ACCOUNTS.filter() pada bagian render), supaya tidak ada
-// teks placeholder yang kelihatan oleh vendor sungguhan.
 const BANK_ACCOUNTS = [
   { bank: "BCA", number: "GANTI-NOMOR-REKENING", holder: "GANTI NAMA PEMILIK" },
   {
@@ -95,6 +93,9 @@ export default function DashboardBillingPage() {
   const [confirmError, setConfirmError] = useState("");
   const [confirmSuccess, setConfirmSuccess] = useState(false);
 
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState("");
+
   const loadBilling = useCallback(async () => {
     setIsLoading(true);
     setLoadError("");
@@ -109,9 +110,6 @@ export default function DashboardBillingPage() {
   }, []);
 
   useEffect(() => {
-    // Ambil data langganan dari API saat mount — sumber data di luar React,
-    // bukan kasus "effect tak perlu" (pola sama seperti sinkronisasi sesi
-    // login di DesktopHeader/MobileBottomNav).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadBilling();
   }, [loadBilling]);
@@ -150,6 +148,27 @@ export default function DashboardBillingPage() {
       setConfirmError(result.message);
     }
     setIsSubmittingConfirm(false);
+  };
+
+  const handleCancelInvoice = async (invoiceId: number) => {
+    if (
+      !confirm(
+        "Apakah Anda yakin ingin membatalkan tagihan ini? Anda dapat memilih paket lain setelah dibatalkan.",
+      )
+    ) {
+      return;
+    }
+    setIsCancelling(true);
+    setCancelError("");
+    const result = await cancelInvoice(invoiceId);
+    if (result.success) {
+      setProofImageUrl("");
+      setSenderAccountName("");
+      await loadBilling();
+    } else {
+      setCancelError(result.message);
+    }
+    setIsCancelling(false);
   };
 
   if (isLoading) {
@@ -204,12 +223,14 @@ export default function DashboardBillingPage() {
   const statusInfo = STATUS_CONFIG[subscription.status];
   const remainingDays = daysLeft(subscription.end_date);
 
+  // Hanya tagihan yang berstatus 'waiting_approval' yang memblokir tampilan ke mode read-only
   const pendingApprovalInvoice = invoices.find(
     (inv) => inv.invoice_status === "waiting_approval",
   );
+
+  // Tagihan yang aktif harus dibayar (HANYA status 'unpaid' — tagihan 'rejected' atau 'cancelled' tidak memblokir pemilihan paket)
   const payableInvoice = invoices.find(
-    (inv) =>
-      inv.invoice_status === "unpaid" || inv.invoice_status === "rejected",
+    (inv) => inv.invoice_status === "unpaid",
   );
 
   const session = getVendorSession();
@@ -325,7 +346,7 @@ export default function DashboardBillingPage() {
         )}
       </div>
 
-      {/* MENUNGGU VERIFIKASI — read-only, tidak ada form */}
+      {/* MENUNGGU VERIFIKASI — read-only */}
       {!isExempt && pendingApprovalInvoice && (
         <div className="bg-white dark:bg-surface-darkCard shadow-subtle p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
           <div className="flex items-center gap-2 mb-3">
@@ -354,29 +375,44 @@ export default function DashboardBillingPage() {
         </div>
       )}
 
-      {/* FORM BAYAR / KONFIRMASI — tampil kalau ada invoice unpaid atau rejected */}
+      {/* FORM BAYAR / KONFIRMASI (HANYA TAMPIL JIKA ADA TAGIHAN UNPAID) */}
       {!isExempt && !pendingApprovalInvoice && payableInvoice && (
         <div className="bg-white dark:bg-surface-darkCard shadow-subtle p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
-          {payableInvoice.invoice_status === "rejected" && (
-            <div className="flex items-start gap-2.5 bg-rose-50 dark:bg-rose-950/60 mb-4 p-3.5 border border-rose-200 dark:border-rose-800 rounded-2xl text-rose-700 dark:text-rose-300 text-xs">
-              <XCircle className="mt-0.5 w-4 h-4 shrink-0" aria-hidden="true" />
-              <div>
-                <p className="font-bold">Pembayaran sebelumnya ditolak</p>
-                <p className="mt-0.5">
-                  {payableInvoice.rejected_reason ||
-                    "Bukti pembayaran tidak sesuai. Silakan unggah ulang."}
-                </p>
-              </div>
+          <div className="flex sm:flex-row flex-col justify-between items-start sm:items-center gap-3 mb-4 pb-3 border-slate-100 dark:border-slate-800 border-b">
+            <div>
+              <h3 className="font-slab font-bold text-slate-900 dark:text-white text-sm">
+                Selesaikan Pembayaran
+              </h3>
+              <p className="text-slate-500 dark:text-slate-400 text-xs">
+                No. Invoice <strong>{payableInvoice.invoice_number}</strong> —
+                total <strong>{formatRupiah(payableInvoice.amount)}</strong>
+              </p>
+            </div>
+
+            {/* TOMBOL BATAL PILIH PAKET */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleCancelInvoice(payableInvoice.id)}
+              disabled={isCancelling}
+              className="hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-200 dark:border-rose-800/80 font-bold text-rose-600 dark:text-rose-400 text-xs shrink-0"
+            >
+              {isCancelling ? (
+                <Loader2 className="mr-1.5 w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Ban className="mr-1.5 w-3.5 h-3.5" />
+              )}
+              <span>Batal Pilih Paket</span>
+            </Button>
+          </div>
+
+          {cancelError && (
+            <div className="flex items-center gap-2 bg-rose-50 dark:bg-rose-950/80 mb-3 p-2.5 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-700 dark:text-rose-300 text-xs">
+              <AlertTriangle className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>{cancelError}</span>
             </div>
           )}
-
-          <h3 className="mb-1 font-slab font-bold text-slate-900 dark:text-white text-sm">
-            Selesaikan Pembayaran
-          </h3>
-          <p className="mb-4 text-slate-500 dark:text-slate-400 text-xs">
-            No. Invoice <strong>{payableInvoice.invoice_number}</strong> — total{" "}
-            <strong>{formatRupiah(payableInvoice.amount)}</strong>
-          </p>
 
           {/* Rekening tujuan */}
           <div className="gap-2.5 grid sm:grid-cols-2 mb-5">
@@ -515,7 +551,7 @@ export default function DashboardBillingPage() {
         </div>
       )}
 
-      {/* PILIH PAKET — hanya kalau tidak sedang ada invoice berjalan */}
+      {/* PILIH PAKET — OTOMATIS MUNCUL JIKA TIDAK ADA TAGIHAN WAITING_APPROVAL / UNPAID */}
       {!isExempt && !pendingApprovalInvoice && !payableInvoice && (
         <div>
           <h3 className="mb-3 font-slab font-bold text-slate-900 dark:text-white text-sm">
@@ -626,7 +662,8 @@ export default function DashboardBillingPage() {
                     variant={
                       inv.invoice_status === "approved"
                         ? "success"
-                        : inv.invoice_status === "rejected"
+                        : inv.invoice_status === "rejected" ||
+                            inv.invoice_status === "cancelled"
                           ? "danger"
                           : inv.invoice_status === "waiting_approval"
                             ? "primary"
@@ -636,6 +673,7 @@ export default function DashboardBillingPage() {
                   >
                     {inv.invoice_status === "approved" && "Disetujui"}
                     {inv.invoice_status === "rejected" && "Ditolak"}
+                    {inv.invoice_status === "cancelled" && "Dibatalkan"}
                     {inv.invoice_status === "waiting_approval" && "Diproses"}
                     {inv.invoice_status === "unpaid" && "Belum Dibayar"}
                   </Badge>

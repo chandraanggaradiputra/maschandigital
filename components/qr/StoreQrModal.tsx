@@ -219,7 +219,7 @@ export function StoreQrModal({
 
       setIsReady(true);
     },
-    [cleanSlug, districtName, storeName, targetUrl],
+    [districtName, storeName, targetUrl],
   );
 
   useEffect(() => {
