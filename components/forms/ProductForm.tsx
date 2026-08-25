@@ -184,7 +184,7 @@ export function ProductForm({
         result.message ||
           (isEditing
             ? "Perubahan produk berhasil disimpan!"
-            : "Produk berhasil diterbitkan ke WordPress!"),
+            : "Produk berhasil diterbitkan dan siap tampil di etalase!"),
       );
       setTimeout(() => {
         router.push("/dashboard/products");
@@ -192,7 +192,7 @@ export function ProductForm({
       }, 1200);
     } else {
       setErrorMessage(
-        result.message || "Terjadi kendala saat menyimpan ke WordPress.",
+        result.message || "Terjadi kendala saat menyimpan data produk.",
       );
     }
     setIsSubmitting(false);
@@ -383,7 +383,7 @@ export function ProductForm({
                 renderCategoryTree(availableCategories)
               ) : (
                 <p className="py-2 text-slate-400 text-xs text-center">
-                  Memuat kategori dari backend WordPress...
+                  Memuat pilihan kategori produk...
                 </p>
               )}
             </div>
@@ -571,7 +571,7 @@ export function ProductForm({
               id="media-heading"
               className="font-slab font-bold text-slate-900 dark:text-white text-lg"
             >
-              Foto Produk (WordPress Media Library)
+              Galeri Foto Produk
             </h2>
             <p className="text-slate-500 dark:text-slate-400 text-xs">
               Unggah, ganti, atau hapus gambar produk dari dashboard
@@ -607,7 +607,7 @@ export function ProductForm({
               id="seo-heading"
               className="flex items-center gap-2 font-slab font-bold text-slate-900 dark:text-white text-lg"
             >
-              <span>Optimasi SEO Rank Math</span>
+              <span>Optimasi Pencarian Google (SEO Produk) </span>
               <Sparkles className="w-4 h-4 text-amber-500" />
             </h2>
             <p className="text-slate-500 dark:text-slate-400 text-xs">

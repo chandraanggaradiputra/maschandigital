@@ -19,8 +19,8 @@ export default function NewProductPage() {
             Tambah Produk Baru
           </h2>
           <p className="text-slate-500 dark:text-slate-400 text-xs">
-            Lengkapi detail produk, foto media WordPress, dan konfigurasi SEO
-            Rank Math
+            Lengkapi detail produk, galeri foto, dan pengaturan optimasi
+            pencarian Google (SEO)
           </p>
         </div>
       </header>

@@ -271,9 +271,7 @@ export default function VendorProfilePage() {
             className="w-5 h-5 text-emerald-500 shrink-0"
             aria-hidden="true"
           />
-          <span>
-            Semua pengaturan toko berhasil diperbarui ke database WordPress!
-          </span>
+          <span>Semua pengaturan toko Anda berhasil disimpan!</span>
         </aside>
       )}
 
@@ -783,7 +781,7 @@ export default function VendorProfilePage() {
             id="store-seo-heading"
             className="flex items-center gap-2 pb-3 border-slate-100 dark:border-slate-800 border-b font-slab font-bold text-slate-900 dark:text-white text-base"
           >
-            <span>Optimasi SEO Toko WCFM</span>
+            <span>Optimasi Pencarian Google (SEO Toko)</span>
             <Sparkles className="w-4 h-4 text-amber-500" />
           </h3>
 

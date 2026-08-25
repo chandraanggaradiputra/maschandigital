@@ -391,9 +391,9 @@ export default async function HomePage() {
 
             <p className="text-slate-200 text-sm sm:text-base leading-relaxed">
               Daftarkan bisnis Anda di Mas Chan Digital secara mudah. Kelola
-              katalog produk, pasang nomor WhatsApp toko, optimasi SEO Rank
-              Math, dan terima pesanan langsung dari pelanggan tanpa potongan
-              transaksi.
+              katalog produk, pasang nomor WhatsApp toko, optimasi pencarian
+              Google (SEO), dan terima pesanan langsung dari pelanggan tanpa
+              potongan transaksi.
             </p>
 
             <ul className="space-y-2 m-0 p-0 text-slate-200 text-xs sm:text-sm list-none">
@@ -419,7 +419,7 @@ export default async function HomePage() {
                   aria-hidden="true"
                 />
                 <span>
-                  Dashboard vendor mandiri & terintegrasi SEO Rank Math
+                  Dashboard toko mandiri & optimasi pencarian Google (SEO)
                 </span>
               </li>
             </ul>

@@ -62,7 +62,8 @@ export function MediaUploader({
         onImageChange(data.url, data.id);
       } else {
         throw new Error(
-          data.message || "Gagal mengunggah gambar ke server WordPress.",
+          data.message ||
+            "Gagal mengunggah gambar. Silakan periksa koneksi atau ukuran foto Anda.",
         );
       }
     } catch (err) {

@@ -47,7 +47,7 @@ export default function DashboardProductsPage() {
         setDeleteNotice(`Produk "${name}" berhasil dihapus dari toko Anda.`);
         setTimeout(() => setDeleteNotice(""), 3500);
       } else {
-        alert("Gagal menghapus produk dari database WordPress.");
+        alert("Gagal menghapus produk. Silakan coba beberapa saat lagi.");
       }
     }
   };

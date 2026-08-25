@@ -141,7 +141,7 @@ export default function DashboardLayout({
               </span>
             </div>
             <p className="mt-0.5 text-slate-500 dark:text-slate-400 text-xs">
-              Kelola produk toko, upload media WordPress, dan pantau katalog
+              Kelola produk toko, unggah galeri foto, dan pantau katalog etalase
               Anda di Kota Serang
             </p>
           </div>

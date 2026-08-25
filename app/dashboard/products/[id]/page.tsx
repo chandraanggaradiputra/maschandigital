@@ -37,8 +37,8 @@ export default async function EditProductPage({
             Edit Produk: {product.name}
           </h2>
           <p className="text-slate-500 dark:text-slate-400 text-xs">
-            Perbarui data produk, foto media, harga, atau kata kunci SEO Rank
-            Math
+            Perbarui data produk, galeri foto, harga, atau kata kunci optimasi
+            Google (SEO)
           </p>
         </div>
       </header>
