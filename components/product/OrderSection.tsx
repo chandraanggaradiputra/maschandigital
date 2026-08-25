@@ -59,6 +59,18 @@ export function OrderSection({
     setStoreStatus(checkStoreStatus(storeHours, vacationMode));
   }, [storeHours, vacationMode]);
 
+  // Format nomor WhatsApp untuk direct chat produk afiliasi
+  const cleanPhone = whatsappNumber.replace(/[^0-9]/g, "");
+  const normalizedPhone = cleanPhone.startsWith("0")
+    ? `62${cleanPhone.slice(1)}`
+    : cleanPhone.startsWith("8")
+      ? `62${cleanPhone}`
+      : cleanPhone;
+
+  const directWaUrl = `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(
+    `Halo ${vendorName || "Admin"}, saya ingin bertanya mengenai produk ini dari *Mas Chan Digital*:\n\n📦 *Produk:* ${productName}\n🔗 *Link:* ${productUrl}\n\nTerima kasih!`,
+  )}`;
+
   return (
     <>
       {/* Store Status Notification (Vacation / Closed Hours) */}
@@ -137,25 +149,10 @@ export function OrderSection({
               Silakan hubungi kembali saat toko mulai beroperasi.
             </p>
           </div>
-        ) : (
+        ) : isAffiliate ? (
+          /* 1. PRODUK AFILIASI: Tautan Afiliasi & Tanya via Chat Langsung (Tanpa Order Form Modal) */
           <>
-            <Button
-              type="button"
-              variant="whatsapp"
-              size="lg"
-              fullWidth
-              onClick={() => setIsModalOpen(true)}
-              className="shadow-card-hover py-4 font-bold text-sm sm:text-base"
-              aria-haspopup="dialog"
-            >
-              <MessageCircle
-                className="fill-white mr-1 w-5 h-5"
-                aria-hidden="true"
-              />
-              <span>Pesan Langsung via WhatsApp Vendor</span>
-            </Button>
-
-            {isAffiliate && affiliateUrl && (
+            {affiliateUrl && (
               <a
                 href={affiliateUrl}
                 target="_blank"
@@ -167,26 +164,70 @@ export function OrderSection({
                   variant="primary"
                   size="lg"
                   fullWidth
-                  className="py-4 font-bold text-sm sm:text-base"
+                  className="shadow-card-hover py-4 font-bold text-sm sm:text-base"
                 >
                   <ExternalLink className="mr-1 w-5 h-5" aria-hidden="true" />
                   <span>{affiliateButtonText || "Beli via Link"}</span>
                 </Button>
               </a>
             )}
+
+            {whatsappNumber && (
+              <a
+                href={directWaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp-500 w-full"
+                aria-label={`Tanya penjual tentang ${productName} lewat chat WhatsApp`}
+              >
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  fullWidth
+                  className="hover:bg-emerald-50 dark:hover:bg-emerald-950/40 py-3.5 border-emerald-500 font-bold text-emerald-700 dark:text-emerald-400 text-sm sm:text-base"
+                >
+                  <MessageCircle
+                    className="mr-1 w-5 h-5 text-emerald-600 dark:text-emerald-400"
+                    aria-hidden="true"
+                  />
+                  <span>Tanya via WhatsApp Vendor</span>
+                </Button>
+              </a>
+            )}
           </>
+        ) : (
+          /* 2. PRODUK DIRECT WHATSAPP: Membuka Smart WhatsApp Order Form Modal */
+          <Button
+            type="button"
+            variant="whatsapp"
+            size="lg"
+            fullWidth
+            onClick={() => setIsModalOpen(true)}
+            className="shadow-card-hover py-4 font-bold text-sm sm:text-base"
+            aria-haspopup="dialog"
+          >
+            <MessageCircle
+              className="fill-white mr-1 w-5 h-5"
+              aria-hidden="true"
+            />
+            <span>Pesan Langsung via WhatsApp Vendor</span>
+          </Button>
         )}
       </div>
 
-      <WhatsAppOrderModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        whatsappNumber={whatsappNumber}
-        vendorName={vendorName}
-        productName={productName}
-        unitPrice={unitPrice}
-        productUrl={productUrl}
-      />
+      {/* WhatsAppOrderModal HANYA aktif dan dirender untuk Produk Direct WhatsApp */}
+      {!isAffiliate && (
+        <WhatsAppOrderModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          whatsappNumber={whatsappNumber}
+          vendorName={vendorName}
+          productName={productName}
+          unitPrice={unitPrice}
+          productUrl={productUrl}
+        />
+      )}
     </>
   );
 }
