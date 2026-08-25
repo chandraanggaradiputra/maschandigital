@@ -9,7 +9,7 @@ import { ProductCard } from "@/components/cards/ProductCard";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { OrderSection } from "@/components/product/OrderSection";
-import { VendorTawkChat } from "@/components/chat/Vendortawkchat";
+import { VendorTawkChat } from "@/components/chat/VendorTawkChat";
 import {
   getProductBySlug,
   getProducts,

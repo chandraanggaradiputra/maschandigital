@@ -24,7 +24,7 @@ import { getVendorBySlug, getVendorProducts } from "@/lib/api/wordpress";
 import { generateWhatsAppVendorUrl } from "@/lib/utils";
 import { checkStoreStatus } from "@/lib/storeStatus";
 import { StoreHours } from "@/types";
-import { VendorTawkChat } from "@/components/chat/Vendortawkchat";
+import { VendorTawkChat } from "@/components/chat/VendorTawkChat";
 
 // Halaman ini menampilkan status buka/tutup toko yang berubah tiap menit —
 // jangan pernah dibiarkan Next.js render statis sekali lalu disajikan basi.
