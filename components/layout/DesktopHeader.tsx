@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Search,
   Store,
@@ -22,11 +22,13 @@ import {
   clearVendorSession,
   AuthSession,
 } from "@/lib/api/auth";
+import { cn } from "@/lib/utils";
 
 export function DesktopHeader() {
   const [searchQuery, setSearchQuery] = useState("");
   const [session, setSession] = useState<AuthSession | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     // Definisikan handler di dalam useEffect agar mematuhi aturan React Hooks exhaustive-deps
@@ -124,45 +126,69 @@ export function DesktopHeader() {
             {isVendor ? (
               /* MENU KHUSUS VENDOR */
               <ul className="flex items-center gap-5 m-0 p-0 list-none">
-                {/* 1. Produk */}
+                {/* 1. Produk (Mengarahkan ke Halaman Seluruh Produk /products) */}
                 <li>
                   <Link
-                    href="/dashboard/products"
-                    className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
+                    href="/products"
+                    className={cn(
+                      "flex items-center gap-1.5 focus-visible:outline-none font-medium text-sm focus-visible:underline transition-colors",
+                      pathname.startsWith("/products")
+                        ? "text-brand-800 dark:text-brand-400 font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:text-brand-800 dark:hover:text-brand-400",
+                    )}
                   >
                     <Package className="w-4 h-4" aria-hidden="true" />
                     <span>Produk</span>
                   </Link>
                 </li>
+
                 {/* 2. Panduan (Kiri dekat Beranda) */}
                 <li>
                   <Link
                     href="/panduan"
-                    className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
+                    className={cn(
+                      "flex items-center gap-1.5 focus-visible:outline-none font-medium text-sm focus-visible:underline transition-colors",
+                      pathname.startsWith("/panduan")
+                        ? "text-brand-800 dark:text-brand-400 font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:text-brand-800 dark:hover:text-brand-400",
+                    )}
                   >
                     <BookOpen className="w-4 h-4" aria-hidden="true" />
                     <span>Panduan</span>
                   </Link>
                 </li>
+
                 {/* 3. Beranda (POSISI TENGAH) */}
                 <li>
                   <Link
                     href="/"
-                    className="focus-visible:outline-none font-semibold text-brand-800 dark:text-brand-400 text-sm focus-visible:underline transition-colors"
+                    className={cn(
+                      "focus-visible:outline-none font-semibold text-sm focus-visible:underline transition-colors",
+                      pathname === "/"
+                        ? "text-brand-800 dark:text-brand-400 font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:text-brand-800 dark:hover:text-brand-400",
+                    )}
                   >
                     Beranda
                   </Link>
                 </li>
+
                 {/* 4. Dashboard (Kanan dekat Beranda) */}
                 <li>
                   <Link
                     href="/dashboard"
-                    className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
+                    className={cn(
+                      "flex items-center gap-1.5 focus-visible:outline-none font-medium text-sm focus-visible:underline transition-colors",
+                      pathname.startsWith("/dashboard")
+                        ? "text-brand-800 dark:text-brand-400 font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:text-brand-800 dark:hover:text-brand-400",
+                    )}
                   >
                     <LayoutDashboard className="w-4 h-4" aria-hidden="true" />
                     <span>Dashboard</span>
                   </Link>
                 </li>
+
                 {/* 5. Logout */}
                 <li>
                   <button
@@ -212,6 +238,15 @@ export function DesktopHeader() {
                   >
                     <Store className="w-4 h-4" aria-hidden="true" />
                     <span>Vendor</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/panduan"
+                    className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
+                  >
+                    <BookOpen className="w-4 h-4" aria-hidden="true" />
+                    <span>Panduan</span>
                   </Link>
                 </li>
                 <li>

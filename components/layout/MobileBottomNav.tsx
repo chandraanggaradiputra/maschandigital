@@ -58,14 +58,9 @@ export function MobileBottomNav() {
     { label: "Akun", href: "/vendor/login", icon: LogIn, isAction: false },
   ];
 
-  // Menu Khusus Akun Vendor (Beranda di Posisi Tengah)
+  // Menu Khusus Akun Vendor (Produk Mengarah ke /products, Beranda di Posisi Tengah)
   const vendorNavItems = [
-    {
-      label: "Produk",
-      href: "/dashboard/products",
-      icon: Package,
-      isAction: false,
-    },
+    { label: "Produk", href: "/products", icon: Package, isAction: false },
     { label: "Panduan", href: "/panduan", icon: BookOpen, isAction: false },
     { label: "Beranda", href: "/", icon: Home, isAction: false },
     {
