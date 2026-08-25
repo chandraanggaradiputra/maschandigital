@@ -242,7 +242,7 @@ function formatGraphQLVendor(v: RawApiNode): Vendor {
     is_verified: true,
     rating: 5.0,
     review_count: 1,
-    products_count: Number(v.productsCount || v.products_count) || 1,
+    products_count: Number(v.productsCount || v.products_count) || 0,
     views_count: Number(v.views_count) || Number(v.viewsCount) || 0,
     joined_date: v.joinedDate || v.joined_date || "2026-01-01",
     socials: v.socials || {
