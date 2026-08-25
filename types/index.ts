@@ -45,6 +45,7 @@ export interface Product {
   type: ProductType;
   status: "publish" | "draft" | "pending";
   featured?: boolean;
+  views_count?: number;
   description: string;
   short_description: string;
   price: string;
@@ -112,6 +113,7 @@ export interface Vendor {
   owner_name?: string;
   email?: string;
   phone?: string;
+  views_count?: number;
   whatsapp_number: string;
   address?: {
     street_1?: string;

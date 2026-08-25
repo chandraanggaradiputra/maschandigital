@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   XCircle,
   Lock,
+  Eye,
 } from "lucide-react";
 import { Product } from "@/types";
 import { formatRupiah, generateWhatsAppProductUrl } from "@/lib/utils";
@@ -61,6 +62,9 @@ export function ProductCard({
     productUrl: productUrl,
     vendorName: product.vendor?.store_name,
   });
+
+  const viewsCount =
+    typeof product.views_count === "number" ? product.views_count : 0;
 
   return (
     <article
@@ -158,23 +162,37 @@ export function ProductCard({
           </h3>
         </header>
 
-        {/* Price */}
+        {/* Price & Views Count Row */}
         <div
-          className="flex flex-wrap items-baseline gap-2 mt-auto mb-4 pt-2"
-          aria-label="Informasi Harga"
+          className="flex flex-wrap justify-between items-center gap-2 mt-auto mb-4 pt-2"
+          aria-label="Informasi Harga dan Tayangan"
         >
-          <span className="sr-only">Harga saat ini:</span>
-          <span className="font-slab font-black text-brand-800 dark:text-brand-400 text-base @[300px]:text-lg">
-            {hasSale ? formattedSalePrice : formattedRegularPrice}
-          </span>
-          {hasSale && (
-            <>
-              <span className="sr-only">Harga sebelum diskon:</span>
-              <del className="text-slate-400 dark:text-slate-500 text-xs line-through">
-                {formattedRegularPrice}
-              </del>
-            </>
-          )}
+          <div className="flex items-baseline gap-2">
+            <span className="sr-only">Harga saat ini:</span>
+            <span className="font-slab font-black text-brand-800 dark:text-brand-400 text-base @[300px]:text-lg">
+              {hasSale ? formattedSalePrice : formattedRegularPrice}
+            </span>
+            {hasSale && (
+              <>
+                <span className="sr-only">Harga sebelum diskon:</span>
+                <del className="text-slate-400 dark:text-slate-500 text-xs line-through">
+                  {formattedRegularPrice}
+                </del>
+              </>
+            )}
+          </div>
+
+          {/* Indikator Jumlah Dilihat (WCFM Views) */}
+          <div
+            className="flex items-center gap-1 font-medium text-[11px] text-slate-400 dark:text-slate-500 shrink-0"
+            title={`Produk telah dilihat ${viewsCount.toLocaleString("id-ID")} kali`}
+          >
+            <Eye
+              className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500"
+              aria-hidden="true"
+            />
+            <span>{viewsCount.toLocaleString("id-ID")}</span>
+          </div>
         </div>
 
         {/* Action Buttons */}

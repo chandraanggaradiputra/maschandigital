@@ -157,6 +157,8 @@ function formatGraphQLProduct(
   const rawPrice = node.price || "0";
   const rawRegularPrice = node.regularPrice || node.regular_price || rawPrice;
   const rawSalePrice = node.salePrice || node.sale_price || "";
+  const viewsCount =
+    Number(node.views_count) || Number(node.wcfm_product_views) || 0;
 
   return {
     id: finalId,
@@ -179,6 +181,7 @@ function formatGraphQLProduct(
     images,
     external_url: node.externalUrl || node.external_url || "",
     button_text: node.buttonText || node.button_text || "Beli via Link",
+    views_count: viewsCount,
     vendor: {
       id: vendorId,
       store_name: vendorName,
@@ -240,7 +243,8 @@ function formatGraphQLVendor(v: RawApiNode): Vendor {
     rating: 5.0,
     review_count: 1,
     products_count: Number(v.productsCount || v.products_count) || 1,
-    joined_date: "2026",
+    views_count: Number(v.views_count) || Number(v.viewsCount) || 0,
+    joined_date: v.joinedDate || v.joined_date || "2026-01-01",
     socials: v.socials || {
       instagram: "",
       tiktok: "",
