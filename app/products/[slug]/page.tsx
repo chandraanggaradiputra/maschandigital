@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { OrderSection } from "@/components/product/OrderSection";
 import { VendorTawkChat } from "@/components/chat/VendorTawkChat";
+import { ProductJsonLd } from "@/components/seo/ProductJsonLd";
 import {
   getProductBySlug,
   getProducts,
@@ -136,6 +137,9 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
       aria-labelledby="product-main-title"
       className="space-y-8 sm:space-y-12 py-6 sm:py-10"
     >
+      {/* Product Json LTD */}
+      <ProductJsonLd product={product} />
+
       {/* Breadcrumb */}
       <SectionContainer className="py-0">
         <nav aria-label="Navigasi Breadcrumb">

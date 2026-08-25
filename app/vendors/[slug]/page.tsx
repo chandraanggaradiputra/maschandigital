@@ -28,6 +28,7 @@ import { generateWhatsAppVendorUrl } from "@/lib/utils";
 import { checkStoreStatus } from "@/lib/storeStatus";
 import { StoreHours } from "@/types";
 import { VendorTawkChat } from "@/components/chat/VendorTawkChat";
+import { VendorJsonLd } from "@/components/seo/VendorJsonLd";
 
 // Halaman ini menampilkan status buka/tutup toko yang berubah tiap menit —
 // jangan pernah dibiarkan Next.js render statis sekali lalu disajikan basi.
@@ -100,6 +101,10 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
       aria-labelledby="vendor-hero-title"
       className="space-y-8 sm:space-y-12 pb-12"
     >
+      {/* Vendor Json LD */}
+      <VendorJsonLd vendor={vendor} />
+
+      {/* Konten */}
       <VendorTawkChat
         enabled={vendor?.chat_integration?.enabled ?? false}
         propertyId={vendor?.chat_integration?.property_id ?? ""}

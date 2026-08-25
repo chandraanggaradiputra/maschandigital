@@ -15,6 +15,7 @@ import {
 import { SectionContainer } from "@/components/layout/SectionContainer";
 import { TutorialSidebar } from "@/components/tutorial/TutorialSidebar";
 import { getTutorialBySlug, getAllTutorialChapters } from "@/lib/tutorialData";
+import { PanduanJsonLd } from "@/components/seo/PanduanJsonLd";
 
 type TutorialPageProps = {
   params: Promise<{ slug: string }>;
@@ -85,6 +86,7 @@ export default async function SingleTutorialLessonPage({
 
   return (
     <div className="space-y-8 py-8 sm:py-12">
+      <PanduanJsonLd chapter={chapter} />
       {/* Breadcrumb */}
       <SectionContainer className="py-0">
         <nav
