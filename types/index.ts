@@ -99,6 +99,12 @@ export interface VendorSocials {
   website?: string;
 }
 
+export interface ChatIntegration {
+  enabled: boolean;
+  property_id: string;
+  widget_id: string;
+}
+
 export interface Vendor {
   id: number;
   store_name: string;
@@ -126,6 +132,7 @@ export interface Vendor {
   store_hours?: StoreHours;
   vacation_mode?: VacationMode;
   store_seo?: StoreSEO;
+  chat_integration?: ChatIntegration;
 }
 
 export interface VendorAuthSession {

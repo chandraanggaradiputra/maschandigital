@@ -260,6 +260,91 @@ export const TUTORIAL_MODULES: TutorialModule[] = [
       },
     ],
   },
+  {
+    id: "modul-6-fitur-dashboard-vendor",
+    moduleNumber: 6,
+    title: "Fitur Dashboard & Integrasi Toko",
+    description:
+      "Panduan lengkap navigasi menu khusus vendor, manajemen operasional, dan integrasi Live Chat Tawk.to.",
+    iconName: "Store",
+    chapters: [
+      {
+        slug: "panduan-navigasi-menu-vendor",
+        title: "Panduan Navigasi & Menu Khusus Akun Vendor",
+        shortDescription:
+          "Memahami tata letak menu khusus vendor untuk akses cepat ke produk, panduan, dan dashboard toko.",
+        estimatedMinutes: 3,
+        content: {
+          overview:
+            "Saat Anda login sebagai vendor terdaftar di Mas Chan Digital, susunan navigasi website akan otomatis berubah menyesuaikan kebutuhan pengelolaan toko Anda.",
+          steps: [
+            {
+              title: "1. Menu Produk (Sisi Kiri)",
+              description:
+                "Akses instan untuk melihat daftar katalog produk Anda dan menambah barang dagangan baru.",
+            },
+            {
+              title: "2. Menu Panduan (Dekat Beranda Kiri)",
+              description:
+                "Membuka seluruh materi akademi dan panduan operasional UMKM Kota Serang.",
+            },
+            {
+              title: "3. Menu Beranda (Posisi Tengah)",
+              description:
+                "Kembali ke halaman utama marketplace untuk memantau etalase publik dari sudut pandang pembeli.",
+            },
+            {
+              title: "4. Menu Dashboard (Dekat Beranda Kanan)",
+              description:
+                "Membuka panel kontrol utama untuk memantau sisa kuota produk, status masa aktif toko, dan pengaturan profil.",
+            },
+            {
+              title: "5. Tombol Logout (Sisi Kanan)",
+              description:
+                "Keluar dari sesi vendor secara aman setelah selesai memperbarui produk atau toko Anda.",
+            },
+          ],
+          proTip:
+            "Pada perangkat smartphone, susunan 5 menu ini terletak di bilah navigasi bawah (bottom bar) agar mudah dijangkau jempol.",
+        },
+      },
+      {
+        slug: "integrasi-live-chat-tawkto",
+        title: "Cara Menghubungkan Integrasi Live Chat Tawk.to Toko",
+        shortDescription:
+          "Panduan opsional menghubungkan widget chat Tawk.to mandiri agar pembeli bisa chat langsung di toko Anda.",
+        estimatedMinutes: 4,
+        content: {
+          overview:
+            "Fitur integrasi Tawk.to bersifat opsional bagi vendor yang ingin melayani pertanyaan pelanggan melalui live chat mandiri di website.",
+          steps: [
+            {
+              title: "1. Buat Akun & Properti di Tawk.to",
+              description:
+                "Daftar secara gratis di website tawk.to dan buat properti baru dengan nama toko Anda.",
+            },
+            {
+              title: "2. Salin Property ID & Widget ID",
+              description:
+                "Buka menu Admin di dashboard Tawk.to Anda, lalu salin kode Property ID dan Widget ID toko.",
+            },
+            {
+              title: "3. Simpan di Pengaturan Toko",
+              description:
+                "Masuk ke Dashboard Mas Chan Digital -> Pengaturan Profil Toko -> Tab Integrasi Chat, lalu tempelkan ID tersebut dan klik Simpan.",
+            },
+            {
+              title: "4. Live Chat Otomatis Aktif",
+              description:
+                "Widget chat toko Anda akan otomatis muncul secara dinamis saat pembeli membuka halaman toko atau produk Anda.",
+            },
+          ],
+          proTip:
+            "Jika Anda belum mengaktifkan Tawk.to, pembeli tetap dapat menghubungi toko Anda dengan mudah melalui tombol WhatsApp resmi.",
+        },
+      },
+    ],
+  },
 ];
 
 export function getAllTutorialChapters(): (TutorialChapter & {

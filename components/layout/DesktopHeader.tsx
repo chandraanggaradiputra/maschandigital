@@ -13,6 +13,7 @@ import {
   LogOut,
   Tag,
   Package,
+  BookOpen,
 } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "@/components/ui/Button";
@@ -56,6 +57,8 @@ export function DesktopHeader() {
       window.location.href = "/";
     }
   };
+
+  const isVendor = Boolean(session && session.user);
 
   return (
     <header
@@ -118,52 +121,110 @@ export function DesktopHeader() {
             aria-label="Navigasi Utama Desktop"
             className="flex items-center gap-5"
           >
-            <ul className="flex items-center gap-5 m-0 p-0 list-none">
-              <li>
-                <Link
-                  href="/"
-                  className="focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
-                >
-                  Beranda
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/products"
-                  className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
-                >
-                  <Package className="w-4 h-4" aria-hidden="true" />
-                  <span>Produk</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/categories"
-                  className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
-                >
-                  <Tag className="w-4 h-4" aria-hidden="true" />
-                  <span>Kategori</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/vendors"
-                  className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
-                >
-                  <Store className="w-4 h-4" aria-hidden="true" />
-                  <span>Vendor</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/tentang-kami"
-                  className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
-                >
-                  <Info className="w-4 h-4" aria-hidden="true" />
-                  <span>Tentang Kami</span>
-                </Link>
-              </li>
-            </ul>
+            {isVendor ? (
+              /* MENU KHUSUS VENDOR */
+              <ul className="flex items-center gap-5 m-0 p-0 list-none">
+                {/* 1. Produk */}
+                <li>
+                  <Link
+                    href="/dashboard/products"
+                    className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
+                  >
+                    <Package className="w-4 h-4" aria-hidden="true" />
+                    <span>Produk</span>
+                  </Link>
+                </li>
+                {/* 2. Panduan (Kiri dekat Beranda) */}
+                <li>
+                  <Link
+                    href="/panduan"
+                    className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
+                  >
+                    <BookOpen className="w-4 h-4" aria-hidden="true" />
+                    <span>Panduan</span>
+                  </Link>
+                </li>
+                {/* 3. Beranda (POSISI TENGAH) */}
+                <li>
+                  <Link
+                    href="/"
+                    className="focus-visible:outline-none font-semibold text-brand-800 dark:text-brand-400 text-sm focus-visible:underline transition-colors"
+                  >
+                    Beranda
+                  </Link>
+                </li>
+                {/* 4. Dashboard (Kanan dekat Beranda) */}
+                <li>
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
+                  >
+                    <LayoutDashboard className="w-4 h-4" aria-hidden="true" />
+                    <span>Dashboard</span>
+                  </Link>
+                </li>
+                {/* 5. Logout */}
+                <li>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex items-center gap-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 p-2 rounded-xl font-medium text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 text-sm transition-colors"
+                    title="Keluar dari akun vendor"
+                  >
+                    <LogOut className="w-4 h-4" aria-hidden="true" />
+                    <span>Logout</span>
+                  </button>
+                </li>
+              </ul>
+            ) : (
+              /* MENU GUEST / CUSTOMER ASLI */
+              <ul className="flex items-center gap-5 m-0 p-0 list-none">
+                <li>
+                  <Link
+                    href="/"
+                    className="focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
+                  >
+                    Beranda
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/products"
+                    className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
+                  >
+                    <Package className="w-4 h-4" aria-hidden="true" />
+                    <span>Produk</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/categories"
+                    className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
+                  >
+                    <Tag className="w-4 h-4" aria-hidden="true" />
+                    <span>Kategori</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/vendors"
+                    className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
+                  >
+                    <Store className="w-4 h-4" aria-hidden="true" />
+                    <span>Vendor</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/tentang-kami"
+                    className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
+                  >
+                    <Info className="w-4 h-4" aria-hidden="true" />
+                    <span>Tentang Kami</span>
+                  </Link>
+                </li>
+              </ul>
+            )}
 
             <div
               className="bg-slate-200 dark:bg-slate-800 w-px h-6"
@@ -171,34 +232,8 @@ export function DesktopHeader() {
             />
             <ThemeToggle />
 
-            {/* Dynamic Vendor Auth State */}
-            {session && session.user ? (
-              <div className="flex items-center gap-2">
-                <Link href="/dashboard">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="flex items-center gap-1.5 font-bold"
-                  >
-                    <LayoutDashboard className="w-4 h-4" aria-hidden="true" />
-                    <span>
-                      {session.user.store_name ||
-                        session.user.name ||
-                        "Dashboard"}
-                    </span>
-                  </Button>
-                </Link>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="hover:bg-rose-50 dark:hover:bg-rose-950/40 p-2 rounded-xl text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
-                  title="Keluar dari akun vendor"
-                >
-                  <LogOut className="w-4 h-4" aria-hidden="true" />
-                  <span className="sr-only">Logout</span>
-                </button>
-              </div>
-            ) : (
+            {/* Auth Buttons Khusus Guest */}
+            {!isVendor && (
               <div className="flex items-center gap-2.5">
                 <Link href="/vendor/login">
                   <Button variant="outline" size="sm">

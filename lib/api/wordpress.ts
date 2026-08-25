@@ -244,6 +244,17 @@ function formatGraphQLVendor(v: RawApiNode): Vendor {
       v.vacation_mode || { isEnabled: false, vacationMessage: "" },
     store_seo: v.storeSeo ||
       v.store_seo || { seoTitle: "", metaDescription: "", metaKeywords: "" },
+    chat_integration: v.chatIntegration
+      ? {
+          enabled: Boolean(v.chatIntegration.enabled),
+          property_id: v.chatIntegration.propertyId || "",
+          widget_id: v.chatIntegration.widgetId || "",
+        }
+      : v.chat_integration || {
+          enabled: false,
+          property_id: "",
+          widget_id: "",
+        },
   };
 }
 
@@ -595,6 +606,11 @@ export async function getVendors(
           seoTitle
           metaDescription
           metaKeywords
+        }
+        chatIntegration {
+          enabled
+          propertyId
+          widgetId
         }
       }
     }

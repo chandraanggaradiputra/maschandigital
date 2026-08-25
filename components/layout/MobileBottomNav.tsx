@@ -10,9 +10,15 @@ import {
   Tag,
   LogIn,
   Package,
+  BookOpen,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getVendorSession, AuthSession } from "@/lib/api/auth";
+import {
+  getVendorSession,
+  clearVendorSession,
+  AuthSession,
+} from "@/lib/api/auth";
 
 export function MobileBottomNav() {
   const pathname = usePathname();
@@ -34,17 +40,44 @@ export function MobileBottomNav() {
     };
   }, []);
 
-  const navItems = [
-    { label: "Beranda", href: "/", icon: Home },
-    { label: "Produk", href: "/products", icon: Package },
-    { label: "Kategori", href: "/categories", icon: Tag },
-    { label: "Vendor", href: "/vendors", icon: Store },
-    {
-      label: session ? "Dashboard" : "Akun",
-      href: session ? "/dashboard" : "/vendor/login",
-      icon: session ? LayoutDashboard : LogIn,
-    },
+  const handleLogout = () => {
+    clearVendorSession();
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
+  };
+
+  const isVendor = Boolean(session && session.user);
+
+  // Menu untuk Guest / Pelanggan Umum
+  const guestNavItems = [
+    { label: "Beranda", href: "/", icon: Home, isAction: false },
+    { label: "Produk", href: "/products", icon: Package, isAction: false },
+    { label: "Kategori", href: "/categories", icon: Tag, isAction: false },
+    { label: "Vendor", href: "/vendors", icon: Store, isAction: false },
+    { label: "Akun", href: "/vendor/login", icon: LogIn, isAction: false },
   ];
+
+  // Menu Khusus Akun Vendor (Beranda di Posisi Tengah)
+  const vendorNavItems = [
+    {
+      label: "Produk",
+      href: "/dashboard/products",
+      icon: Package,
+      isAction: false,
+    },
+    { label: "Panduan", href: "/panduan", icon: BookOpen, isAction: false },
+    { label: "Beranda", href: "/", icon: Home, isAction: false },
+    {
+      label: "Dashboard",
+      href: "/dashboard",
+      icon: LayoutDashboard,
+      isAction: false,
+    },
+    { label: "Logout", href: "#logout", icon: LogOut, isAction: true },
+  ];
+
+  const navItems = isVendor ? vendorNavItems : guestNavItems;
 
   return (
     <nav
@@ -55,8 +88,31 @@ export function MobileBottomNav() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
-            pathname === item.href ||
-            (item.href !== "/" && pathname.startsWith(item.href));
+            !item.isAction &&
+            (pathname === item.href ||
+              (item.href !== "/" && pathname.startsWith(item.href)));
+
+          if (item.isAction) {
+            return (
+              <li key={item.label} className="flex-1 text-center">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex flex-col justify-center items-center px-1 py-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 w-full text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 dark:text-slate-400 transition-all duration-150"
+                >
+                  <div className="p-1 rounded-lg transition-colors">
+                    <Icon
+                      className="w-4 sm:w-5 h-4 sm:h-5"
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <span className="mt-0.5 font-slab text-[9px] sm:text-[10px] truncate tracking-tight">
+                    {item.label}
+                  </span>
+                </button>
+              </li>
+            );
+          }
 
           return (
             <li key={item.label} className="flex-1 text-center">
