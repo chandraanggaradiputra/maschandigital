@@ -19,27 +19,36 @@ function getErrorMessage(err: unknown, fallback: string): string {
 }
 
 /**
- * Universal GraphQL Fetcher
+/**
+ * Universal GraphQL Fetcher dengan Opsi Cache Terkontrol
  */
 async function fetchGraphQL(
   query: string,
   variables: Record<string, unknown> = {},
+  revalidateSeconds: number | false = 60, // Default 60 detik untuk query publik
 ) {
   try {
-    const res = await fetch(GRAPHQL_URL, {
+    const fetchOptions: RequestInit = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
       body: JSON.stringify({ query, variables }),
-      cache: "no-store",
-    });
+    };
+
+    if (revalidateSeconds === false || revalidateSeconds === 0) {
+      fetchOptions.cache = "no-store";
+    } else {
+      fetchOptions.next = { revalidate: revalidateSeconds };
+    }
+
+    const res = await fetch(GRAPHQL_URL, fetchOptions);
 
     if (!res.ok) return null;
     const json = await res.json();
     return json.data || null;
-  } catch {
+  } catch (err: unknown) {
     return null;
   }
 }

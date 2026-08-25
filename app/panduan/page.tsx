@@ -1,3 +1,6 @@
+// Tambahkan di baris atas app/panduan/page.tsx:
+export const revalidate = 3600; // Materi panduan diperbarui setiap 1 jam
+
 import React from "react";
 import Link from "next/link";
 import type { Metadata } from "next";

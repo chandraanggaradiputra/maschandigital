@@ -1,3 +1,6 @@
+// Tambahkan di baris atas file:
+export const revalidate = 60; // Refresh profil toko setiap 60 detik
+
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";

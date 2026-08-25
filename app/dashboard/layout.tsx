@@ -1,5 +1,9 @@
 "use client";
 
+// Tambahkan di app/dashboard/layout.tsx:
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";

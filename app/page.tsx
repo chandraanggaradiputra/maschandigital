@@ -1,3 +1,6 @@
+// Tambahkan di baris atas app/page.tsx:
+export const revalidate = 60; // Refresh data produk/toko beranda setiap 60 detik
+
 import React from "react";
 import Link from "next/link";
 import {
