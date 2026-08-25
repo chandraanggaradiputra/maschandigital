@@ -24,6 +24,7 @@ import { getVendorBySlug, getVendorProducts } from "@/lib/api/wordpress";
 import { generateWhatsAppVendorUrl } from "@/lib/utils";
 import { checkStoreStatus } from "@/lib/storeStatus";
 import { StoreHours } from "@/types";
+import { VendorTawkChat } from "@/components/chat/Vendortawkchat";
 
 // Halaman ini menampilkan status buka/tutup toko yang berubah tiap menit —
 // jangan pernah dibiarkan Next.js render statis sekali lalu disajikan basi.
@@ -96,6 +97,12 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
       aria-labelledby="vendor-hero-title"
       className="space-y-8 sm:space-y-12 pb-12"
     >
+      <VendorTawkChat
+        enabled={vendor?.chat_integration?.enabled ?? false}
+        propertyId={vendor?.chat_integration?.property_id ?? ""}
+        widgetId={vendor?.chat_integration?.widget_id ?? ""}
+      />
+
       {/* 1. VENDOR HERO BANNER */}
       <header className="relative bg-slate-900 text-white">
         <figure className="relative bg-slate-800 m-0 w-full h-48 sm:h-72 lg:h-80 overflow-hidden">

@@ -9,6 +9,7 @@ import { ProductCard } from "@/components/cards/ProductCard";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { OrderSection } from "@/components/product/OrderSection";
+import { VendorTawkChat } from "@/components/chat/Vendortawkchat";
 import {
   getProductBySlug,
   getProducts,
@@ -322,6 +323,12 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
               isAffiliate={isAffiliate}
               affiliateUrl={product.external_url}
               affiliateButtonText={product.button_text}
+            />
+
+            <VendorTawkChat
+              enabled={vendor?.chat_integration?.enabled ?? false}
+              propertyId={vendor?.chat_integration?.property_id ?? ""}
+              widgetId={vendor?.chat_integration?.widget_id ?? ""}
             />
 
             <ul className="flex justify-between items-center m-0 p-0 px-1 pt-2 text-slate-500 dark:text-slate-400 text-xs list-none">
