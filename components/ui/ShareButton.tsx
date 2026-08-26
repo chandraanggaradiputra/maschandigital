@@ -2,25 +2,25 @@
 
 import React, { useState } from "react";
 import { Share2, Check } from "lucide-react";
-import { Button, ButtonProps } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 
-export interface ShareButtonProps {
-  title?: string;
+interface ShareButtonProps {
+  title: string;
   text?: string;
   url?: string;
-  variant?: ButtonProps["variant"];
-  size?: ButtonProps["size"];
+  variant?: "primary" | "secondary" | "outline" | "whatsapp" | "danger";
+  size?: "sm" | "md" | "lg";
   fullWidth?: boolean;
   className?: string;
   children?: React.ReactNode;
 }
 
 export function ShareButton({
-  title = "Mas Chan Digital - Marketplace UMKM Kota Serang",
-  text = "Lihat rekomendasi produk & toko lokal Kota Serang di Mas Chan Digital!",
+  title,
+  text = "Lihat di Mas Chan Digital Kota Serang:",
   url,
   variant = "outline",
-  size = "md",
+  size = "sm",
   fullWidth = false,
   className,
   children,
@@ -28,14 +28,12 @@ export function ShareButton({
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
+    // Tentukan URL target langsung saat tombol diklik (bebas dari useEffect/re-render)
     const targetUrl =
       url || (typeof window !== "undefined" ? window.location.href : "");
 
-    // Pengecekan Web Share API (HP / Browser Pendukung)
-    if (
-      typeof navigator !== "undefined" &&
-      typeof navigator.share === "function"
-    ) {
+    // 1. Coba Web Share API (Smartphone Android / iOS)
+    if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({
           title,
@@ -43,67 +41,78 @@ export function ShareButton({
           url: targetUrl,
         });
         return;
-      } catch (error: unknown) {
-        // Jika pengguna membatalkan dialog share bawaan OS, abaikan error
-        if (error instanceof Error && error.name === "AbortError") {
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") {
           return;
         }
       }
     }
 
-    // Fallback: Salin URL ke Clipboard (Desktop / Laptop)
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    // 2. Fallback: Clipboard API (Desktop / Laptop)
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
       try {
         await navigator.clipboard.writeText(targetUrl);
         setCopied(true);
-        setTimeout(() => {
-          setCopied(false);
-        }, 2500);
-      } catch {
-        // Fallback jika clipboard API diblokir
-        const textarea = document.createElement("textarea");
-        textarea.value = targetUrl;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
-        try {
-          document.execCommand("copy");
-          setCopied(true);
-          setTimeout(() => {
-            setCopied(false);
-          }, 2500);
-        } finally {
-          document.body.removeChild(textarea);
-        }
+        setTimeout(() => setCopied(false), 2500);
+        return;
+      } catch (err) {
+        console.error("Gagal menyalin ke clipboard:", err);
+      }
+    }
+
+    // 3. Fallback jika Clipboard API diblokir
+    if (typeof document !== "undefined") {
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = targetUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      } catch (err) {
+        console.error("Gagal menyalin tautan:", err);
       }
     }
   };
 
   return (
-    <Button
-      variant={copied ? "secondary" : variant}
-      size={size}
-      fullWidth={fullWidth}
-      className={className}
-      onClick={handleShare}
-      type="button"
-      aria-label={copied ? "Tautan Disalin" : "Bagikan Halaman Ini"}
-    >
-      {copied ? (
-        <>
-          <Check
-            className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0"
-            aria-hidden="true"
-          />
-          <span>Tautan Disalin! ✓</span>
-        </>
-      ) : (
-        <>
-          <Share2 className="w-4 h-4 shrink-0" aria-hidden="true" />
-          <span>{children || "Bagikan"}</span>
-        </>
+    <div className="inline-block relative">
+      <Button
+        type="button"
+        variant={variant}
+        size={size}
+        fullWidth={fullWidth}
+        onClick={handleShare}
+        className={className}
+      >
+        {copied ? (
+          <>
+            <Check
+              className="mr-1.5 w-4 h-4 text-emerald-500 shrink-0"
+              aria-hidden="true"
+            />
+            <span>Tautan Disalin!</span>
+          </>
+        ) : (
+          children || (
+            <>
+              <Share2 className="mr-1.5 w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>Bagikan</span>
+            </>
+          )
+        )}
+      </Button>
+
+      {copied && (
+        <span
+          role="status"
+          className="bottom-full left-1/2 z-30 absolute bg-slate-900 dark:bg-slate-800 shadow-lg mb-2 px-2.5 py-1 rounded-lg font-bold text-[11px] text-white whitespace-nowrap -translate-x-1/2 pointer-events-none"
+        >
+          Tautan Disalin! ✓
+        </span>
       )}
-    </Button>
+    </div>
   );
 }

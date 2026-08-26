@@ -129,25 +129,62 @@ export function ProductCard({
       {/* Product Content & Details */}
       <div className="flex flex-col flex-1 p-4 sm:p-5">
         <header className="mb-1.5">
-          <Link
-            href={`/vendors/${product.vendor?.slug || "vendor"}`}
-            className="inline-flex items-center gap-1 focus-visible:outline-none font-semibold text-slate-500 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-400 text-xs focus-visible:underline transition-colors"
-            aria-label={`Toko ${product.vendor?.store_name}`}
-          >
-            <Store
-              className="w-3.5 h-3.5 text-brand-700 dark:text-brand-400"
-              aria-hidden="true"
-            />
-            <span className="truncate">
-              {product.vendor?.store_name || "Vendor Serang"}
-            </span>
-            {product.vendor?.is_verified && (
-              <ShieldCheck
-                className="w-3.5 h-3.5 text-emerald-500 shrink-0"
-                aria-label="Vendor Terverifikasi"
+          <div className="flex justify-between items-center gap-1 mb-1">
+            <Link
+              href={`/vendors/${product.vendor?.slug || "vendor"}`}
+              className="inline-flex items-center gap-1 focus-visible:outline-none font-semibold text-slate-500 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-400 text-xs focus-visible:underline truncate transition-colors"
+              aria-label={`Toko ${product.vendor?.store_name}`}
+            >
+              <Store
+                className="w-3.5 h-3.5 text-brand-700 dark:text-brand-400 shrink-0"
+                aria-hidden="true"
               />
-            )}
-          </Link>
+              <span className="truncate">
+                {product.vendor?.store_name || "Vendor Serang"}
+              </span>
+              {product.vendor?.is_verified && (
+                <ShieldCheck
+                  className="w-3.5 h-3.5 text-emerald-500 shrink-0"
+                  aria-label="Vendor Terverifikasi"
+                />
+              )}
+            </Link>
+
+            {/* Indikator Status Toko Real-Time */}
+            <span
+              className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                storeStatus.isVacation
+                  ? "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
+                  : storeStatus.isOpen
+                    ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+              }`}
+              title={
+                storeStatus.isVacation
+                  ? "Toko sedang mode libur"
+                  : storeStatus.isOpen
+                    ? "Toko buka (siap terima pesanan WhatsApp)"
+                    : "Toko sedang tutup"
+              }
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  storeStatus.isVacation
+                    ? "bg-amber-500"
+                    : storeStatus.isOpen
+                      ? "bg-emerald-500 animate-pulse"
+                      : "bg-slate-400"
+                }`}
+              />
+              <span>
+                {storeStatus.isVacation
+                  ? "Libur"
+                  : storeStatus.isOpen
+                    ? "Buka"
+                    : "Tutup"}
+              </span>
+            </span>
+          </div>
 
           <h3
             id={`product-title-${product.id}`}

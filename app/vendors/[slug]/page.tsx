@@ -5,6 +5,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { ShareButton } from "@/components/ui/ShareButton";
 import type { Metadata } from "next";
 import {
   Store,
@@ -81,6 +82,12 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
     vendor.vacation_mode,
   );
 
+  const vendorUrl = `https://maschandigital.id/vendors/${vendor.slug}`;
+  const addressQuery = vendor.address?.street_1
+    ? `${vendor.address.street_1}, ${vendor.location_district ? `Kec. ${vendor.location_district}, ` : ""}Kota Serang, Banten`
+    : `${vendor.store_name}, ${vendor.location_district ? `Kec. ${vendor.location_district}, ` : ""}Kota Serang, Banten`;
+
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressQuery)}`;
   const waVendorUrl = generateWhatsAppVendorUrl({
     whatsappNumber: vendor.whatsapp_number || "6282298148474",
     vendorName: vendor.store_name,
@@ -198,16 +205,34 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                 </div>
 
                 <div className="flex flex-wrap justify-center sm:justify-start items-center gap-4 text-slate-300 text-xs sm:text-sm">
-                  <address className="flex items-center gap-1 not-italic">
-                    <MapPin
-                      className="w-4 h-4 text-brand-400"
-                      aria-hidden="true"
-                    />
-                    <span>
-                      {vendor.location_district
-                        ? `Kec. ${vendor.location_district}, Kota Serang`
-                        : "Kota Serang"}
-                    </span>
+                  <address className="space-y-3 pt-4 border-slate-100 dark:border-slate-800 border-t text-slate-600 dark:text-slate-300 text-xs sm:text-sm not-italic">
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-2.5">
+                        <MapPin
+                          className="mt-0.5 w-4 h-4 text-brand-600 shrink-0"
+                          aria-hidden="true"
+                        />
+                        <span>
+                          {vendor.address?.street_1
+                            ? `${vendor.address.street_1}, `
+                            : ""}
+                          {vendor.location_district
+                            ? `Kec. ${vendor.location_district}, `
+                            : ""}
+                          Kota Serang, Banten
+                        </span>
+                      </div>
+                      <a
+                        href={mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 ml-6 font-bold text-brand-700 dark:text-brand-400 text-xs hover:underline"
+                        aria-label={`Buka petunjuk arah lokasi ${vendor.store_name} di Google Maps`}
+                      >
+                        <span>Buka Petunjuk Arah di Google Maps</span>
+                        <span aria-hidden="true">&rarr;</span>
+                      </a>
+                    </div>
                   </address>
                   {vendor.rating && (
                     <span className="flex items-center gap-1 font-semibold text-amber-300">
@@ -233,14 +258,23 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
               </div>
             </div>
 
-            {/* Quick Action: Chat WhatsApp */}
-            <div className="flex justify-center sm:justify-end items-center gap-3 w-full md:w-auto">
+            {/* Quick Action: Chat WhatsApp & Share */}
+            <div className="flex flex-wrap justify-center sm:justify-end items-center gap-3 w-full md:w-auto">
+              <ShareButton
+                title={`Toko ${vendor.store_name} - Mas Chan Digital`}
+                text={`Kunjungi toko ${vendor.store_name} di Mas Chan Digital Kota Serang:`}
+                url={vendorUrl}
+                variant="outline"
+                size="lg"
+                className="bg-white/10 hover:bg-white/20 border-white/20 text-white hover:text-white"
+              />
+
               {storeStatus.isVacation ? (
                 <Button
                   variant="outline"
                   size="lg"
                   disabled
-                  className="bg-slate-800/80 opacity-80 border-slate-700 w-full text-slate-400 cursor-not-allowed"
+                  className="bg-slate-800/80 opacity-80 border-slate-700 w-full sm:w-auto text-slate-400 cursor-not-allowed"
                 >
                   <XCircle className="mr-2 w-5 h-5 text-amber-400" />
                   <span>Toko Sedang Libur</span>
@@ -250,7 +284,7 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                   variant="outline"
                   size="lg"
                   disabled
-                  className="bg-slate-800/80 opacity-80 border-slate-700 w-full text-slate-400 cursor-not-allowed"
+                  className="bg-slate-800/80 opacity-80 border-slate-700 w-full sm:w-auto text-slate-400 cursor-not-allowed"
                 >
                   <Clock className="mr-2 w-5 h-5 text-slate-400" />
                   <span>Toko Sedang Tutup</span>

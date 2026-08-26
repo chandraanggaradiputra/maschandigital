@@ -11,6 +11,7 @@ import { SectionContainer } from "@/components/layout/SectionContainer";
 import { ProductCard } from "@/components/cards/ProductCard";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { ShareButton } from "@/components/ui/ShareButton";
 import { OrderSection } from "@/components/product/OrderSection";
 import { VendorTawkChat } from "@/components/chat/VendorTawkChat";
 import { ProductJsonLd } from "@/components/seo/ProductJsonLd";
@@ -278,14 +279,24 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
               </Link>
             </aside>
 
-            {/* Product Title */}
+            {/* Product Title & Share Button */}
             <header className="space-y-2">
-              <h1
-                id="product-main-title"
-                className="font-slab font-black text-slate-900 dark:text-white text-2xl sm:text-3xl leading-tight"
-              >
-                {product.name}
-              </h1>
+              <div className="flex justify-between items-start gap-4">
+                <h1
+                  id="product-main-title"
+                  className="flex-1 font-slab font-black text-slate-900 dark:text-white text-2xl sm:text-3xl leading-tight"
+                >
+                  {product.name}
+                </h1>
+                <ShareButton
+                  title={product.name}
+                  text={`Beli ${product.name} langsung di Mas Chan Digital Kota Serang:`}
+                  url={productUrl}
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                />
+              </div>
               {product.short_description && (
                 <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
                   {product.short_description}

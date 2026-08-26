@@ -61,7 +61,7 @@ export function ProductCatalogView({
     // 3. Filter Kecamatan Kota Serang
     if (selectedDistrict !== "Semua Kecamatan") {
       result = result.filter((p) => {
-        const dist = (p.vendor.city || "").toLowerCase();
+        const dist = (p.vendor?.city || "").toLowerCase();
         return dist.includes(selectedDistrict.toLowerCase());
       });
     }
