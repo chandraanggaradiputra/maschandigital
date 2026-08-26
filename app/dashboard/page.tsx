@@ -371,12 +371,21 @@ export default function DashboardSummaryPage() {
               Paket Langganan
             </span>
             <p className="mt-1 max-w-[170px] font-slab font-bold text-brand-800 dark:text-brand-400 text-sm truncate">
-              {subscription?.plan_name || "Memuat..."}
+              {subscription?.plan_name || "Paket Starter UMKM"}
             </p>
-            <span className="text-[11px] text-slate-400">
-              {subscription?.is_unlimited
-                ? "Kuota Unlimited"
-                : `${daysLeft > 0 ? `${daysLeft} hari lagi` : "Masa aktif habis"}`}
+            <span className="text-[11px]">
+              {subscription?.plan_id === "free_forever" ||
+              !subscription?.end_date ? (
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                  Aktif Selamanya (Gratis)
+                </span>
+              ) : daysLeft > 0 ? (
+                <span className="text-slate-400">{daysLeft} hari lagi</span>
+              ) : (
+                <span className="font-medium text-rose-500">
+                  Masa aktif habis
+                </span>
+              )}
             </span>
           </div>
           <div className="flex justify-center items-center bg-brand-50 dark:bg-brand-950/80 rounded-2xl w-10 h-10 text-brand-700 dark:text-brand-400">
