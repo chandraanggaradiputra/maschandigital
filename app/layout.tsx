@@ -92,10 +92,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" suppressHydrationWarning className={robotoSlab.variable}>
-      <head>
-        <MarketplaceJsonLd />
-      </head>
+      <head></head>
       <body className="flex flex-col bg-surface-light dark:bg-surface-dark min-h-screen font-sans antialiased transition-colors duration-200">
+        <MarketplaceJsonLd />
         <ThemeProvider>
           {/* Aksesibilitas: Skip Link */}
           <a
