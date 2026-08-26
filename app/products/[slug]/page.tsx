@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/Badge";
 import { OrderSection } from "@/components/product/OrderSection";
 import { VendorTawkChat } from "@/components/chat/VendorTawkChat";
 import { ProductJsonLd } from "@/components/seo/ProductJsonLd";
+import { ProductViewTracker } from "@/components/product/ProductViewTracker";
 import {
   getProductBySlug,
   getProducts,
@@ -137,6 +138,8 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
       aria-labelledby="product-main-title"
       className="space-y-8 sm:space-y-12 py-6 sm:py-10"
     >
+      {/* Pelacak Tayangan Produk Otomatis */}
+      <ProductViewTracker productId={product.id} />
       {/* Product Json LTD */}
       <ProductJsonLd product={product} />
 
