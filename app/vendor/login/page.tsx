@@ -141,6 +141,15 @@ export default function VendorLoginPage() {
                 aria-hidden="true"
               />
             </div>
+
+            <div className="flex justify-end my-2">
+              <Link
+                href="/vendor/forgot-password"
+                className="font-medium text-[#093c96] text-xs hover:underline"
+              >
+                Lupa kata sandi?
+              </Link>
+            </div>
           </div>
 
           <div className="flex justify-between items-center pt-1 text-xs">
