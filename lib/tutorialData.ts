@@ -6,48 +6,59 @@ export const TUTORIAL_MODULES: TutorialModule[] = [
     moduleNumber: 1,
     title: "Dasar & Registrasi Toko",
     description:
-      "Panduan langkah awal mendaftarkan toko UMKM Anda secara gratis di Kota Serang.",
+      "Panduan langkah awal mendaftarkan toko UMKM Anda secara gratis dan menerima email sambutan resmi di Kota Serang.",
     iconName: "Store",
     chapters: [
       {
         slug: "cara-daftar-toko-gratis",
-        title: "Cara Mendaftar Toko Gratis (Paket Starter UMKM)",
+        title: "Cara Mendaftar Toko Gratis & Menerima Email Selamat Datang",
         shortDescription:
-          "Langkah mudah membuka etalase toko online gratis selamanya tanpa biaya registrasi.",
+          "Langkah mudah membuka etalase toko online gratis selamanya dan konfirmasi email selamat datang resmi.",
         estimatedMinutes: 3,
         content: {
           overview:
-            "Mas Chan Digital menyediakan Paket Starter UMKM gratis selamanya untuk membantu seluruh pedagang dan pengrajin lokal di 6 kecamatan Kota Serang memiliki etalase digital resmi.",
+            "Mas Chan Digital menyediakan Paket Starter UMKM gratis selamanya untuk membantu seluruh pedagang dan pengrajin lokal di 6 kecamatan Kota Serang memiliki etalase digital resmi, lengkap dengan sistem notifikasi email otomatis.",
           steps: [
             {
               title: "1. Akses Halaman Pendaftaran Vendor",
               description:
-                'Klik tombol "Daftar Toko" di pojok kanan atas website atau buka halaman maschandigital.id/vendor/register.',
-              tips: "Gunakan nomor WhatsApp bisnis yang aktif setiap hari.",
+                'Buka halaman maschandigital.id/vendor/register atau klik tombol "Daftar Toko" di navigasi website.',
+              tips: "Pastikan memasukkan alamat email yang aktif dan sering Anda buka sehari-hari di ponsel Anda.",
             },
             {
               title: "2. Masukkan Data Usaha & Nomor WhatsApp",
               description:
-                'Isi nama pemilik, nama toko yang menarik (misal: "Sate Bandeng Bu Hj. Siti"), alamat email, nomor WhatsApp (format 08xxx), dan pilih kecamatan domisili usaha Anda di Kota Serang.',
+                'Isi nama pemilik, nama toko yang menarik (misal: "Sate Bandeng Bu Hj. Siti"), alamat email aktif, nomor WhatsApp (format 08xxx), dan pilih kecamatan domisili usaha Anda di Kota Serang.',
             },
             {
-              title: "3. Buat Kata Sandi yang Kuat",
+              title: "3. Buat Kata Sandi Akun",
               description:
-                "Tentukan password rahasia untuk login ke Dashboard Toko Anda. Pastikan Anda mengingat password ini.",
+                "Tentukan password rahasia untuk login ke Dashboard Toko Anda. Pastikan Anda mencatat atau mengingat password ini.",
             },
             {
-              title: "4. Toko Langsung Aktif",
+              title: "4. Toko Langsung Aktif di Paket Starter UMKM",
               description:
-                "Setelah mengklik tombol daftar, akun toko Anda langsung aktif dengan kuota 3 produk gratis selamanya. Anda bisa langsung masuk ke Dashboard.",
+                "Setelah klik tombol daftar, akun toko Anda langsung aktif dengan kuota 3 produk gratis selamanya. Anda bisa langsung masuk ke Dashboard Vendor.",
+            },
+            {
+              title: "5. Cek Email Selamat Datang dari Mas Chan Digital",
+              description:
+                'Buka kotak masuk (inbox) email Anda. Anda akan menerima email resmi berjudul "Selamat Datang di Mas Chan Digital, [Nama Toko]!" dari pengirim admin@maschandigital.id yang memuat rincian paket starter dan tombol pintas login ke dashboard.',
+              tips: 'Jika tidak ada di Kotak Masuk utama, periksa folder "Spam" atau "Promosi", lalu tandai sebagai "Bukan Spam" agar email notifikasi penting berikutnya selalu masuk lancar.',
             },
           ],
           proTip:
-            'Pastikan nama toko Anda jelas dan menyertakan kata kunci produk jika memungkinkan (contoh: "Madu Akasia Murni Serang").',
+            "Simpan alamat pengirim admin@maschandigital.id ke kontak email Anda agar seluruh notifikasi sistem, tagihan, dan pembaruan toko selalu terkirim ke kotak masuk utama.",
           faq: [
             {
               question: "Apakah pendaftaran ini benar-benar gratis?",
               answer:
-                "Ya, Paket Starter UMKM 100% gratis selamanya untuk maksimal 3 produk aktif tanpa dipungut biaya bulanan.",
+                "Ya, Paket Starter UMKM 100% gratis selamanya untuk maksimal 3 produk aktif tanpa dipungut biaya registrasi maupun biaya bulanan.",
+            },
+            {
+              question: "Bagaimana jika email selamat datang belum masuk?",
+              answer:
+                "Email dikirim secara otomatis dalam hitungan detik. Silakan periksa folder Spam/Junk atau segarkan (refresh) aplikasi email Anda.",
             },
           ],
         },
@@ -86,6 +97,49 @@ export const TUTORIAL_MODULES: TutorialModule[] = [
           ],
           proTip:
             "Sistem Mas Chan Digital otomatis menyesuaikan jam operasional toko dengan Waktu Indonesia Barat (WIB).",
+        },
+      },
+      {
+        slug: "lupa-dan-reset-kata-sandi",
+        title: "Cara Mengatur Ulang Kata Sandi via Email",
+        shortDescription:
+          "Panduan memulihkan akses login dashboard vendor melalui tautan reset yang dikirim ke email.",
+        estimatedMinutes: 3,
+        content: {
+          overview:
+            "Jika Anda lupa kata sandi akun toko, Mas Chan Digital menyediakan fitur pemulihan mandiri yang aman dan cepat langsung melalui email terdaftar Anda.",
+          steps: [
+            {
+              title: "1. Buka Halaman Login Vendor",
+              description:
+                'Buka halaman maschandigital.id/vendor/login, lalu klik tautan "Lupa kata sandi?" di bawah kolom isian password.',
+            },
+            {
+              title: "2. Masukkan Alamat Email Terdaftar",
+              description:
+                'Ketikkan alamat email yang Anda gunakan saat mendaftar toko, kemudian klik tombol "Kirim Tautan Reset Password".',
+              tips: "Pastikan email yang dimasukkan sama persis dengan email saat registrasi toko.",
+            },
+            {
+              title:
+                "3. Buka Email Reset Password dari admin@maschandigital.id",
+              description:
+                'Buka inbox email Anda dan cari email berjudul "Atur Ulang Kata Sandi Akun Mas Chan Digital" dari admin@maschandigital.id.',
+            },
+            {
+              title: "4. Klik Tombol Atur Ulang Kata Sandi",
+              description:
+                'Klik tombol biru "Atur Ulang Kata Sandi" di dalam email untuk membuka formulir pembuatan kata sandi baru.',
+            },
+            {
+              title:
+                "5. Buat Kata Sandi Baru & Terima Email Konfirmasi Keamanan",
+              description:
+                'Masukkan kata sandi baru (minimal 6 karakter), ulangi di kolom konfirmasi, dan klik "Simpan Kata Sandi Baru". Sistem akan memperbarui password Anda dan mengirimkan email konfirmasi bahwa kata sandi telah berhasil diubah.',
+            },
+          ],
+          proTip:
+            "Tautan reset kata sandi memiliki batas waktu berlaku demi keamanan akun toko Anda. Segera klik tautan begitu email diterima.",
         },
       },
     ],
@@ -218,129 +272,121 @@ export const TUTORIAL_MODULES: TutorialModule[] = [
   {
     id: "modul-5-langganan-paket",
     moduleNumber: 5,
-    title: "Paket Langganan & Masa Aktif",
+    title: "Paket Langganan & Notifikasi Pembayaran",
     description:
-      "Penjelasan opsi upgrade paket langganan dan verifikasi pembayaran invoice.",
+      "Penjelasan opsi upgrade paket, alur notifikasi email tagihan, dan verifikasi pembayaran.",
     iconName: "CreditCard",
     chapters: [
       {
         slug: "pilihan-paket-dan-perpanjangan",
-        title: "Panduan Memilih Paket & Perpanjangan Langganan",
+        title: "Panduan Memilih Paket, Konfirmasi Transfer & Notifikasi Email",
         shortDescription:
-          "Tingkatkan kuota produk toko Anda dengan pilihan paket 1 bulan hingga 1 tahun VIP.",
-        estimatedMinutes: 3,
+          "Tingkatkan kuota produk toko Anda dengan panduan lengkap alur pembayaran dan notifikasi email resmi.",
+        estimatedMinutes: 4,
         content: {
           overview:
-            "Jika Anda ingin menampilkan lebih dari 3 produk, Mas Chan Digital menyediakan paket langganan terjangkau tanpa biaya tersembunyi.",
+            "Toko baru otomatis berstatus aktif selamanya di Paket Starter UMKM (Gratis, kuota 3 produk). Jika Anda ingin menambah lebih banyak produk, Mas Chan Digital menyediakan pilihan paket langganan dengan alur notifikasi email otomatis di setiap tahapannya.",
           steps: [
             {
-              title: "1. Buka Menu Tagihan & Langganan",
+              title: "1. Buka Menu Langganan & Tagihan",
               description:
-                'Di Dashboard toko, klik menu "Tagihan & Paket" untuk melihat status masa aktif dan kuota produk Anda.',
+                'Di Dashboard toko, klik menu "Langganan & Tagihan" (maschandigital.id/dashboard/billing) untuk melihat status masa aktif dan kuota produk Anda.',
             },
             {
-              title: "2. Pilih Paket yang Diinginkan",
+              title: "2. Pilih Paket & Terima Email Tagihan Resmi",
               description:
-                "Pilih antara Paket 1 Bulan (Rp 30.000 / 10 Produk), Paket 3 Bulan (Rp 90.000), Paket 6 Bulan (Rp 160.000 Unlimited), atau Paket 1 Tahun VIP (Rp 280.000 Unlimited + Prioritas Beranda).",
+                "Pilih paket yang diinginkan: Paket 1 Bulan (Rp 30.000 / 10 Produk), Paket 3 Bulan (Rp 90.000 / 10 Produk), Paket 6 Bulan (Rp 160.000 Unlimited), atau Paket 1 Tahun (Rp 280.000 Unlimited). Begitu paket dipilih, sistem otomatis membuatkan nomor invoice resmi (misal: INV-000123) dan mengirimkan rincian tagihan langsung ke email Anda.",
+              tips: "Email tagihan memuat nomor invoice, nominal transfer pas, dan tombol langsung ke halaman pembayaran.",
             },
             {
-              title: "3. Transfer & Unggah Bukti Bayar",
+              title: "3. Transfer Bank Manual & Unggah Bukti Bayar",
               description:
-                "Transfer sesuai nominal pas ke rekening resmi pengelola dan unggah foto struk transfer di formulir konfirmasi pembayaran.",
+                "Lakukan transfer ke salah satu rekening resmi pengelola (BSI / BCA / Mandiri / BRI). Setelah transfer berhasil, unggah foto bukti struk dan isi nama pemilik rekening pengirim di dashboard.",
             },
             {
-              title: "4. Perlindungan Grace Protection",
+              title:
+                '4. Terima Email "Bukti Pembayaran Diterima" & Jaminan Grace Protection',
               description:
-                "Selama bukti pembayaran menunggu verifikasi admin (*Pending Approval*), toko Anda dijamin tetap aktif buka di publik.",
+                "Setelah bukti bayar diunggah, Anda akan menerima email notifikasi bahwa bukti transfer telah diterima. Selama menunggu verifikasi admin (status Pending Approval), toko Anda dijamin TETAP BUKA normal di halaman publik.",
+            },
+            {
+              title:
+                '5. Terima Email "Pembayaran Terverifikasi" & Kuota Baru Aktif',
+              description:
+                'Ketika Admin menyetujui pembayaran di sistem, Anda akan otomatis menerima email "Pembayaran Terverifikasi ✓", masa aktif paket langsung bertambah, dan kuota produk toko Anda langsung diperbarui.',
+            },
+            {
+              title: "6. Notifikasi Pengingat Masa Aktif (H-7)",
+              description:
+                "Sebelum paket berbayar Anda berakhir, sistem akan otomatis mengirimkan email pengingat pada H-7 dan memberikan masa tenggang toleransi 3 hari jika Anda belum sempat memperpanjang.",
             },
           ],
           proTip:
-            "Jika paket berakhir, produk lama Anda tidak akan pernah dihapus. Sistem hanya membatasi penambahan produk baru.",
+            "Jika paket berbayar berakhir, produk lama Anda tetap aman dan tidak akan pernah dihapus. Akun Anda otomatis kembali ke Paket Starter UMKM (Gratis Selamanya).",
+          faq: [
+            {
+              question:
+                "Apakah ada notifikasi email saat saya memilih paket atau membayar?",
+              answer:
+                "Ya! Setiap tahapan (pembuatan invoice, penerimaan bukti transfer, dan persetujuan verifikasi) memiliki notifikasi email resmi dari admin@maschandigital.id.",
+            },
+            {
+              question:
+                "Bagaimana jika saya salah klik memilih paket berbayar?",
+              answer:
+                'Selama tagihan belum dibayar (status Unpaid), Anda cukup klik tombol "Batal Pilih Paket" di dashboard billing untuk membatalkan tagihan lama dan memilih paket lain.',
+            },
+            {
+              question: "Apakah saya wajib berlangganan berbayar?",
+              answer:
+                "Tidak wajib. Anda bebas tetap menggunakan Paket Starter UMKM gratis selamanya untuk 3 produk aktif.",
+            },
+          ],
         },
       },
     ],
   },
   {
-    id: "modul-6-fitur-dashboard-vendor",
+    id: "modul-6-integrasi-chat",
     moduleNumber: 6,
-    title: "Fitur Dashboard & Integrasi Toko",
+    title: "Integrasi Live Chat Toko (Tawk.to)",
     description:
-      "Panduan lengkap navigasi menu khusus vendor, manajemen operasional, dan integrasi Live Chat Tawk.to.",
-    iconName: "Store",
+      "Panduan opsional menghubungkan live chat gratis Tawk.to di etalase toko Anda.",
+    iconName: "MessageSquare",
     chapters: [
       {
-        slug: "panduan-navigasi-menu-vendor",
-        title: "Panduan Navigasi & Menu Khusus Akun Vendor",
+        slug: "cara-integrasi-live-chat-tawkto",
+        title: "Cara Memasang Widget Live Chat Tawk.to di Toko",
         shortDescription:
-          "Memahami tata letak menu khusus vendor untuk akses cepat ke produk, panduan, dan dashboard toko.",
-        estimatedMinutes: 3,
-        content: {
-          overview:
-            "Saat Anda login sebagai vendor terdaftar di Mas Chan Digital, susunan navigasi website akan otomatis berubah menyesuaikan kebutuhan pengelolaan toko Anda.",
-          steps: [
-            {
-              title: "1. Menu Produk (Sisi Kiri)",
-              description:
-                "Akses instan untuk melihat daftar katalog produk Anda dan menambah barang dagangan baru.",
-            },
-            {
-              title: "2. Menu Panduan (Dekat Beranda Kiri)",
-              description:
-                "Membuka seluruh materi akademi dan panduan operasional UMKM Kota Serang.",
-            },
-            {
-              title: "3. Menu Beranda (Posisi Tengah)",
-              description:
-                "Kembali ke halaman utama marketplace untuk memantau etalase publik dari sudut pandang pembeli.",
-            },
-            {
-              title: "4. Menu Dashboard (Dekat Beranda Kanan)",
-              description:
-                "Membuka panel kontrol utama untuk memantau sisa kuota produk, status masa aktif toko, dan pengaturan profil.",
-            },
-            {
-              title: "5. Tombol Logout (Sisi Kanan)",
-              description:
-                "Keluar dari sesi vendor secara aman setelah selesai memperbarui produk atau toko Anda.",
-            },
-          ],
-          proTip:
-            "Pada perangkat smartphone, susunan 5 menu ini terletak di bilah navigasi bawah (bottom bar) agar mudah dijangkau jempol.",
-        },
-      },
-      {
-        slug: "integrasi-live-chat-tawkto",
-        title: "Cara Menghubungkan Integrasi Live Chat Tawk.to Toko",
-        shortDescription:
-          "Panduan opsional menghubungkan widget chat Tawk.to mandiri agar pembeli bisa chat langsung di toko Anda.",
+          "Terima pesan chat langsung dari calon pembeli di website Mas Chan Digital.",
         estimatedMinutes: 4,
         content: {
           overview:
-            "Fitur integrasi Tawk.to bersifat opsional bagi vendor yang ingin melayani pertanyaan pelanggan melalui live chat mandiri di website.",
+            "Selain transaksi via WhatsApp, vendor yang ingin melayani pertanyaan instan pembeli langsung di dalam website dapat mengaktifkan integrasi gratis Tawk.to.",
           steps: [
             {
               title: "1. Buat Akun & Properti di Tawk.to",
               description:
-                "Daftar secara gratis di website tawk.to dan buat properti baru dengan nama toko Anda.",
+                "Daftar akun gratis di tawk.to dan buat properti chat untuk toko Anda.",
             },
             {
               title: "2. Salin Property ID & Widget ID",
               description:
-                "Buka menu Admin di dashboard Tawk.to Anda, lalu salin kode Property ID dan Widget ID toko.",
+                "Di dashboard Tawk.to, buka menu Administration -> Channels -> Chat Widget. Salin Property ID dan Widget ID akun Anda.",
             },
             {
-              title: "3. Simpan di Pengaturan Toko",
+              title: "3. Masukkan ke Dashboard Profil Toko",
               description:
-                "Masuk ke Dashboard Mas Chan Digital -> Pengaturan Profil Toko -> Tab Integrasi Chat, lalu tempelkan ID tersebut dan klik Simpan.",
+                'Buka Dashboard Vendor -> Pengaturan Profil Toko -> Tab "5. Live Chat Tawk.to". Centang "Aktifkan Live Chat", tempelkan Property ID dan Widget ID, lalu klik Simpan.',
             },
             {
-              title: "4. Live Chat Otomatis Aktif",
+              title: "4. Chat Otomatis Aktif di Halaman Toko Anda",
               description:
-                "Widget chat toko Anda akan otomatis muncul secara dinamis saat pembeli membuka halaman toko atau produk Anda.",
+                "Widget chat akan otomatis muncul khusus di halaman profil toko dan produk-produk Anda, dan pesan pembeli akan langsung masuk ke aplikasi HP Tawk.to Anda.",
             },
           ],
           proTip:
-            "Jika Anda belum mengaktifkan Tawk.to, pembeli tetap dapat menghubungi toko Anda dengan mudah melalui tombol WhatsApp resmi.",
+            "Fitur Live Chat bersifat opsional. Jika Anda tidak mengaktifkannya, pembeli tetap dapat menghubungi Anda via WhatsApp seperti biasa.",
         },
       },
     ],
