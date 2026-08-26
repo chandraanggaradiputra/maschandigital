@@ -3,11 +3,10 @@ import { TutorialChapter } from "@/types/tutorial";
 
 interface PanduanJsonLdProps {
   chapter: TutorialChapter;
-  pageUrl?: string; // Dibuat opsional
+  pageUrl?: string;
 }
 
 export function PanduanJsonLd({ chapter, pageUrl }: PanduanJsonLdProps) {
-  // Otomatis membentuk URL panduan jika tidak dioper manual
   const currentUrl =
     pageUrl || `https://maschandigital.id/panduan/${chapter.slug}`;
 
@@ -15,9 +14,13 @@ export function PanduanJsonLd({ chapter, pageUrl }: PanduanJsonLdProps) {
     "@context": "https://schema.org",
     "@type": "HowTo",
     name: chapter.title,
-    description: chapter.shortDescription,
-    totalTime: `PT${chapter.estimatedMinutes}M`,
-    step: chapter.content.steps.map((step, idx) => ({
+    description:
+      chapter.shortDescription ||
+      chapter.content?.overview ||
+      "Panduan praktis berjualan di Mas Chan Digital Kota Serang.",
+    image: "https://maschandigital.id/mas-chan-digital.webp",
+    totalTime: `PT${chapter.estimatedMinutes || 3}M`,
+    step: (chapter.content?.steps || []).map((step, idx) => ({
       "@type": "HowToStep",
       position: idx + 1,
       name: step.title,
@@ -33,7 +36,7 @@ export function PanduanJsonLd({ chapter, pageUrl }: PanduanJsonLdProps) {
       name: "Mas Chan Digital",
       logo: {
         "@type": "ImageObject",
-        url: "https://app.maschandigital.id/wp-content/uploads/logo-maschandigital.png",
+        url: "https://maschandigital.id/mas-chan-digital.webp",
       },
     },
   };

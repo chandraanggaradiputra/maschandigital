@@ -3,11 +3,10 @@ import { Vendor } from "@/types";
 
 interface VendorJsonLdProps {
   vendor: Vendor;
-  vendorUrl?: string; // Dibuat opsional
+  vendorUrl?: string;
 }
 
 export function VendorJsonLd({ vendor, vendorUrl }: VendorJsonLdProps) {
-  // Otomatis membentuk URL toko jika tidak dioper manual
   const currentUrl =
     vendorUrl || `https://maschandigital.id/vendors/${vendor.slug}`;
 
@@ -23,18 +22,31 @@ export function VendorJsonLd({ vendor, vendorUrl }: VendorJsonLdProps) {
 
   const openingHoursSpec = vendor.store_hours
     ? Object.entries(vendor.store_hours)
-        .filter(([_, schedule]) => schedule.isOpen)
+        .filter(([_, schedule]) => schedule && schedule.isOpen)
         .map(([dayKey, schedule]) => ({
           "@type": "OpeningHoursSpecification",
           dayOfWeek: dayMap[dayKey] || "Monday",
-          opens: schedule.openTime || "08:00",
-          closes: schedule.closeTime || "17:00",
+          opens: schedule?.openTime || "08:00",
+          closes: schedule?.closeTime || "17:00",
         }))
+    : [];
+
+  const rawPhone = vendor.whatsapp_number || "6282298148474";
+  const formattedPhone = rawPhone.startsWith("+") ? rawPhone : `+${rawPhone}`;
+
+  const socialLinks = vendor.socials
+    ? ([
+        vendor.socials.instagram,
+        vendor.socials.tiktok,
+        vendor.socials.facebook,
+        vendor.socials.youtube,
+        vendor.socials.website,
+      ].filter(Boolean) as string[])
     : [];
 
   const storeSchema = {
     "@context": "https://schema.org",
-    "@type": "Store",
+    "@type": "LocalBusiness",
     name: vendor.store_name,
     image:
       vendor.banner ||
@@ -44,13 +56,16 @@ export function VendorJsonLd({ vendor, vendorUrl }: VendorJsonLdProps) {
       vendor.description ||
       `Profil toko resmi ${vendor.store_name} di Marketplace Mas Chan Digital Kota Serang.`,
     url: currentUrl,
-    telephone: vendor.whatsapp_number || "+6282298148474",
+    telephone: formattedPhone,
     priceRange: "Rp",
     paymentAccepted: "Cash, Bank Transfer, QRIS",
+    currenciesAccepted: "IDR",
     address: {
       "@type": "PostalAddress",
-      streetAddress: vendor.address || "Kota Serang",
-      addressLocality: vendor.location_district || "Kota Serang",
+      streetAddress: vendor.address?.street_1 || "Kota Serang",
+      addressLocality: vendor.location_district
+        ? `Kecamatan ${vendor.location_district}, Kota Serang`
+        : "Kota Serang",
       addressRegion: "Banten",
       postalCode: "42111",
       addressCountry: "ID",
@@ -60,6 +75,14 @@ export function VendorJsonLd({ vendor, vendorUrl }: VendorJsonLdProps) {
       latitude: "-6.1200",
       longitude: "106.1500",
     },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: vendor.rating ? String(vendor.rating) : "5.0",
+      reviewCount: vendor.review_count ? String(vendor.review_count) : "1",
+      bestRating: "5",
+      worstRating: "1",
+    },
+    ...(socialLinks.length > 0 ? { sameAs: socialLinks } : {}),
     ...(openingHoursSpec.length > 0
       ? { openingHoursSpecification: openingHoursSpec }
       : {}),
