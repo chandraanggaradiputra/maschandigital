@@ -1,5 +1,4 @@
 // Tambahkan di baris atas file:
-export const revalidate = 60; // Refresh katalog produk setiap 60 detik
 
 import React from "react";
 import Link from "next/link";

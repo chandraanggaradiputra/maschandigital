@@ -1,5 +1,4 @@
 // Tambahkan di baris atas file:
-export const revalidate = 60; // Refresh profil toko setiap 60 detik
 
 import React from "react";
 import Link from "next/link";
@@ -84,11 +83,28 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
   );
 
   const vendorUrl = `https://maschandigital.id/vendors/${vendor.slug}`;
-  const addressQuery = vendor.address?.street_1
-    ? `${vendor.address.street_1}, ${vendor.location_district ? `Kec. ${vendor.location_district}, ` : ""}Kota Serang, Banten`
-    : `${vendor.store_name}, ${vendor.location_district ? `Kec. ${vendor.location_district}, ` : ""}Kota Serang, Banten`;
+  const kelurahan =
+    vendor.location_subdistrict ||
+    vendor.subdistrict ||
+    vendor.address?.street_2 ||
+    "";
+  const kecamatan = vendor.location_district || "";
+  const jalan = vendor.address?.street_1 || "";
+
+  const fullAddressParts = [
+    jalan,
+    kelurahan ? `Kel. ${kelurahan}` : "",
+    kecamatan ? `Kec. ${kecamatan}` : "",
+    "Kota Serang, Banten",
+  ].filter(Boolean);
+
+  const addressQuery =
+    fullAddressParts.length > 1
+      ? fullAddressParts.join(", ")
+      : `${vendor.store_name}, Kota Serang, Banten`;
 
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressQuery)}`;
+
   const waVendorUrl = generateWhatsAppVendorUrl({
     whatsappNumber: vendor.whatsapp_number || "6282298148474",
     vendorName: vendor.store_name,
@@ -206,35 +222,21 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                 </div>
 
                 <div className="flex flex-wrap justify-center sm:justify-start items-center gap-4 text-slate-300 text-xs sm:text-sm">
-                  <address className="space-y-3 pt-4 border-slate-100 dark:border-slate-800 border-t text-slate-600 dark:text-slate-300 text-xs sm:text-sm not-italic">
-                    <div className="space-y-2">
-                      <div className="flex items-start gap-2.5">
-                        <MapPin
-                          className="mt-0.5 w-4 h-4 text-brand-600 shrink-0"
-                          aria-hidden="true"
-                        />
-                        <span>
-                          {vendor.address?.street_1
-                            ? `${vendor.address.street_1}, `
-                            : ""}
-                          {vendor.location_district
-                            ? `Kec. ${vendor.location_district}, `
-                            : ""}
-                          Kota Serang, Banten
-                        </span>
-                      </div>
-                      <a
-                        href={mapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 ml-6 font-bold text-brand-700 dark:text-brand-400 text-xs hover:underline"
-                        aria-label={`Buka petunjuk arah lokasi ${vendor.store_name} di Google Maps`}
-                      >
-                        <span>Buka Petunjuk Arah di Google Maps</span>
-                        <span aria-hidden="true">&rarr;</span>
-                      </a>
-                    </div>
+                  <address className="flex items-center gap-1 not-italic">
+                    <MapPin
+                      className="w-4 h-4 text-brand-400"
+                      aria-hidden="true"
+                    />
+                    <span>
+                      {vendor.location_subdistrict || vendor.subdistrict
+                        ? `Kel. ${vendor.location_subdistrict || vendor.subdistrict}, `
+                        : ""}
+                      {vendor.location_district
+                        ? `Kec. ${vendor.location_district}, Kota Serang`
+                        : "Kota Serang"}
+                    </span>
                   </address>
+
                   {vendor.rating && (
                     <span className="flex items-center gap-1 font-semibold text-amber-300">
                       <Star
@@ -397,7 +399,7 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                   </Link>
                 </div>
 
-                {/* Info Wilayah: Kecamatan & Kelurahan */}
+                {/* Kecamatan & Kelurahan */}
                 {(vendor.location_district ||
                   vendor.location_subdistrict ||
                   vendor.subdistrict) && (
@@ -411,7 +413,7 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                         ? `Kel. ${vendor.location_subdistrict || vendor.subdistrict}, `
                         : ""}
                       {vendor.location_district
-                        ? `Kec. ${vendor.location_district}`
+                        ? `Kec. ${vendor.location_district}, Kota Serang`
                         : "Kota Serang"}
                     </span>
                   </div>

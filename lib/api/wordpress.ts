@@ -227,11 +227,29 @@ function formatGraphQLVendor(v: RawApiNode): Vendor {
     whatsapp_number: v.whatsappNumber || v.whatsapp_number || "6282298148474",
     address: {
       street_1: v.streetAddress || v.address?.street_1 || "Kota Serang",
+      street_2:
+        v.locationSubdistrict ||
+        v.location_subdistrict ||
+        v.subdistrict ||
+        v.address?.street_2 ||
+        "",
       city: v.locationDistrict || v.location_district || "Kota Serang",
       zip: v.address?.zip || "42111",
     },
     location_district:
       v.locationDistrict || v.location_district || "Kota Serang",
+    location_subdistrict:
+      v.locationSubdistrict ||
+      v.location_subdistrict ||
+      v.subdistrict ||
+      v.address?.street_2 ||
+      "",
+    subdistrict:
+      v.locationSubdistrict ||
+      v.location_subdistrict ||
+      v.subdistrict ||
+      v.address?.street_2 ||
+      "",
     avatar:
       v.avatarUrl ||
       v.avatar ||
