@@ -14,6 +14,7 @@ import {
   Star,
   ShieldCheck,
   Package,
+  Building2,
   Calendar,
   Mail,
   Phone,
@@ -368,17 +369,50 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
               </p>
 
               <address className="space-y-3 pt-4 border-slate-100 dark:border-slate-800 border-t text-slate-600 dark:text-slate-300 text-xs sm:text-sm not-italic">
-                {vendor.address?.street_1 && (
+                <div className="space-y-2">
                   <div className="flex items-start gap-2.5">
                     <MapPin
                       className="mt-0.5 w-4 h-4 text-brand-600 shrink-0"
                       aria-hidden="true"
                     />
                     <span>
-                      {vendor.address.street_1},{" "}
-                      {vendor.location_district &&
-                        `Kec. ${vendor.location_district}, `}
+                      {vendor.address?.street_1
+                        ? `${vendor.address.street_1}, `
+                        : ""}
+                      {vendor.location_district
+                        ? `Kec. ${vendor.location_district}, `
+                        : ""}
                       Kota Serang, Banten
+                    </span>
+                  </div>
+                  <Link
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 ml-6 font-bold text-brand-700 dark:text-brand-400 text-xs hover:underline"
+                    aria-label={`Buka petunjuk arah lokasi ${vendor.store_name} di Google Maps`}
+                  >
+                    <span>Buka Petunjuk Arah di Google Maps</span>
+                    <span aria-hidden="true">&rarr;</span>
+                  </Link>
+                </div>
+
+                {/* Info Wilayah: Kecamatan & Kelurahan */}
+                {(vendor.location_district ||
+                  vendor.location_subdistrict ||
+                  vendor.subdistrict) && (
+                  <div className="flex items-start gap-2.5">
+                    <Building2
+                      className="mt-0.5 w-4 h-4 text-brand-600 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <span>
+                      {vendor.location_subdistrict || vendor.subdistrict
+                        ? `Kel. ${vendor.location_subdistrict || vendor.subdistrict}, `
+                        : ""}
+                      {vendor.location_district
+                        ? `Kec. ${vendor.location_district}`
+                        : "Kota Serang"}
                     </span>
                   </div>
                 )}
