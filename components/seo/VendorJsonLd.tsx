@@ -22,7 +22,7 @@ export function VendorJsonLd({ vendor, vendorUrl }: VendorJsonLdProps) {
 
   const openingHoursSpec = vendor.store_hours
     ? Object.entries(vendor.store_hours)
-        .filter(([_, schedule]) => schedule && schedule.isOpen)
+        .filter(([_, schedule]) => schedule?.isOpen)
         .map(([dayKey, schedule]) => ({
           "@type": "OpeningHoursSpecification",
           dayOfWeek: dayMap[dayKey] || "Monday",
@@ -31,22 +31,25 @@ export function VendorJsonLd({ vendor, vendorUrl }: VendorJsonLdProps) {
         }))
     : [];
 
-  const rawPhone = vendor.whatsapp_number || "6282298148474";
-  const formattedPhone = rawPhone.startsWith("+") ? rawPhone : `+${rawPhone}`;
+  const vendorPhone = vendor.whatsapp_number
+    ? vendor.whatsapp_number.startsWith("+")
+      ? vendor.whatsapp_number
+      : `+${vendor.whatsapp_number}`
+    : "+6282298148474";
 
   const socialLinks = vendor.socials
-    ? ([
+    ? [
         vendor.socials.instagram,
         vendor.socials.tiktok,
         vendor.socials.facebook,
         vendor.socials.youtube,
         vendor.socials.website,
-      ].filter(Boolean) as string[])
+      ].filter((url): url is string => Boolean(url && url.trim()))
     : [];
 
   const storeSchema = {
     "@context": "https://schema.org",
-    "@type": "LocalBusiness",
+    "@type": "Store",
     name: vendor.store_name,
     image:
       vendor.banner ||
@@ -56,16 +59,14 @@ export function VendorJsonLd({ vendor, vendorUrl }: VendorJsonLdProps) {
       vendor.description ||
       `Profil toko resmi ${vendor.store_name} di Marketplace Mas Chan Digital Kota Serang.`,
     url: currentUrl,
-    telephone: formattedPhone,
+    telephone: vendorPhone,
     priceRange: "Rp",
     paymentAccepted: "Cash, Bank Transfer, QRIS",
-    currenciesAccepted: "IDR",
+    ...(socialLinks.length > 0 ? { sameAs: socialLinks } : {}),
     address: {
       "@type": "PostalAddress",
       streetAddress: vendor.address?.street_1 || "Kota Serang",
-      addressLocality: vendor.location_district
-        ? `Kecamatan ${vendor.location_district}, Kota Serang`
-        : "Kota Serang",
+      addressLocality: vendor.location_district || "Kota Serang",
       addressRegion: "Banten",
       postalCode: "42111",
       addressCountry: "ID",
@@ -75,14 +76,6 @@ export function VendorJsonLd({ vendor, vendorUrl }: VendorJsonLdProps) {
       latitude: "-6.1200",
       longitude: "106.1500",
     },
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: vendor.rating ? String(vendor.rating) : "5.0",
-      reviewCount: vendor.review_count ? String(vendor.review_count) : "1",
-      bestRating: "5",
-      worstRating: "1",
-    },
-    ...(socialLinks.length > 0 ? { sameAs: socialLinks } : {}),
     ...(openingHoursSpec.length > 0
       ? { openingHoursSpecification: openingHoursSpec }
       : {}),

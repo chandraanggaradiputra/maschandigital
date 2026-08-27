@@ -6,6 +6,8 @@ export interface VendorUser {
   slug: string;
   phone: string;
   district: string;
+  location_subdistrict?: string;
+  subdistrict?: string;
 }
 
 export interface AuthSession {
@@ -131,6 +133,8 @@ export async function registerVendor(formData: {
   password: string;
   whatsapp_number: string;
   location_district: string;
+  location_subdistrict?: string;
+  subdistrict?: string;
 }): Promise<{ success: boolean; session?: AuthSession; message?: string }> {
   try {
     const res = await fetch(`${WP_API_URL}/wp-json/maschan/v1/auth/register`, {

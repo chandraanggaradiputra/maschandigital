@@ -22,6 +22,10 @@ import { Button } from "@/components/ui/Button";
 import { MediaUploader } from "@/components/forms/MediaUploader";
 import { StoreQrModal } from "@/components/qr/StoreQrModal";
 import {
+  KECAMATAN_LIST,
+  getKelurahanList,
+} from "@/lib//constants/serangDistricts";
+import {
   getVendorProfileById,
   getVendorBySlug,
   getVendors,
@@ -50,6 +54,15 @@ export default function VendorProfilePage() {
   const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [district, setDistrict] = useState("Cipocok Jaya");
+  const [subdistrict, setSubdistrict] = useState("Banjaragung");
+
+  const handleDistrictChange = (newDistrict: string) => {
+    setDistrict(newDistrict);
+    const kelList = getKelurahanList(newDistrict);
+    if (kelList.length > 0) {
+      setSubdistrict(kelList[0].name);
+    }
+  };
   const [address, setAddress] = useState("");
   const [description, setDescription] = useState("");
 
@@ -146,6 +159,13 @@ export default function VendorProfilePage() {
               session?.user?.district ||
               "Cipocok Jaya",
           );
+          setSubdistrict(
+            currentV.location_subdistrict ||
+              currentV.subdistrict ||
+              getKelurahanList(currentV.location_district || "Cipocok Jaya")[0]
+                ?.name ||
+              "Banjaragung",
+          );
           setAddress(currentV.address?.street_1 || "");
           setDescription(currentV.description || "");
           setAvatar(currentV.avatar || "");
@@ -194,7 +214,8 @@ export default function VendorProfilePage() {
       email,
       whatsapp_number: whatsapp,
       location_district: district,
-      address: { street_1: address },
+      location_subdistrict: subdistrict,
+      address: { street_1: address, street_2: subdistrict },
       description,
       avatar,
       banner,
@@ -459,27 +480,49 @@ export default function VendorProfilePage() {
                 </div>
               </div>
 
-              <div>
-                <label
-                  htmlFor="prof-district"
-                  className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs"
-                >
-                  Kecamatan di Kota Serang{" "}
-                  <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  id="prof-district"
-                  value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
-                  className="bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm cursor-pointer"
-                >
-                  <option value="Cipocok Jaya">Kec. Cipocok Jaya</option>
-                  <option value="Serang">Kec. Serang</option>
-                  <option value="Kasemen">Kec. Kasemen</option>
-                  <option value="Curug">Kec. Curug</option>
-                  <option value="Taktakan">Kec. Taktakan</option>
-                  <option value="Walantaka">Kec. Walantaka</option>
-                </select>
+              <div className="gap-4 grid grid-cols-1 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="prof-district"
+                    className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs"
+                  >
+                    Kecamatan di Kota Serang{" "}
+                    <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    id="prof-district"
+                    value={district}
+                    onChange={(e) => handleDistrictChange(e.target.value)}
+                    className="bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full font-medium text-slate-900 dark:text-white text-sm cursor-pointer"
+                  >
+                    {KECAMATAN_LIST.map((kec) => (
+                      <option key={kec} value={kec}>
+                        Kec. {kec}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="prof-subdistrict"
+                    className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs"
+                  >
+                    Kelurahan / Desa <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    id="prof-subdistrict"
+                    value={subdistrict}
+                    onChange={(e) => setSubdistrict(e.target.value)}
+                    className="bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full font-medium text-slate-900 dark:text-white text-sm cursor-pointer"
+                  >
+                    {getKelurahanList(district).map((kel) => (
+                      <option key={kel.name} value={kel.name}>
+                        Kel. {kel.name} ({kel.postalCode})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 

@@ -14,13 +14,10 @@ export function PanduanJsonLd({ chapter, pageUrl }: PanduanJsonLdProps) {
     "@context": "https://schema.org",
     "@type": "HowTo",
     name: chapter.title,
-    description:
-      chapter.shortDescription ||
-      chapter.content?.overview ||
-      "Panduan praktis berjualan di Mas Chan Digital Kota Serang.",
+    description: chapter.shortDescription,
     image: "https://maschandigital.id/mas-chan-digital.webp",
-    totalTime: `PT${chapter.estimatedMinutes || 3}M`,
-    step: (chapter.content?.steps || []).map((step, idx) => ({
+    totalTime: `PT${chapter.estimatedMinutes}M`,
+    step: chapter.content.steps.map((step, idx) => ({
       "@type": "HowToStep",
       position: idx + 1,
       name: step.title,
@@ -36,7 +33,7 @@ export function PanduanJsonLd({ chapter, pageUrl }: PanduanJsonLdProps) {
       name: "Mas Chan Digital",
       logo: {
         "@type": "ImageObject",
-        url: "https://maschandigital.id/mas-chan-digital.webp",
+        url: "https://app.maschandigital.id/wp-content/uploads/logo-maschandigital.png",
       },
     },
   };

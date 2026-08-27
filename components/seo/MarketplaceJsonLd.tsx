@@ -6,7 +6,7 @@ export function MarketplaceJsonLd() {
     "@type": "OnlineMarketplace",
     name: "Mas Chan Digital",
     url: "https://maschandigital.id",
-    logo: "https://maschandigital.id/mas-chan-digital.webp",
+    logo: "https://app.maschandigital.id/wp-content/uploads/logo-maschandigital.png",
     description:
       "Platform Marketplace Lokal Kota Serang yang menghubungkan pelaku UMKM, kuliner khas Banten, madu akasia asli, batik Banten, dan jasa kreatif langsung ke WhatsApp vendor.",
     address: {
@@ -29,7 +29,6 @@ export function MarketplaceJsonLd() {
       { "@type": "AdministrativeArea", name: "Kecamatan Taktakan" },
       { "@type": "AdministrativeArea", name: "Kecamatan Walantaka" },
     ],
-    sameAs: ["https://wa.me/6282298148474"],
     potentialAction: {
       "@type": "SearchAction",
       target: "https://maschandigital.id/products?search={search_term_string}",

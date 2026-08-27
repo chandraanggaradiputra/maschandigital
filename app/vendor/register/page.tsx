@@ -4,6 +4,10 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  KECAMATAN_LIST,
+  getKelurahanList,
+} from "@/lib//constants/serangDistricts";
+import {
   Store,
   UserPlus,
   MessageCircle,
@@ -21,6 +25,15 @@ export default function VendorRegisterPage() {
   const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [district, setDistrict] = useState("Cipocok Jaya");
+  const [subdistrict, setSubdistrict] = useState("Banjaragung");
+
+  const handleDistrictChange = (newDistrict: string) => {
+    setDistrict(newDistrict);
+    const kelList = getKelurahanList(newDistrict);
+    if (kelList.length > 0) {
+      setSubdistrict(kelList[0].name);
+    }
+  };
   const [password, setPassword] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,6 +56,7 @@ export default function VendorRegisterPage() {
       password,
       whatsapp_number: whatsapp.trim(),
       location_district: district,
+      location_subdistrict: subdistrict,
     });
 
     if (result.success && result.session) {
@@ -177,32 +191,60 @@ export default function VendorRegisterPage() {
               </p>
             </div>
 
-            <div>
-              <label
-                htmlFor="reg-district"
-                className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs"
-              >
-                Kecamatan di Kota Serang{" "}
-                <span className="text-rose-500">*</span>
-              </label>
-              <div className="relative">
-                <select
-                  id="reg-district"
-                  value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
-                  className="bg-slate-50 dark:bg-slate-900 py-2.5 pr-3.5 pl-9 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm cursor-pointer"
+            <div className="gap-4 grid grid-cols-2 sm:grid-cols-1">
+              <div>
+                <label
+                  htmlFor="reg-district"
+                  className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs"
                 >
-                  <option value="Cipocok Jaya">Kec. Cipocok Jaya</option>
-                  <option value="Serang">Kec. Serang</option>
-                  <option value="Kasemen">Kec. Kasemen</option>
-                  <option value="Curug">Kec. Curug</option>
-                  <option value="Taktakan">Kec. Taktakan</option>
-                  <option value="Walantaka">Kec. Walantaka</option>
-                </select>
-                <MapPin
-                  className="top-1/2 left-3 absolute w-4 h-4 text-brand-600 -translate-y-1/2"
-                  aria-hidden="true"
-                />
+                  Kecamatan di Kota Serang{" "}
+                  <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <select
+                    id="reg-district"
+                    value={district}
+                    onChange={(e) => handleDistrictChange(e.target.value)}
+                    className="bg-slate-50 dark:bg-slate-900 py-2.5 pr-3.5 pl-9 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full font-medium text-slate-900 dark:text-white text-sm cursor-pointer"
+                  >
+                    {KECAMATAN_LIST.map((kec) => (
+                      <option key={kec} value={kec}>
+                        Kec. {kec}
+                      </option>
+                    ))}
+                  </select>
+                  <MapPin
+                    className="top-1/2 left-3 absolute w-4 h-4 text-brand-600 -translate-y-1/2"
+                    aria-hidden="true"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="reg-subdistrict"
+                  className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs"
+                >
+                  Kelurahan / Desa <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <select
+                    id="reg-subdistrict"
+                    value={subdistrict}
+                    onChange={(e) => setSubdistrict(e.target.value)}
+                    className="bg-slate-50 dark:bg-slate-900 py-2.5 pr-3.5 pl-9 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full font-medium text-slate-900 dark:text-white text-sm cursor-pointer"
+                  >
+                    {getKelurahanList(district).map((kel) => (
+                      <option key={kel.name} value={kel.name}>
+                        Kel. {kel.name} ({kel.postalCode})
+                      </option>
+                    ))}
+                  </select>
+                  <MapPin
+                    className="top-1/2 left-3 absolute w-4 h-4 text-emerald-600 -translate-y-1/2"
+                    aria-hidden="true"
+                  />
+                </div>
               </div>
             </div>
           </div>

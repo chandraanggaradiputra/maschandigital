@@ -117,11 +117,14 @@ export interface Vendor {
   whatsapp_number: string;
   address?: {
     street_1?: string;
+    street_2?: string;
     city?: string;
     state?: string;
     zip?: string;
   };
   location_district?: string;
+  location_subdistrict?: string;
+  subdistrict?: string;
   banner?: string;
   avatar?: string;
   description?: string;
