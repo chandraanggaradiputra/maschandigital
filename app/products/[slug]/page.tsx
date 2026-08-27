@@ -343,6 +343,7 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
               isAffiliate={isAffiliate}
               affiliateUrl={product.external_url}
               affiliateButtonText={product.button_text}
+              productId={product.id}
             />
 
             <VendorTawkChat

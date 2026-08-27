@@ -3,6 +3,7 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import { X, Minus, Plus, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { trackWhatsAppClick } from "@/lib/api/wordpress";
 import {
   formatRupiah,
   generateWhatsAppOrderUrl,
@@ -36,6 +37,7 @@ export interface WhatsAppOrderModalProps {
   productName: string;
   unitPrice: number;
   productUrl: string;
+  productId?: number; // Tambahan aman untuk pelacak klik WA
 }
 
 export function WhatsAppOrderModal({
@@ -46,6 +48,7 @@ export function WhatsAppOrderModal({
   productName,
   unitPrice,
   productUrl,
+  productId,
 }: WhatsAppOrderModalProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -63,9 +66,6 @@ export function WhatsAppOrderModal({
   const subtotal = unitPrice * qty;
   const isValid = buyerName.trim().length > 0 && qty >= 1;
 
-  // Simpan elemen yang sedang fokus sebelum modal dibuka, supaya fokus bisa
-  // dikembalikan ke situ saat modal ditutup (aksesibilitas — jangan sampai
-  // fokus "hilang" ke <body>).
   useEffect(() => {
     if (isOpen) {
       triggerRef.current = document.activeElement;
@@ -75,7 +75,6 @@ export function WhatsAppOrderModal({
     }
   }, [isOpen]);
 
-  // Escape key menutup modal.
   useEffect(() => {
     if (!isOpen) return;
     function handleKeyDown(e: KeyboardEvent) {
@@ -85,7 +84,6 @@ export function WhatsAppOrderModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Focus trap sederhana: Tab/Shift+Tab tidak boleh keluar dari dialog selama terbuka.
   function handleTrapKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
     if (e.key !== "Tab" || !dialogRef.current) return;
     const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
@@ -121,6 +119,10 @@ export function WhatsAppOrderModal({
       productUrl,
     });
 
+    if (productId) {
+      trackWhatsAppClick(productId);
+    }
+
     window.open(url, "_blank", "noopener,noreferrer");
     onClose();
   }
@@ -141,7 +143,7 @@ export function WhatsAppOrderModal({
         aria-labelledby={titleId}
         tabIndex={-1}
         onKeyDown={handleTrapKeyDown}
-        className="bg-white dark:bg-surface-darkCard shadow-card-hover border border-slate-200/80 dark:border-slate-800 rounded-t-3xl sm:rounded-3xl focus:outline-none w-full sm:max-w-md max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-surface-darkCard shadow-card-hover border border-slate-200/80 dark:border-slate-800 sm:rounded-3xl rounded-t-3xl focus:outline-none w-full sm:max-w-md max-h-[90vh] overflow-y-auto"
       >
         <header className="flex justify-between items-start gap-4 p-5 pb-3">
           <div>
@@ -159,7 +161,7 @@ export function WhatsAppOrderModal({
             type="button"
             onClick={onClose}
             aria-label="Tutup formulir pesanan"
-            className="flex justify-center items-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 w-8 h-8 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0 transition-colors"
+            className="flex justify-center items-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 w-8 h-8 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors shrink-0"
           >
             <X className="w-5 h-5" aria-hidden="true" />
           </button>
@@ -180,7 +182,7 @@ export function WhatsAppOrderModal({
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
                 disabled={qty <= 1}
                 aria-label="Kurangi jumlah"
-                className="flex justify-center items-center bg-slate-100 disabled:opacity-40 dark:bg-slate-800 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 w-9 h-9 text-slate-700 dark:text-slate-200 shrink-0"
+                className="flex justify-center items-center bg-slate-100 dark:bg-slate-800 disabled:opacity-40 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 w-9 h-9 text-slate-700 dark:text-slate-200 shrink-0"
               >
                 <Minus className="w-4 h-4" aria-hidden="true" />
               </button>
@@ -193,16 +195,18 @@ export function WhatsAppOrderModal({
                 value={qty}
                 onChange={(e) => {
                   const val = parseInt(e.target.value, 10);
-                  setQty(Number.isFinite(val) ? Math.min(99, Math.max(1, val)) : 1);
+                  setQty(
+                    Number.isFinite(val) ? Math.min(99, Math.max(1, val)) : 1,
+                  );
                 }}
-                className="bg-white dark:bg-slate-900 px-2 py-2 border border-slate-300 dark:border-slate-700 rounded-lg w-16 text-center text-slate-900 dark:text-white text-sm"
+                className="bg-white dark:bg-slate-900 px-2 py-2 border border-slate-300 dark:border-slate-700 rounded-lg w-16 text-slate-900 dark:text-white text-sm text-center"
               />
               <button
                 type="button"
                 onClick={() => setQty((q) => Math.min(99, q + 1))}
                 disabled={qty >= 99}
                 aria-label="Tambah jumlah"
-                className="flex justify-center items-center bg-slate-100 disabled:opacity-40 dark:bg-slate-800 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 w-9 h-9 text-slate-700 dark:text-slate-200 shrink-0"
+                className="flex justify-center items-center bg-slate-100 dark:bg-slate-800 disabled:opacity-40 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 w-9 h-9 text-slate-700 dark:text-slate-200 shrink-0"
               >
                 <Plus className="w-4 h-4" aria-hidden="true" />
               </button>
@@ -301,7 +305,7 @@ export function WhatsAppOrderModal({
               placeholder="Mis. warna, ukuran, atau permintaan khusus"
               className="bg-white dark:bg-slate-900 px-3 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 w-full text-slate-900 dark:text-white text-sm resize-none"
             />
-            <p className="mt-1 text-slate-400 text-[11px] text-right">
+            <p className="mt-1 text-[11px] text-slate-400 text-right">
               {catatan.length}/{CATATAN_MAX_LENGTH}
             </p>
           </div>

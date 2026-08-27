@@ -14,12 +14,7 @@ import type { StoreHours, VacationMode } from "@/types";
 import { WhatsAppOrderModal } from "./WhatsAppOrderModal";
 
 export interface OrderSectionProps {
-  // Hasil checkStoreStatus() yang SUDAH dihitung di Server Component (page.tsx)
-  // saat request — dipakai untuk render pertama, supaya HTML dari server dan
-  // hasil hydration di client sama persis (tidak ada mismatch).
   initialStoreStatus: StoreStatus;
-  // Data mentah jam operasional & vacation mode, dipakai HANYA untuk revalidasi
-  // ringan setelah mount (lihat useEffect di bawah) — bukan untuk render pertama.
   storeHours?: StoreHours;
   vacationMode?: VacationMode;
   whatsappNumber: string;
@@ -30,6 +25,7 @@ export interface OrderSectionProps {
   isAffiliate: boolean;
   affiliateUrl?: string;
   affiliateButtonText?: string;
+  productId?: number; // Tambahan aman untuk pelacak klik WA
 }
 
 export function OrderSection({
@@ -44,22 +40,17 @@ export function OrderSection({
   isAffiliate,
   affiliateUrl,
   affiliateButtonText,
+  productId,
 }: OrderSectionProps) {
   const [storeStatus, setStoreStatus] =
     useState<StoreStatus>(initialStoreStatus);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Revalidasi status toko setelah mount — menangkap kasus halaman sudah lama
-  // terbuka (mis. lewat tengah malam, atau di-cache ISR beberapa saat).
-  // Render PERTAMA tetap pakai initialStoreStatus dari server (di atas), jadi
-  // tidak ada hydration mismatch — ini cuma koreksi setelahnya, bukan penentu
-  // tampilan awal.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setStoreStatus(checkStoreStatus(storeHours, vacationMode));
   }, [storeHours, vacationMode]);
 
-  // Format nomor WhatsApp untuk direct chat produk afiliasi
   const cleanPhone = whatsappNumber.replace(/[^0-9]/g, "");
   const normalizedPhone = cleanPhone.startsWith("0")
     ? `62${cleanPhone.slice(1)}`
@@ -150,7 +141,7 @@ export function OrderSection({
             </p>
           </div>
         ) : isAffiliate ? (
-          /* 1. PRODUK AFILIASI: Tautan Afiliasi & Tanya via Chat Langsung (Tanpa Order Form Modal) */
+          /* 1. PRODUK AFILIASI */
           <>
             {affiliateUrl && (
               <a
@@ -197,7 +188,7 @@ export function OrderSection({
             )}
           </>
         ) : (
-          /* 2. PRODUK DIRECT WHATSAPP: Membuka Smart WhatsApp Order Form Modal */
+          /* 2. PRODUK DIRECT WHATSAPP */
           <Button
             type="button"
             variant="whatsapp"
@@ -216,7 +207,7 @@ export function OrderSection({
         )}
       </div>
 
-      {/* WhatsAppOrderModal HANYA aktif dan dirender untuk Produk Direct WhatsApp */}
+      {/* WhatsAppOrderModal */}
       {!isAffiliate && (
         <WhatsAppOrderModal
           isOpen={isModalOpen}
@@ -226,6 +217,7 @@ export function OrderSection({
           productName={productName}
           unitPrice={unitPrice}
           productUrl={productUrl}
+          productId={productId}
         />
       )}
     </>
