@@ -16,11 +16,7 @@ export function MarketplaceJsonLd() {
       postalCode: "42111",
       addressCountry: "ID",
     },
-    geo: {
-      "@type": "GeoCoordinates",
-      latitude: "-6.1200",
-      longitude: "106.1500",
-    },
+
     areaServed: [
       { "@type": "AdministrativeArea", name: "Kecamatan Serang" },
       { "@type": "AdministrativeArea", name: "Kecamatan Cipocok Jaya" },
