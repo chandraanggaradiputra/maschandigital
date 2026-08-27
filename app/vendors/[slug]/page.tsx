@@ -129,11 +129,19 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
       <VendorJsonLd vendor={vendor} />
 
       {/* Konten */}
-      <VendorTawkChat
+      {/* <VendorTawkChat
         enabled={vendor?.chat_integration?.enabled ?? false}
         propertyId={vendor?.chat_integration?.property_id ?? ""}
         widgetId={vendor?.chat_integration?.widget_id ?? ""}
-      />
+      /> */}
+
+      {vendor.chat_integration && (
+        <VendorTawkChat
+          enabled={vendor.chat_integration.enabled}
+          propertyId={vendor.chat_integration.property_id}
+          widgetId={vendor.chat_integration.widget_id}
+        />
+      )}
 
       {/* 1. VENDOR HERO BANNER */}
       <header className="relative bg-slate-900 text-white">

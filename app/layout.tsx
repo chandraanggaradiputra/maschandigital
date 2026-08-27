@@ -6,6 +6,7 @@ import { DesktopHeader } from "@/components/layout/DesktopHeader";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { Footer } from "@/components/layout/Footer";
 import { MarketplaceJsonLd } from "@/components/seo/MarketplaceJsonLd";
+import { TawkRouteGuard } from "@/components/chat/TawkRouteGuard";
 
 const robotoSlab = Roboto_Slab({
   subsets: ["latin"],
@@ -92,9 +93,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" suppressHydrationWarning className={robotoSlab.variable}>
-      <head></head>
       <body className="flex flex-col bg-surface-light dark:bg-surface-dark min-h-screen font-sans antialiased transition-colors duration-200">
         <MarketplaceJsonLd />
+        <TawkRouteGuard />
         <ThemeProvider>
           {/* Aksesibilitas: Skip Link */}
           <a

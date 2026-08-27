@@ -316,11 +316,19 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
               productId={product.id}
             />
 
-            <VendorTawkChat
+            {/* <VendorTawkChat
               enabled={vendor?.chat_integration?.enabled ?? false}
               propertyId={vendor?.chat_integration?.property_id ?? ""}
               widgetId={vendor?.chat_integration?.widget_id ?? ""}
-            />
+            /> */}
+
+            {vendor?.chat_integration && (
+              <VendorTawkChat
+                enabled={vendor.chat_integration.enabled}
+                propertyId={vendor.chat_integration.property_id}
+                widgetId={vendor.chat_integration.widget_id}
+              />
+            )}
 
             <ul className="flex justify-between items-center m-0 p-0 px-1 pt-2 text-slate-500 dark:text-slate-400 text-xs list-none">
               <li className="flex items-center gap-1.5">
