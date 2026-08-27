@@ -6,6 +6,7 @@ import {
   Package,
   PlusCircle,
   Store,
+  Eye,
   MessageCircle,
   CheckCircle2,
   Sparkles,
@@ -86,6 +87,16 @@ export default function DashboardSummaryPage() {
 
   const storeName = vendorData?.store_name || "Toko Anda";
   const whatsappNum = vendorData?.whatsapp_number || "Belum diatur";
+
+  // Akumulasi Statistik Kunjungan & Pesanan WhatsApp
+  const totalViews =
+    products.reduce((acc, p) => acc + (p.views_count || 0), 0) ||
+    vendorData?.views_count ||
+    0;
+  const totalWaClicks =
+    products.reduce((acc, p) => acc + (p.wa_clicks_count || 0), 0) ||
+    vendorData?.wa_clicks_count ||
+    0;
 
   // Perhitungan Sisa Hari Masa Aktif
   let daysLeft = 0;
@@ -342,7 +353,7 @@ export default function DashboardSummaryPage() {
       {/* 3. STATS CARDS */}
       <section
         aria-label="Statistik Toko"
-        className="gap-4 grid grid-cols-1 sm:grid-cols-3"
+        className="gap-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
       >
         {/* Card 1: Total Produk & Kuota Paket */}
         <article className="flex justify-between items-center bg-white dark:bg-surface-darkCard shadow-subtle p-5 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
@@ -364,7 +375,25 @@ export default function DashboardSummaryPage() {
           </div>
         </article>
 
-        {/* Card 2: Paket Langganan Aktif */}
+        {/* Card 2: Total Dilihat Pembeli (Statistik Pengunjung) */}
+        <article className="flex justify-between items-center bg-white dark:bg-surface-darkCard shadow-subtle p-5 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
+          <div>
+            <span className="font-medium text-slate-500 dark:text-slate-400 text-xs">
+              Total Dilihat Pembeli
+            </span>
+            <p className="mt-1 font-slab font-black text-slate-900 dark:text-white text-2xl">
+              {totalViews}
+              <span className="ml-1.5 font-normal text-slate-400 text-xs">
+                kali tayang
+              </span>
+            </p>
+          </div>
+          <div className="flex justify-center items-center bg-indigo-50 dark:bg-indigo-950/80 rounded-2xl w-10 h-10 text-indigo-600 dark:text-indigo-400">
+            <Eye className="w-5 h-5" aria-hidden="true" />
+          </div>
+        </article>
+
+        {/* Card 3: Paket Langganan Aktif */}
         <article className="flex justify-between items-center bg-white dark:bg-surface-darkCard shadow-subtle p-5 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
           <div>
             <span className="font-medium text-slate-500 dark:text-slate-400 text-xs">
@@ -393,7 +422,7 @@ export default function DashboardSummaryPage() {
           </div>
         </article>
 
-        {/* Card 3: Status Toko & WhatsApp */}
+        {/* Card 4: Status Toko & WhatsApp */}
         <article className="flex justify-between items-center bg-white dark:bg-surface-darkCard shadow-subtle p-5 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
           <div>
             <span className="font-medium text-slate-500 dark:text-slate-400 text-xs">

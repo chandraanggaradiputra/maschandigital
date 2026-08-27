@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { trackProductView } from "@/lib/api/wordpress";
 
 interface ProductViewTrackerProps {
   productId: number;

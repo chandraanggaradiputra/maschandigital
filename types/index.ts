@@ -46,6 +46,7 @@ export interface Product {
   status: "publish" | "draft" | "pending";
   featured?: boolean;
   views_count?: number;
+  wa_clicks_count?: number;
   description: string;
   short_description: string;
   price: string;
@@ -132,6 +133,7 @@ export interface Vendor {
   rating?: number;
   review_count?: number;
   products_count?: number;
+  wa_clicks_count?: number;
   joined_date?: string;
   socials?: VendorSocials;
   store_hours?: StoreHours;

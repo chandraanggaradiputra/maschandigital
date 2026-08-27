@@ -929,3 +929,33 @@ export async function createCategory(
     };
   }
 }
+
+/**
+ * PELACAK STATISTIK PRODUK (VIEWS & KLIK WHATSAPP)
+ */
+export async function trackProductView(productId: number): Promise<void> {
+  if (!productId) return;
+  try {
+    await fetch(`${WP_API_URL}/wp-json/maschan/v1/products/${productId}/view`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err: unknown) {
+    // Background telemetry non-blocking
+  }
+}
+
+export async function trackWhatsAppClick(productId?: number): Promise<void> {
+  if (!productId) return;
+  try {
+    await fetch(
+      `${WP_API_URL}/wp-json/maschan/v1/products/${productId}/wa-click`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  } catch (err: unknown) {
+    // Background telemetry non-blocking
+  }
+}
