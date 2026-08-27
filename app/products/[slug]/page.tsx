@@ -14,6 +14,7 @@ import { ShareButton } from "@/components/ui/ShareButton";
 import { OrderSection } from "@/components/product/OrderSection";
 import { VendorTawkChat } from "@/components/chat/VendorTawkChat";
 import { ProductJsonLd } from "@/components/seo/ProductJsonLd";
+import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductViewTracker } from "@/components/product/ProductViewTracker";
 import {
   getProductBySlug,
@@ -178,46 +179,15 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
       {/* Main Product Showcase */}
       <SectionContainer className="py-0">
         <div className="items-start gap-8 lg:gap-12 grid grid-cols-1 lg:grid-cols-12">
-          {/* Left: Product Image */}
-          <div className="space-y-4 lg:col-span-6">
-            <figure className="group relative bg-white dark:bg-surface-darkCard shadow-card-hover m-0 border border-slate-200/80 dark:border-slate-800 rounded-3xl aspect-square overflow-hidden">
-              <Image
-                src={
-                  product.images[0]?.src ||
-                  "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800"
-                }
-                alt={`Foto utama produk ${product.name}`}
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-
-              <figcaption className="top-4 left-4 z-10 absolute flex flex-wrap gap-2">
-                {product.categories.map((cat) => (
-                  <Badge
-                    key={cat.id || cat.slug}
-                    variant="primary"
-                    className="bg-white/95 dark:bg-slate-900/95 shadow-sm px-3 py-1 text-xs"
-                  >
-                    <Tag className="mr-1 w-3 h-3" aria-hidden="true" />
-                    <span>{cat.name}</span>
-                  </Badge>
-                ))}
-              </figcaption>
-
-              {hasSale && (
-                <div className="top-4 right-4 z-10 absolute">
-                  <Badge
-                    variant="danger"
-                    className="shadow-md px-3 py-1 font-bold text-xs"
-                  >
-                    <span className="sr-only">Status Diskon: </span>HEMAT{" "}
-                    {discountPercent}%
-                  </Badge>
-                </div>
-              )}
-            </figure>
+          {/* Left: Interactive Product Gallery (Foto Utama + Galeri Thumbnail) */}
+          <div className="lg:col-span-6">
+            <ProductGallery
+              images={product.images}
+              productName={product.name}
+              categories={product.categories}
+              hasSale={hasSale}
+              discountPercent={discountPercent}
+            />
           </div>
 
           {/* Right: Info & CTA */}
