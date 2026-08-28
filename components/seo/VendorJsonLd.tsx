@@ -31,21 +31,17 @@ export function VendorJsonLd({ vendor, vendorUrl }: VendorJsonLdProps) {
         }))
     : [];
 
-  const vendorPhone = vendor.whatsapp_number
-    ? vendor.whatsapp_number.startsWith("+")
-      ? vendor.whatsapp_number
-      : `+${vendor.whatsapp_number}`
-    : "+6282298148474";
+  const socialLinks = [
+    vendor.socials?.instagram,
+    vendor.socials?.tiktok,
+    vendor.socials?.facebook,
+    vendor.socials?.youtube,
+    vendor.socials?.website,
+  ].filter(Boolean) as string[];
 
-  const socialLinks = vendor.socials
-    ? [
-        vendor.socials.instagram,
-        vendor.socials.tiktok,
-        vendor.socials.facebook,
-        vendor.socials.youtube,
-        vendor.socials.website,
-      ].filter((url): url is string => Boolean(url && url.trim()))
-    : [];
+  const districtLabel = vendor.location_district
+    ? `Kecamatan ${vendor.location_district}, Kota Serang`
+    : "Kota Serang";
 
   const storeSchema = {
     "@context": "https://schema.org",
@@ -57,16 +53,18 @@ export function VendorJsonLd({ vendor, vendorUrl }: VendorJsonLdProps) {
       "https://maschandigital.id/mas-chan-digital.webp",
     description:
       vendor.description ||
-      `Profil toko resmi ${vendor.store_name} di Marketplace Mas Chan Digital Kota Serang.`,
+      `Profil toko resmi ${vendor.store_name} di Marketplace Mas Chan Digital Kota Serang. Transaksi langsung via WhatsApp tanpa perantara.`,
     url: currentUrl,
-    telephone: vendorPhone,
+    telephone: vendor.whatsapp_number
+      ? `+${vendor.whatsapp_number}`
+      : "+6282298148474",
     priceRange: "Rp",
     paymentAccepted: "Cash, Bank Transfer, QRIS",
     ...(socialLinks.length > 0 ? { sameAs: socialLinks } : {}),
     address: {
       "@type": "PostalAddress",
       streetAddress: vendor.address?.street_1 || "Kota Serang",
-      addressLocality: vendor.location_district || "Kota Serang",
+      addressLocality: districtLabel,
       addressRegion: "Banten",
       postalCode: "42111",
       addressCountry: "ID",
@@ -94,7 +92,7 @@ export function VendorJsonLd({ vendor, vendorUrl }: VendorJsonLdProps) {
       {
         "@type": "ListItem",
         position: 2,
-        name: "Direktori Vendor",
+        name: "Direktori Toko",
         item: "https://maschandigital.id/vendors",
       },
       {

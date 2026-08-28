@@ -10,20 +10,18 @@ export function ProductJsonLd({ product, productUrl }: ProductJsonLdProps) {
   const currentUrl =
     productUrl || `https://maschandigital.id/products/${product.slug}`;
   const currentPrice =
-    product.on_sale && product.sale_price ? product.sale_price : product.price;
+    product.on_sale && product.sale_price
+      ? product.sale_price
+      : product.regular_price || product.price;
   const numericPrice = parseFloat(currentPrice) || 0;
   const mainImage =
     product.images[0]?.src || "https://maschandigital.id/mas-chan-digital.webp";
   const allImages =
     product.images.length > 0
-      ? product.images.map((img) => img.src).filter(Boolean)
+      ? product.images.map((img) => img.src)
       : [mainImage];
 
-  const vendorPhone = product.vendor?.whatsapp_number
-    ? product.vendor.whatsapp_number.startsWith("+")
-      ? product.vendor.whatsapp_number
-      : `+${product.vendor.whatsapp_number}`
-    : "+6282298148474";
+  const primaryCategory = product.categories?.[0]?.name || "Produk Lokal";
 
   const productSchema = {
     "@context": "https://schema.org",
@@ -34,9 +32,9 @@ export function ProductJsonLd({ product, productUrl }: ProductJsonLdProps) {
       product.seo?.meta_description ||
       product.short_description ||
       product.description ||
-      `Beli ${product.name} di Mas Chan Digital Kota Serang.`,
+      `Beli ${product.name} langsung di Mas Chan Digital Kota Serang.`,
     sku: `MCD-PROD-${product.id}`,
-    category: product.categories?.[0]?.name || "Umum",
+    category: primaryCategory,
     brand: {
       "@type": "Brand",
       name: product.vendor?.store_name || "Mas Chan Digital",
@@ -53,7 +51,9 @@ export function ProductJsonLd({ product, productUrl }: ProductJsonLdProps) {
         "@type": "Store",
         name: product.vendor?.store_name || "Vendor Mas Chan Digital",
         url: `https://maschandigital.id/vendors/${product.vendor?.slug || "vendor"}`,
-        telephone: vendorPhone,
+        telephone: product.vendor?.whatsapp_number
+          ? `+${product.vendor.whatsapp_number}`
+          : "+6282298148474",
         address: {
           "@type": "PostalAddress",
           addressLocality: product.vendor?.city || "Kota Serang",
