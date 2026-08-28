@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Sparkles } from "lucide-react";
 import { SectionContainer } from "@/components/layout/SectionContainer";
 import { ProductCatalogView } from "@/components/product/ProductCatalogView";
+import { ProductCollectionJsonLd } from "@/components/seo/ProductCollectionJsonLd";
 import { getProducts, getCategories } from "@/lib/api/wordpress";
 
 // Status buka/tutup toko per kartu produk berubah tiap menit — jangan
@@ -46,6 +47,7 @@ export default async function ProductsIndexPage() {
   return (
     <div className="space-y-8 sm:space-y-12 pb-16">
       {/* 1. Header Banner */}
+      <ProductCollectionJsonLd products={allProducts} />
       <header className="relative bg-brand-gradient py-12 sm:py-16 overflow-hidden text-white">
         <div
           className="absolute inset-0 bg-[radial-gradient(#fff_1px,transparent_1px)] opacity-10 pointer-events-none [background-size:16px_16px]"

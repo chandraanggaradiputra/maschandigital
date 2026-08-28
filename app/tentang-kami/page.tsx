@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { AboutPageJsonLd } from "@/components/seo/AboutPageJsonLd";
 import {
   Store,
   MessageCircle,
@@ -115,6 +116,7 @@ export default function TentangKamiPage() {
   return (
     <div className="space-y-12 sm:space-y-16 pb-16">
       {/* 1. HERO BANNER */}
+      <AboutPageJsonLd />
       <section
         aria-labelledby="about-hero-title"
         className="relative bg-brand-gradient py-16 sm:py-24 overflow-hidden text-white"

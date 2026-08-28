@@ -8,6 +8,7 @@ import { SectionContainer } from "@/components/layout/SectionContainer";
 import { VendorCard } from "@/components/cards/VendorCard";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { VendorCollectionJsonLd } from "@/components/seo/VendorCollectionJsonLd";
 import { getVendors } from "@/lib/api/wordpress";
 
 type VendorsPageProps = {
@@ -35,6 +36,7 @@ export default async function VendorsPage({ searchParams }: VendorsPageProps) {
   return (
     <div className="space-y-6 sm:space-y-8 py-6 sm:py-10">
       {/* Header Banner */}
+      <VendorCollectionJsonLd vendors={vendors} />
       <SectionContainer className="py-0">
         <header className="relative bg-brand-gradient shadow-card-hover p-6 sm:p-10 rounded-3xl overflow-hidden text-white">
           <div className="z-10 relative space-y-3 max-w-2xl">
