@@ -15,6 +15,7 @@ import {
 import { SectionContainer } from "@/components/layout/SectionContainer";
 import { getCategories } from "@/lib/api/wordpress";
 
+export const revalidate = 120; // Kategori jarang berubah, revalidasi tiap 2 menit
 export const metadata: Metadata = {
   title: "Semua Kategori Produk UMKM Kota Serang - Mas Chan Digital",
   description:

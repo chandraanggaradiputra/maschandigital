@@ -4,6 +4,7 @@ import React, { useState, useMemo } from "react";
 import { Search, MapPin, Package, X, ArrowUpDown } from "lucide-react";
 import { Product, ProductCategory } from "@/types";
 import { ProductCard } from "@/components/cards/ProductCard";
+import { checkStoreStatus } from "@/lib/storeStatus";
 
 interface ProductCatalogViewProps {
   initialProducts: Product[];
@@ -31,6 +32,7 @@ export function ProductCatalogView({
   const [sortBy, setSortBy] = useState<"newest" | "price-asc" | "price-desc">(
     "newest",
   );
+  const [onlyOpenStores, setOnlyOpenStores] = useState<boolean>(false);
 
   // Filter & Sort Logic di Sisi Klien
   const filteredProducts = useMemo(() => {
@@ -66,7 +68,18 @@ export function ProductCatalogView({
       });
     }
 
-    // 4. Pengurutan (Sorting)
+    // 4. Filter Hanya Toko yang Sedang Buka (Real-time Status)
+    if (onlyOpenStores) {
+      result = result.filter((p) => {
+        const status = checkStoreStatus(
+          p.vendor?.store_hours,
+          p.vendor?.vacation_mode,
+        );
+        return status.isOpen && !status.isVacation;
+      });
+    }
+
+    // 5. Pengurutan (Sorting)
     if (sortBy === "price-asc") {
       result.sort(
         (a, b) => parseFloat(a.price || "0") - parseFloat(b.price || "0"),
@@ -84,6 +97,7 @@ export function ProductCatalogView({
     selectedCategory,
     selectedDistrict,
     sortBy,
+    onlyOpenStores,
   ]);
 
   const handleReset = () => {
@@ -91,13 +105,15 @@ export function ProductCatalogView({
     setSelectedCategory("semua");
     setSelectedDistrict("Semua Kecamatan");
     setSortBy("newest");
+    setOnlyOpenStores(false);
   };
 
   const hasActiveFilter =
     searchQuery !== "" ||
     selectedCategory !== "semua" ||
     selectedDistrict !== "Semua Kecamatan" ||
-    sortBy !== "newest";
+    sortBy !== "newest" ||
+    onlyOpenStores;
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -127,6 +143,25 @@ export function ProductCatalogView({
               <X className="w-4 h-4" />
             </button>
           )}
+        </div>
+
+        {/* Filter Cepat: Status Toko & Kecamatan */}
+        <div className="flex items-center gap-2 pt-2 pb-1 border-slate-100 dark:border-slate-800 border-t overflow-x-auto no-scrollbar">
+          <button
+            type="button"
+            onClick={() => setOnlyOpenStores(!onlyOpenStores)}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 border ${
+              onlyOpenStores
+                ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/80 hover:bg-emerald-100"
+            }`}
+            aria-pressed={onlyOpenStores}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${onlyOpenStores ? "bg-white" : "bg-emerald-500 animate-pulse"}`}
+            />
+            <span>🟢 Hanya Toko Buka</span>
+          </button>
         </div>
 
         {/* Dropdown Filters (Kecamatan & Urutan) */}

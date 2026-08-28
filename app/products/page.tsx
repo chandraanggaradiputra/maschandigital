@@ -9,6 +9,7 @@ import { getProducts, getCategories } from "@/lib/api/wordpress";
 
 // Status buka/tutup toko per kartu produk berubah tiap menit — jangan
 // dibiarkan Next.js render statis sekali lalu disajikan basi.
+export const revalidate = 60;
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {

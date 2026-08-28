@@ -17,6 +17,7 @@ import { TutorialSidebar } from "@/components/tutorial/TutorialSidebar";
 import { getTutorialBySlug, getAllTutorialChapters } from "@/lib/tutorialData";
 import { PanduanJsonLd } from "@/components/seo/PanduanJsonLd";
 
+export const revalidate = 3600; // Materi panduan revalidasi tiap 1 jam
 type TutorialPageProps = {
   params: Promise<{ slug: string }>;
 };
