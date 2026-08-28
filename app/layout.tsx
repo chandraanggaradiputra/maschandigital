@@ -7,6 +7,7 @@ import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { Footer } from "@/components/layout/Footer";
 import { MarketplaceJsonLd } from "@/components/seo/MarketplaceJsonLd";
 import { TawkRouteGuard } from "@/components/chat/TawkRouteGuard";
+import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 
 const robotoSlab = Roboto_Slab({
   subsets: ["latin"],
@@ -33,6 +34,13 @@ export const metadata: Metadata = {
   description:
     "Pusat belanja produk, oleh-oleh khas, dan jasa UMKM lokal Kota Serang. Transaksi langsung via WhatsApp dan link affiliasi resmi tanpa payment gateway.",
   metadataBase: new URL("https://maschandigital.id"),
+  manifest: "/manifest.webmanifest",
+  applicationName: "Mas Chan Digital",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Mas Chan Digital",
+  },
   keywords: [
     "Marketplace Serang",
     "UMKM Kota Serang",
@@ -95,6 +103,7 @@ export default function RootLayout({
     <html lang="id" suppressHydrationWarning className={robotoSlab.variable}>
       <body className="flex flex-col bg-surface-light dark:bg-surface-dark min-h-screen font-sans antialiased transition-colors duration-200">
         <MarketplaceJsonLd />
+        <PwaInstallPrompt />
         <TawkRouteGuard />
         <ThemeProvider>
           {/* Aksesibilitas: Skip Link */}
