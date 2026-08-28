@@ -8,6 +8,7 @@ import { Footer } from "@/components/layout/Footer";
 import { MarketplaceJsonLd } from "@/components/seo/MarketplaceJsonLd";
 import { TawkRouteGuard } from "@/components/chat/TawkRouteGuard";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
+import { PwaRegister } from "@/components/pwa/PwaRegister";
 
 const robotoSlab = Roboto_Slab({
   subsets: ["latin"],
@@ -104,6 +105,7 @@ export default function RootLayout({
       <body className="flex flex-col bg-surface-light dark:bg-surface-dark min-h-screen font-sans antialiased transition-colors duration-200">
         <MarketplaceJsonLd />
         <PwaInstallPrompt />
+        <PwaRegister />
         <TawkRouteGuard />
         <ThemeProvider>
           {/* Aksesibilitas: Skip Link */}

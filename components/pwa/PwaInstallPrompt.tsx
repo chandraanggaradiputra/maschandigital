@@ -2,191 +2,149 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { Download, X, Share, PlusSquare, Sparkles } from "lucide-react";
+import { Download, X, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-
-// Deklarasi Type-Safe resmi tanpa menggunakan 'any'
-declare global {
-  interface Navigator {
-    standalone?: boolean;
-  }
-  interface Window {
-    MSStream?: unknown;
-  }
-}
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
 export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
-  const [showBanner, setShowBanner] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // 1. Cek apakah website sudah dijalankan dalam mode standalone (aplikasi terpasang)
-    const isStandalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.navigator.standalone === true;
-
-    if (isStandalone) return;
-
-    // 2. Cek apakah pengguna sudah pernah menutup banner dalam 7 hari terakhir
-    const dismissedAt = localStorage.getItem("maschan_pwa_dismissed_at");
-    if (dismissedAt) {
-      const daysSinceDismissed =
-        (Date.now() - parseInt(dismissedAt, 10)) / (1000 * 60 * 60 * 24);
-      if (daysSinceDismissed < 7) {
-        return; // Jangan ganggu pengguna jika baru saja ditutup
-      }
-    }
-
-    // 3. Deteksi perangkat iOS (Safari) secara type-safe
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIosDevice = /iphone|ipad|ipod/.test(userAgent) && !window.MSStream;
-
-    // 4. Tangkap event beforeinstallprompt pada Chromium (Android/Chrome/Edge)
+    // 1. Handler event 'beforeinstallprompt' dari browser (Asinkron & Bebas Cascading Render)
     const handleBeforeInstallPrompt = (e: Event) => {
+      // Cek apakah aplikasi sudah berjalan dalam mode PWA Standalone (sudah terpasang)
+      const isStandalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as unknown as { standalone?: boolean }).standalone ===
+          true;
+
+      if (isStandalone) return;
+
+      // Cek apakah user pernah menutup banner ini dalam 7 hari terakhir
+      const dismissedUntil = localStorage.getItem(
+        "maschan_pwa_dismissed_until",
+      );
+      if (dismissedUntil && Date.now() < parseInt(dismissedUntil, 10)) {
+        return;
+      }
+
+      // Tahan prompt default browser dan simpan event untuk tombol kustom kita
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setIsIOS(false);
-      setShowBanner(true);
+      setIsVisible(true);
+    };
+
+    // 2. Handler ketika PWA sukses dipasang
+    const handleAppInstalled = () => {
+      setIsVisible(false);
+      setDeferredPrompt(null);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-
-    // 5. Jika perangkat iOS, tampilkan panduan Add to Home Screen via timer asinkron
-    let iosTimer: NodeJS.Timeout | undefined;
-    if (isIosDevice) {
-      iosTimer = setTimeout(() => {
-        setIsIOS(true);
-        setShowBanner(true);
-      }, 3000);
-    }
+    window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
       window.removeEventListener(
         "beforeinstallprompt",
         handleBeforeInstallPrompt,
       );
-      if (iosTimer) clearTimeout(iosTimer);
+      window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-
-    await deferredPrompt.prompt();
-    const choiceResult = await deferredPrompt.userChoice;
-
-    if (choiceResult.outcome === "accepted") {
-      setShowBanner(false);
-      setDeferredPrompt(null);
+    if (!deferredPrompt) {
+      // Fallback untuk browser yang belum trigger event (misal iOS Safari)
+      alert(
+        'Untuk memasang di HP Anda:\n1. Tekan tombol menu titik tiga (⋮) atau tombol Share (iOS Safari).\n2. Pilih menu "Tambahkan ke Layar Utama" atau "Pasang Aplikasi".',
+      );
+      return;
     }
+
+    // Tampilkan dialog resmi bawaan Android / Chrome
+    await deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
+
+    if (choice.outcome === "accepted") {
+      setIsVisible(false);
+    }
+    setDeferredPrompt(null);
   };
 
   const handleDismiss = () => {
-    setShowBanner(false);
-    localStorage.setItem("maschan_pwa_dismissed_at", Date.now().toString());
+    setIsVisible(false);
+    // Sembunyikan selama 7 hari agar tidak mengganggu pengunjung
+    localStorage.setItem(
+      "maschan_pwa_dismissed_until",
+      String(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    );
   };
 
-  if (!showBanner) {
+  if (!isVisible) {
     return null;
   }
 
-  // ... sisa JSX ke bawah tetap sama persis ...
-
   return (
     <aside
-      aria-label="Pasang Aplikasi Mas Chan Digital"
+      aria-label="Pemberitahuan Pasang Aplikasi"
       className="right-4 md:right-6 bottom-20 slide-in-from-bottom-5 md:bottom-6 left-4 md:left-auto z-50 fixed md:max-w-md animate-in duration-300 fade-in"
     >
-      <div className="relative bg-white dark:bg-surface-darkCard shadow-modal backdrop-blur-xl p-4 sm:p-5 border border-slate-200/90 dark:border-slate-800 rounded-3xl overflow-hidden">
-        {/* Accent Background Glow */}
-        <div className="top-0 right-0 absolute bg-brand-500/10 blur-2xl rounded-full w-32 h-32 pointer-events-none" />
+      <div className="flex items-start gap-3.5 bg-white dark:bg-surface-darkCard shadow-2xl backdrop-blur-xl p-4 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
+        <div className="relative flex justify-center items-center bg-brand-900 shadow-xs border border-brand-700 rounded-2xl w-12 h-12 overflow-hidden shrink-0">
+          <Image
+            src="/icon-192.png"
+            alt="Logo Mas Chan Digital"
+            width={48}
+            height={48}
+            className="object-cover"
+          />
+        </div>
 
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={handleDismiss}
-          className="top-3.5 right-3.5 absolute hover:bg-slate-100 dark:hover:bg-slate-800 p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
-          aria-label="Tutup notifikasi pasang aplikasi"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
-        <div className="flex items-start gap-3.5">
-          {/* App Icon */}
-          <div className="flex justify-center items-center bg-brand-900 shadow-subtle border border-white/20 rounded-2xl w-12 h-12 overflow-hidden shrink-0">
-            <Image
-              src="/mas-chan-digital.webp"
-              alt="Logo Mas Chan Digital"
-              width={48}
-              height={48}
-              className="object-cover"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
-            />
-            <Sparkles className="absolute w-6 h-6 text-brand-300" />
+        <div className="flex-1 space-y-1">
+          <div className="flex justify-between items-center gap-2">
+            <h3 className="flex items-center gap-1.5 font-slab font-bold text-slate-900 dark:text-white text-sm">
+              <Smartphone className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+              <span>Pasang Mas Chan Digital</span>
+            </h3>
+            <button
+              type="button"
+              onClick={handleDismiss}
+              className="hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              aria-label="Tutup pemberitahuan pasang aplikasi"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
-          <div className="flex-1 space-y-1 pr-4">
-            <div className="flex items-center gap-1.5">
-              <h3 className="font-slab font-bold text-slate-900 dark:text-white text-sm">
-                Pasang Mas Chan Digital
-              </h3>
-              <span className="bg-brand-100 dark:bg-brand-950 px-1.5 py-0.5 rounded-md font-bold text-[10px] text-brand-800 dark:text-brand-300">
-                PWA Gratis
-              </span>
-            </div>
+          <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
+            Akses marketplace lokal Kota Serang lebih cepat dan hemat kuota
+            langsung dari layar utama HP Anda.
+          </p>
 
-            <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
-              Akses cepat tanpa download file besar. Belanja & kelola toko UMKM
-              langsung dari layar utama HP Anda.
-            </p>
-
-            {/* Panduan Khusus iOS (Safari) */}
-            {isIOS ? (
-              <div className="space-y-1 mt-2 pt-2 border-slate-100 dark:border-slate-800 border-t text-[11px] text-slate-500 dark:text-slate-400">
-                <p className="flex items-center gap-1 font-medium">
-                  <span>1. Ketuk tombol Bagikan</span>
-                  <Share className="inline w-3.5 h-3.5 text-brand-600" />
-                  <span>di bawah Safari</span>
-                </p>
-                <p className="flex items-center gap-1 font-medium">
-                  <span>2. Pilih</span>
-                  <strong className="text-slate-700 dark:text-slate-200">
-                    &quot;Add to Home Screen&quot;
-                  </strong>
-                  <PlusSquare className="inline w-3.5 h-3.5 text-brand-600" />
-                </p>
-              </div>
-            ) : (
-              /* Tombol Pasang Khusus Android / Windows / Chrome */
-              <div className="flex items-center gap-2 pt-2">
-                <Button
-                  onClick={handleInstallClick}
-                  size="sm"
-                  variant="primary"
-                  className="flex items-center gap-1.5 shadow-xs rounded-xl font-bold text-xs"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Pasang Sekarang</span>
-                </Button>
-                <Button
-                  onClick={handleDismiss}
-                  size="sm"
-                  variant="ghost"
-                  className="rounded-xl font-semibold text-slate-500 hover:text-slate-700 text-xs"
-                >
-                  Nanti Saja
-                </Button>
-              </div>
-            )}
+          <div className="flex items-center gap-2 pt-2">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleInstallClick}
+              className="flex items-center gap-1.5 shadow-xs px-3 py-1.5 h-auto font-bold text-xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Pasang Sekarang</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDismiss}
+              className="px-2.5 py-1.5 h-auto text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-400 text-xs"
+            >
+              Nanti Saja
+            </Button>
           </div>
         </div>
       </div>
