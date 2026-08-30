@@ -150,7 +150,14 @@ export function hideTawkWidget() {
     styleEl = document.createElement("style");
     styleEl.id = "maschan-tawk-hide-style";
     styleEl.innerHTML = `
-      [id*="tawk" i], [class*="tawk" i], #tawk-bubble-container, .tawk-min-container, div[style*="2147483647"], div[style*="z-index: 2147483647"], div[style*="z-index:2147483647"] {
+      #tawk-script-element,
+      #tawk-bubble-container,
+      .tawk-min-container,
+      .tawk-chat-panel,
+      iframe[src*="tawk.to" i],
+      iframe[title*="chat" i],
+      div[style*="z-index: 2147483647"],
+      div[style*="z-index:2147483647"] {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
