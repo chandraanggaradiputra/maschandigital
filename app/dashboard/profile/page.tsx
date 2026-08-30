@@ -25,7 +25,7 @@ import { StoreQrModal } from "@/components/qr/StoreQrModal";
 import {
   KECAMATAN_LIST,
   getKelurahanList,
-} from "@/lib//constants/serangDistricts";
+} from "@/lib/constants/serangDistricts";
 import {
   getVendorProfileById,
   getVendorBySlug,
