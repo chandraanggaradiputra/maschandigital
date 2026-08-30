@@ -288,33 +288,22 @@ export function MobileBottomNav() {
 
             {/* 2. AREA KONTEN YANG BISA DI-SCROLL DENGAN MULUS */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5 overscroll-contain">
-              {/* HIGHLIGHT BANNER: SYIAR SALAF SERANG (SHRINK-0, PROPORSIONAL, BEBAS TERPOTONG) */}
-              <div className="shrink-0">
+              {/* BANNER RINGKAS & MINIMALIS: SYIAR SALAF KOTA SERANG */}
+              <div className="shrink-0 my-1">
                 <a
                   href="https://kajian-sunnah-serang.vercel.app"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative flex items-center justify-between rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 p-4 text-white shadow-md shadow-emerald-900/20 active:scale-[0.98] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  className="flex items-center justify-between rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-white shadow-md shadow-emerald-900/20 active:scale-[0.98] hover:opacity-95 transition-all"
+                  title="Buka Portal Syiar Salaf Kota Serang"
                 >
-                  <div className="flex items-center gap-3.5">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur text-xl">
-                      <span>🕌</span>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-extrabold tracking-tight">
-                          Syiar Salaf Kota Serang
-                        </span>
-                        <span className="rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-semibold">
-                          Portal Dakwah
-                        </span>
-                      </div>
-                      <p className="text-xs text-emerald-100 mt-0.5 leading-snug">
-                        Jadwal Kajian Sunnah, Sholat Kemenag RI & Masjid
-                      </p>
-                    </div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-base">🕌</span>
+                    <span className="text-sm font-bold tracking-tight">
+                      Syiar Salaf Kota Serang
+                    </span>
                   </div>
-                  <ExternalLink className="h-4 w-4 shrink-0 opacity-80 group-hover:translate-x-0.5 transition-transform" />
+                  <ExternalLink className="h-4 w-4 opacity-80" />
                 </a>
               </div>
 
