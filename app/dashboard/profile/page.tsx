@@ -1009,16 +1009,18 @@ export default function VendorProfilePage() {
             </button>
           </div>
 
-          <div className="gap-4 grid grid-cols-1 sm:grid-cols-2">
+          {/* PENGATURAN TAWK.TO LIVE CHAT */}
+          <div className="space-y-4 pt-2">
+            {/* Input Property ID */}
             <div>
               <label
-                htmlFor="tawkto-property-id"
-                className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs"
+                htmlFor="tawk-property-id"
+                className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 font-slab"
               >
-                Property ID
+                Property ID <span className="text-rose-500">*</span>
               </label>
               <input
-                id="tawkto-property-id"
+                id="tawk-property-id"
                 type="text"
                 value={chatIntegration.property_id}
                 onChange={(e) =>
@@ -1027,19 +1029,24 @@ export default function VendorProfilePage() {
                     property_id: e.target.value.trim(),
                   }))
                 }
-                placeholder="mis. 64a1b2c3d4e5f6a7b8c9d0e1"
-                className="bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full font-mono text-slate-900 dark:text-white text-sm"
+                placeholder="Contoh: 65a8b1c2d3e4f5a6b7c8d9e0"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#093c96] text-slate-900 dark:text-white outline-none font-mono transition-colors"
               />
+              <p className="text-[11px] text-slate-400 mt-1">
+                ID Properti unik dari dashboard Tawk.to Anda (24 karakter hex).
+              </p>
             </div>
+
+            {/* Input Widget ID */}
             <div>
               <label
-                htmlFor="tawkto-widget-id"
-                className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs"
+                htmlFor="tawk-widget-id"
+                className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 font-slab"
               >
-                Widget ID
+                Widget ID <span className="text-rose-500">*</span>
               </label>
               <input
-                id="tawkto-widget-id"
+                id="tawk-widget-id"
                 type="text"
                 value={chatIntegration.widget_id}
                 onChange={(e) =>
@@ -1048,9 +1055,12 @@ export default function VendorProfilePage() {
                     widget_id: e.target.value.trim(),
                   }))
                 }
-                placeholder="mis. 1h2j3k4l5"
-                className="bg-slate-50 dark:bg-slate-900 px-3.5 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full font-mono text-slate-900 dark:text-white text-sm"
+                placeholder="Contoh: 1h9k8m7n6"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#093c96] text-slate-900 dark:text-white outline-none font-mono transition-colors"
               />
+              <p className="text-[11px] text-slate-400 mt-1">
+                ID Widget chat (biasanya berawalan &quot;1h...&quot; atau &quot;default&quot;).
+              </p>
             </div>
           </div>
 
