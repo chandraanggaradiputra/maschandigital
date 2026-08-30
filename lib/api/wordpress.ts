@@ -106,17 +106,25 @@ function formatGraphQLProduct(
     Array.isArray(node.productCategories.nodes)
   ) {
     categories = node.productCategories.nodes.map((c: RawApiNode) => ({
-      id: c.databaseId || 1,
-      name: c.name,
-      slug: c.slug,
+      id: Number(c.databaseId || c.id || 1),
+      name: String(c.name || "Umum"),
+      slug: String(c.slug || "umum"),
+      parent: Number(c.parentDatabaseId || c.parentId || c.parent || 0),
     }));
     categoryIds = categories.map((c) => c.id);
   } else if (node.categories && Array.isArray(node.categories)) {
-    categories = node.categories;
+    categories = node.categories.map((c: RawApiNode) => ({
+      id: Number(c.id || 1),
+      name: String(c.name || "Umum"),
+      slug: String(c.slug || "umum"),
+      parent: Number(c.parent || 0),
+      count: typeof c.count === "number" ? c.count : undefined,
+      description: typeof c.description === "string" ? c.description : undefined,
+    }));
     categoryIds = categories.map((c) => c.id);
   }
   if (categories.length === 0) {
-    categories = [{ id: 1, name: "Umum", slug: "umum" }];
+    categories = [{ id: 1, name: "Umum", slug: "umum", parent: 0 }];
     categoryIds = [];
   }
 
@@ -897,19 +905,66 @@ export async function updateVendorProfile(
 }
 
 /**
- * AMBIL KATEGORI PRODUK
+ * AMBIL KATEGORI PRODUK (Murni dari Taksonomi WooCommerce / WCFM)
  */
 export async function getCategories(): Promise<ProductCategory[]> {
+  // 1. Coba GraphQL Taksonomi Kategori WooCommerce
+  const query = `
+    query GetProductCategories {
+      productCategories(first: 100) {
+        nodes {
+          databaseId
+          name
+          slug
+          count
+          description
+          parentDatabaseId
+          image {
+            sourceUrl
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const data = await fetchGraphQL(query);
+    if (data?.productCategories?.nodes && Array.isArray(data.productCategories.nodes) && data.productCategories.nodes.length > 0) {
+      return data.productCategories.nodes.map((node: RawApiNode) => ({
+        id: Number(node.databaseId || node.id),
+        name: String(node.name || ""),
+        slug: String(node.slug || ""),
+        parent: Number(node.parentDatabaseId || node.parentId || 0),
+        count: typeof node.count === "number" ? node.count : 0,
+        description: typeof node.description === "string" ? node.description : undefined,
+        image: node.image?.sourceUrl || undefined,
+      }));
+    }
+  } catch {
+    // diamkan: fallback ke REST API di bawah
+  }
+
+  // 2. Fallback REST API Kategori
   try {
     const res = await fetch(`${WP_API_URL}/wp-json/maschan/v1/categories`, {
       cache: "no-store",
     });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data)) return data;
+      if (Array.isArray(data)) {
+        return data.map((item: RawApiNode) => ({
+          id: Number(item.id || item.term_id),
+          name: String(item.name || ""),
+          slug: String(item.slug || ""),
+          parent: Number(item.parent || 0),
+          count: typeof item.count === "number" ? item.count : undefined,
+          description: typeof item.description === "string" ? item.description : undefined,
+          image: typeof item.image === "string" ? item.image : item.image?.src || undefined,
+        }));
+      }
     }
   } catch {
-    // diamkan: fallback berikutnya tetap dicoba
+    // diamkan: kembalikan array kosong jika server tidak dapat dihubungi
   }
 
   return [];

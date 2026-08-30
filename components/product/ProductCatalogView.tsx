@@ -104,6 +104,33 @@ export function ProductCatalogView({
     updateUrlParams(searchQuery, selectedDistrict, selectedCategory, sort);
   };
 
+  // Cek apakah data kategori memiliki struktur hierarki parent-child murni WCFM/WooCommerce
+  const hasHierarchy = useMemo(() => {
+    return categories.some((c) => c.parent && Number(c.parent) > 0);
+  }, [categories]);
+
+  // Ambil kategori induk aktif untuk menampilkan subkategori dinamis
+  const activeParentCategory = useMemo(() => {
+    if (selectedCategory === "semua") return null;
+    const cat = categories.find(
+      (c) =>
+        c.slug?.toLowerCase() === selectedCategory.toLowerCase() ||
+        c.name?.toLowerCase() === selectedCategory.toLowerCase(),
+    );
+    if (!cat) return null;
+    if (cat.parent && Number(cat.parent) > 0) {
+      return categories.find((c) => Number(c.id) === Number(cat.parent)) || cat;
+    }
+    return cat;
+  }, [selectedCategory, categories]);
+
+  const activeSubcategories = useMemo(() => {
+    if (!activeParentCategory) return [];
+    return categories.filter(
+      (c) => Number(c.parent) === Number(activeParentCategory.id),
+    );
+  }, [activeParentCategory, categories]);
+
   // Filter & Sort Logic di Sisi Klien
   const filteredProducts = useMemo(() => {
     let result = [...initialProducts];
@@ -132,14 +159,39 @@ export function ProductCatalogView({
       });
     }
 
-    // 2. Filter Kategori
+    // 2. Filter Kategori (Mendukung Parent & Subkategori murni dari taksonomi WooCommerce / WCFM)
     if (selectedCategory !== "semua") {
+      const selectedSlug = selectedCategory.toLowerCase();
+      const matchingCategorySlugs = new Set<string>([selectedSlug]);
+
+      const currentCat = categories.find(
+        (c) =>
+          c.slug?.toLowerCase() === selectedSlug ||
+          c.name?.toLowerCase() === selectedSlug,
+      );
+
+      if (currentCat) {
+        if (currentCat.slug) matchingCategorySlugs.add(currentCat.slug.toLowerCase());
+        if (currentCat.name) matchingCategorySlugs.add(currentCat.name.toLowerCase());
+
+        // Kumpulkan seluruh subkategori anak jika kategori yang dipilih adalah parent
+        categories
+          .filter((c) => Number(c.parent) === Number(currentCat.id))
+          .forEach((child) => {
+            if (child.slug) matchingCategorySlugs.add(child.slug.toLowerCase());
+            if (child.name) matchingCategorySlugs.add(child.name.toLowerCase());
+          });
+      }
+
       result = result.filter((p) =>
-        p.categories?.some(
-          (c) =>
-            c.slug?.toLowerCase() === selectedCategory.toLowerCase() ||
-            c.name?.toLowerCase() === selectedCategory.toLowerCase()
-        )
+        p.categories?.some((c) => {
+          const cSlug = (c.slug || "").toLowerCase();
+          const cName = (c.name || "").toLowerCase();
+          return (
+            matchingCategorySlugs.has(cSlug) ||
+            matchingCategorySlugs.has(cName)
+          );
+        }),
       );
     }
 
@@ -336,35 +388,95 @@ export function ProductCatalogView({
 
         {/* Quick Category Filter Pills */}
         {categories.length > 0 && (
-          <div className="flex items-center gap-2 pt-2 pb-1 border-slate-100 dark:border-slate-800 border-t overflow-x-auto no-scrollbar">
-            <button
-              type="button"
-              onClick={() => handleCategoryChange("semua")}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${
-                selectedCategory === "semua"
-                  ? "bg-[#093c96] text-white shadow-xs"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-              }`}
-            >
-              Semua Kategori
-            </button>
-
-            {categories.map((c) => (
+          <div className="space-y-2 pt-2 border-slate-100 dark:border-slate-800 border-t">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
               <button
                 type="button"
-                key={c.slug}
-                onClick={() => handleCategoryChange(c.slug)}
+                onClick={() => handleCategoryChange("semua")}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${
-                  selectedCategory.toLowerCase() === c.slug.toLowerCase() ||
-                  selectedCategory.toLowerCase() === c.name.toLowerCase()
+                  selectedCategory === "semua"
                     ? "bg-[#093c96] text-white shadow-xs"
                     : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
                 }`}
               >
-                {c.name}{" "}
-                {c.count !== undefined && c.count > 0 && `(${c.count})`}
+                Semua Kategori
               </button>
-            ))}
+
+              {(hasHierarchy
+                ? categories.filter((c) => !c.parent || Number(c.parent) === 0)
+                : categories
+              ).map((c) => {
+                const isSelected =
+                  selectedCategory.toLowerCase() === c.slug.toLowerCase() ||
+                  selectedCategory.toLowerCase() === c.name.toLowerCase() ||
+                  (activeParentCategory &&
+                    Number(activeParentCategory.id) === Number(c.id));
+
+                return (
+                  <button
+                    type="button"
+                    key={c.slug}
+                    onClick={() => handleCategoryChange(c.slug)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${
+                      isSelected
+                        ? "bg-[#093c96] text-white shadow-xs"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    {c.name}{" "}
+                    {c.count !== undefined && c.count > 0 && `(${c.count})`}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Subkategori Dinamis (Hanya muncul jika kategori induk aktif memiliki anak) */}
+            {activeSubcategories.length > 0 && (
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pl-2 py-1.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-100 dark:border-slate-800/80">
+                <span className="text-[11px] font-semibold text-slate-400 shrink-0 px-1">
+                  Subkategori:
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    activeParentCategory &&
+                    handleCategoryChange(activeParentCategory.slug)
+                  }
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all shrink-0 ${
+                    activeParentCategory &&
+                    (selectedCategory.toLowerCase() ===
+                      activeParentCategory.slug.toLowerCase() ||
+                      selectedCategory.toLowerCase() ===
+                        activeParentCategory.name.toLowerCase())
+                      ? "bg-blue-100 dark:bg-blue-950 text-[#093c96] dark:text-blue-300 font-bold"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  Semua
+                </button>
+                {activeSubcategories.map((sub) => {
+                  const isSubSelected =
+                    selectedCategory.toLowerCase() === sub.slug.toLowerCase() ||
+                    selectedCategory.toLowerCase() === sub.name.toLowerCase();
+
+                  return (
+                    <button
+                      type="button"
+                      key={`sub-${sub.slug}`}
+                      onClick={() => handleCategoryChange(sub.slug)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all shrink-0 ${
+                        isSubSelected
+                          ? "bg-blue-600 text-white font-bold shadow-xs"
+                          : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
+                      }`}
+                    >
+                      {sub.name}{" "}
+                      {sub.count !== undefined && sub.count > 0 && `(${sub.count})`}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
