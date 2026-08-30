@@ -9,7 +9,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Vendor } from "@/types";
-import { generateWhatsAppVendorUrl } from "@/lib/utils";
+import { generateWhatsAppVendorUrl, resolveVendorDistrict } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 
@@ -50,20 +50,18 @@ export function VendorCard({ vendor, className }: VendorCardProps) {
         />
 
         {/* District Location Badge */}
-        {vendor.location_district && (
-          <div className="top-3 left-3 z-10 absolute">
-            <Badge
-              variant="neutral"
-              className="bg-white/90 dark:bg-slate-900/90 shadow-sm backdrop-blur-md font-semibold text-xs"
-            >
-              <MapPin
-                className="mr-1 w-3 h-3 text-brand-600"
-                aria-hidden="true"
-              />
-              <span>Kec. {vendor.location_district}</span>
-            </Badge>
-          </div>
-        )}
+        <div className="top-3 left-3 z-10 absolute">
+          <Badge
+            variant="neutral"
+            className="bg-white/90 dark:bg-slate-900/90 shadow-sm backdrop-blur-md font-semibold text-xs"
+          >
+            <MapPin
+              className="mr-1 w-3 h-3 text-brand-600"
+              aria-hidden="true"
+            />
+            <span>Kec. {resolveVendorDistrict(vendor)}</span>
+          </Badge>
+        </div>
 
         {/* Rating Badge */}
         {vendor.rating && (

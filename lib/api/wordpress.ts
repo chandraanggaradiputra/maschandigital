@@ -1,5 +1,6 @@
 import { Product, Vendor, ProductCategory } from "@/types";
 import { getVendorSession } from "@/lib/api/auth";
+import { resolveVendorDistrict } from "@/lib/utils";
 
 const WP_API_URL =
   process.env.NEXT_PUBLIC_WORDPRESS_URL || "https://app.maschandigital.id";
@@ -668,11 +669,10 @@ export async function getVendors(
   }
 
   if (district && district !== "Semua" && district !== "Semua Kecamatan") {
-    const cleanDist = district.replace(/^kec\.\s*/i, "").trim().toLowerCase();
+    const cleanDist = district.replace(/^kec(\.|\s+)?/i, "").trim().toLowerCase();
     vendors = vendors.filter((v) => {
-      const d1 = (v.location_district || "").toLowerCase();
-      const d2 = (v.address?.city || "").toLowerCase();
-      return d1.includes(cleanDist) || d2.includes(cleanDist);
+      const resolved = resolveVendorDistrict(v).toLowerCase();
+      return resolved.includes(cleanDist) || cleanDist.includes(resolved);
     });
   }
 

@@ -206,3 +206,77 @@ export function buildCategoryTree(
 
   return roots;
 }
+
+/**
+ * Resolusi Kecamatan Vendor Kota Serang secara akurat tanpa bias kata "Kota Serang".
+ * Memetakan domisili vendor ke salah satu dari 6 kecamatan resmi Kota Serang.
+ */
+export function resolveVendorDistrict(
+  vendor?: {
+    location_district?: string;
+    city?: string;
+    store_name?: string;
+    address?: {
+      street_1?: string;
+      street_2?: string;
+      city?: string;
+      state?: string;
+    };
+  } | null,
+): string {
+  if (!vendor) return "Serang";
+
+  // Gabungkan seluruh teks lokasi vendor
+  const fullLocation = [
+    vendor.location_district || "",
+    vendor.city || "",
+    vendor.address?.street_1 || "",
+    vendor.address?.street_2 || "",
+    vendor.address?.city || "",
+    vendor.address?.state || "",
+    vendor.store_name || "",
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  // 1. Periksa kecamatan spesifik terlebih dahulu
+  if (fullLocation.includes("cipocok")) return "Cipocok Jaya";
+  if (fullLocation.includes("taktakan")) return "Taktakan";
+  if (fullLocation.includes("kasemen")) return "Kasemen";
+  if (fullLocation.includes("curug")) return "Curug";
+  if (fullLocation.includes("walantaka")) return "Walantaka";
+
+  // 2. Periksa kelurahan / area khusus Kecamatan Serang (Unyur, BIP, Kotabaru, Kaligandu, Serang Kota, dll)
+  if (
+    fullLocation.includes("unyur") ||
+    fullLocation.includes("banten indah permai") ||
+    fullLocation.includes("bip") ||
+    fullLocation.includes("kotabaru") ||
+    fullLocation.includes("kaligandu") ||
+    fullLocation.includes("sukawana") ||
+    fullLocation.includes("kagungan") ||
+    fullLocation.includes("lopang") ||
+    fullLocation.includes("terondol") ||
+    fullLocation.includes("cipare") ||
+    fullLocation.includes("cimuncang") ||
+    fullLocation.includes("lontarbaru") ||
+    fullLocation.includes("sumurpecung")
+  ) {
+    return "Serang";
+  }
+
+  // 3. Jika hanya memuat kata "serang" tanpa ada kecamatan lain
+  const isOther =
+    fullLocation.includes("cipocok") ||
+    fullLocation.includes("taktakan") ||
+    fullLocation.includes("kasemen") ||
+    fullLocation.includes("curug") ||
+    fullLocation.includes("walantaka");
+
+  if (!isOther && fullLocation.includes("serang")) {
+    return "Serang";
+  }
+
+  return "Serang";
+}
+

@@ -17,7 +17,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Product, Vendor, ProductCategory } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, resolveVendorDistrict } from "@/lib/utils";
 
 interface SearchResults {
   products: Product[];
@@ -416,7 +416,7 @@ export function GlobalSearchModal() {
                       <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                         <MapPin className="w-3 h-3 text-emerald-500 shrink-0" />
                         <span className="truncate">
-                          {v.location_district || "Kota Serang"}
+                          Kec. {resolveVendorDistrict(v)}
                         </span>
                         {v.products_count !== undefined && v.products_count > 0 && (
                           <span>• {v.products_count} Produk</span>

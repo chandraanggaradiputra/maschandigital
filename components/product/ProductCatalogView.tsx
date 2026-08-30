@@ -6,6 +6,7 @@ import { Search, MapPin, Package, X, ArrowUpDown, RefreshCw } from "lucide-react
 import { Product, ProductCategory } from "@/types";
 import { ProductCard } from "@/components/cards/ProductCard";
 import { checkStoreStatus } from "@/lib/storeStatus";
+import { resolveVendorDistrict } from "@/lib/utils";
 import { KECAMATAN_LIST } from "@/lib/constants/serangDistricts";
 
 interface ProductCatalogViewProps {
@@ -142,16 +143,18 @@ export function ProductCatalogView({
       );
     }
 
-    // 3. Filter Kecamatan Kota Serang
+    // 3. Filter Kecamatan Kota Serang (Akurat tanpa bias kata "Kota Serang")
     if (
       selectedDistrict !== "Semua Kecamatan" &&
       selectedDistrict !== "Semua"
     ) {
-      const targetDist = selectedDistrict.toLowerCase();
+      const targetDist = selectedDistrict
+        .toLowerCase()
+        .replace(/^kec(\.|\s+)?/i, "")
+        .trim();
       result = result.filter((p) => {
-        const dist1 = (p.vendor?.city || "").toLowerCase();
-        const dist2 = (p.vendor?.location_district || "").toLowerCase();
-        return dist1.includes(targetDist) || dist2.includes(targetDist);
+        const vendorDist = resolveVendorDistrict(p.vendor).toLowerCase();
+        return vendorDist.includes(targetDist) || targetDist.includes(vendorDist);
       });
     }
 
