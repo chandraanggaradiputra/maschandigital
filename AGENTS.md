@@ -1,127 +1,92 @@
-# PANDUAN PENGEMBANGAN & STANDAR KODE AI AGENT (AGENTS.md)
+# 🤖 Standar Rekayasa Kode & Instruksi AI Agent Proyek "Mas Chan Digital"
 
-## Proyek: Mas Chan Digital Marketplace (Kota Serang, Banten)
+Dokumen ini adalah **Instruksi Acuan Mutlak (Single Source of Truth)** bagi seluruh AI Agent di Antigravity yang bekerja pada proyek **Mas Chan Digital** (Marketplace & Direktori UMKM Lokal Kota Serang, Banten).
 
-> Dokumen ini adalah **SOP Baku Proyek** untuk seluruh AI Agent (Google Antigravity, Claude Code, Cursor, dll). Setiap agen yang membaca repositori ini **WAJIB** mematuhi seluruh aturan, prinsip, dan batasan arsitektur di bawah ini tanpa pengecualian.
-
----
-
-## 1\. Identitas Proyek & Konstanta Bisnis Resmi
-
-- **Nama Brand**: Mas Chan Digital  
-- **Fokus Platform**: Direktori & Marketplace UMKM Lokal Kota Serang, Banten.  
-- **Model Transaksi**: Direct WhatsApp ke Penjual \+ Tautan Afiliasi Resmi (Bebas Biaya Gateway / 0% Potongan Fee).  
-- **Nomor Kontak Bantuan / WhatsApp Bisnis Resmi**: `0822-9814-8474` (Format Internasional: `6282298148474`).  
-- **Email Resmi**: `admin@maschandigital.id`.  
-- **Domain Frontend**: `https://maschandigital.id`  
-- **Domain Backend (Headless WordPress)**: `https://app.maschandigital.id`  
-- **Lokasi Geografis Target**: 6 Kecamatan di Kota Serang (Serang, Cipocok Jaya, Kasemen, Curug, Taktakan, Walantaka), Banten 42111\.
+**Filosofi Utama**: *"Kode dan arsitektur yang baik itu kritis terhadap celah, jujur soal ketidakpastian, dan menolak asumsi tersembunyi — jika ada logika yang ambigu atau data tidak valid, identifikasi kelemahan tersebut dan sajikan solusi eksplisit, bukan menebak dan berharap kebetulan benar."*
 
 ---
 
-## 2\. Tech Stack & Arsitektur Utama
+## 🏢 Business Constants & Identitas Resmi (Mas Chan Digital)
 
-### Frontend (Next.js App Router)
-
-- **Framework**: Next.js 16.3.1 (Turbopack, React 19, TypeScript).  
-- **Styling**: Tailwind CSS (Mobile-first responsive design, bottom navigation bar, dark/light theme, font Roboto Slab & Sans).  
-- **State & Auth**: `localStorage` (`maschan_vendor_session`) dengan event broadcasting (`maschan:auth-change`).
-
-### Backend (Headless WordPress)
-
-- **CMS**: WordPress Headless \+ WooCommerce \+ WCFM Marketplace (Multi-Vendor) \+ WPGraphQL \+ Rank Math SEO.  
-- **Core Engine**: Must-Use Plugin di `wp-content/mu-plugins/maschan-headless.php`.  
-- **Autentikasi**: Native JWT Bearer Token (Base64URL RFC 7519\) dengan bypass filter `rest_authentication_errors`.
+- **Brand Name**: Mas Chan Digital (Marketplace & Direktori UMKM Lokal Kota Serang, Banten).
+- **Official Business & Support WhatsApp**: `0822-9814-8474` (Format Internasional: `6282298148474`).
+- **Official Support Email**: `admin@maschandigital.id`.
+- **Frontend Domain (Next.js)**: `https://maschandigital.id`
+- **Headless WordPress Backend**: `https://app.maschandigital.id`
+- **Alamat Kantor**: Banten Indah Permai Blok E1 No.12A, Kelurahan Unyur, Kota Serang, Banten 42111, Indonesia.
 
 ---
 
-## 3\. 5 Prinsip Rekayasa Kode Baku (Strict Engineering Principles)
+## 🔴 5 Prinsip Rekayasa Kode Baku (Strict Engineering Principles)
 
-### 🔴 Prinsip 1: Dilarang Keras Diam-Diam Fallback ke "Data Default" (Zero Silent Fallback)
+### 1. Dilarang Keras Diam-Diam Fallback ke "Data Default" (Zero Silent Fallback)
+* **Aturan**: Jika sesi login, token autentikasi, ID relasi, atau data kepemilikan tidak valid/kosong, sistem **WAJIB** mengembalikan **Error 401**, **Null**, atau **Array Kosong `[]`**.
+* **Dilarang**: Menaruh fallback ID angka (seperti `author_id = 2`, `vendor_id = 1`) atau menampilkan nama entitas/toko tiruan. Nilai default *hanya* diperbolehkan untuk aset visual murni (seperti foto placeholder).
 
-* **Aturan**: Jika sesi login, token autentikasi, atau data kepemilikan tidak valid/kosong, sistem **WAJIB** mengembalikan **Error 401** atau **Array Kosong `[]`**.  
-* **Dilarang**: Menaruh fallback ID (seperti `author_id = 2`, `vendor_id = 1`) atau menampilkan seluruh data katalog saat sesi tidak terdeteksi. Nilai default *hanya* diperbolehkan untuk aset visual murni (seperti foto placeholder).
+### 2. Logika Filter Harus Eksplisit (Anti-Dangling `return true`)
+* **Aturan**: Setiap fungsi `.filter()` atau percabangan logika wajib memiliki evaluasi boolean yang eksplisit (`return Boolean(...)`).
+* **Dilarang**: Mengakhiri fungsi filter dengan `return true;` liar yang berisiko meloloskan data yang seharusnya dikecualikan.
 
-### 🔴 Prinsip 2: Logika Filter Harus Eksplisit (Anti-Dangling `return true`)
+### 3. Satu Sumber Kebenaran & Fungsi Bersama (Single Source of Truth & Shared Logic)
+* **Aturan**: Dua fungsi atau endpoint yang merepresentasikan aksi/data yang sama wajib menggunakan **fungsi bersama yang identik** di `lib/utils.ts` atau `lib/api/*.ts` (misal: `formatRupiah`, `normalizeWhatsAppNumber`).
 
-* **Aturan**: Setiap fungsi `.filter()` atau percabangan logika wajib memiliki evaluasi boolean yang eksplisit (`return Boolean(...)`).  
-* **Dilarang**: Mengakhiri fungsi filter dengan `return true;` liar yang berisiko meloloskan kategori/entitas induk yang seharusnya dikecualikan.
+### 4. Diagnostik Cache Server Terlebih Dahulu (Cache-First Diagnostic)
+* **Aturan**: Seluruh endpoint REST API kustom yang dinamis/terkait status pengguna/transaksi wajib memuat header *cache bypass* eksplisit: `nocache_headers()`, `header('Cache-Control: no-cache, no-store, must-revalidate')`, `DONOTCACHEPAGE`, dan `LSCACHE_NO_CACHE`.
 
-### 🔴 Prinsip 3: Satu Sumber Kebenaran & Definisi Identik (Consistent Single Source of Truth)
-
-* **Aturan**: Dua fungsi atau endpoint yang merepresentasikan data yang sama dari sudut pandang berbeda (misal: total produk di ringkasan vs daftar produk di katalog) wajib menggunakan kriteria status yang sama persis (`['publish', 'draft']`).
-
-### 🔴 Prinsip 4: Diagnostik Cache Server Terlebih Dahulu (Cache-First Diagnostic)
-
-* **Aturan**: Seluruh endpoint REST API kustom yang dinamis/terkait status pengguna wajib memuat header *cache bypass* eksplisit: `nocache_headers()`, `header('Cache-Control: no-cache, no-store, must-revalidate')`, `DONOTCACHEPAGE`, dan `LSCACHE_NO_CACHE`.
-
-### 🔴 Prinsip 5: Strict Type Safety & Bebas `any` Liar
-
-* **Aturan**: Dilarang menggunakan `any` sebagai jalan pintas. Gunakan interface domain terstruktur di `types/index.ts`. Tangani error secara aman: `catch (err: unknown)` dengan pengecekan `if (err instanceof Error)`.
+### 5. Strict Type Safety & Bebas `any` Liar
+* **Aturan**: Dilarang menggunakan `any` sebagai jalan pintas. Seluruh struktur data wajib merujuk ke interface domain terdaftar di `types/index.ts`. Tangani error secara aman: `catch (err: unknown)` dengan pengecekan `if (err instanceof Error)`.
 
 ---
 
-## 4\. Sistem Langganan Vendor (Paket Starter UMKM & Manual Transfer)
+## 🧠 Standar Koding Next.js 16.3.3, React 19, & TypeScript 7
 
-### A. Struktur 5 Paket Resmi (Single Source of Truth di `maschan_get_subscription_plans()`)
+### 1. Kepatuhan React 19 & ESLint 9.39.5 (Flat Config)
+- **Anti-Cascading-Render (`react-hooks/set-state-in-effect`)**:
+  - Dilarang memanggil `setState()` secara sinkron langsung di badan utama `useEffect` saat mount.
+  - Perhitungan nilai yang bergantung pada URL atau environment browser wajib diderivasi secara murni saat render atau saat event handler dijalankan.
+- **Penanganan Asynchronous Route Params**:
+  - Parameter `params` dan `searchParams` pada Server Component adalah `Promise`, selalu selesaikan secara aman:
+    `const resolvedParams = await Promise.resolve(params);`
+- **Pembersihan JSX & A11y**:
+  - Dilarang menggunakan unescaped HTML characters (`'`, `"`, `<` dsb.) tanpa kurung kurawal atau entity name (`&apos;`, `&quot;`).
+  - Setiap tag interaktif wajib menyertakan atribut aksesibilitas (`aria-label`, `role`, focus trap).
 
-1. **`free_forever` (Paket Starter UMKM)**: Rp 0 | Masa Aktif Selamanya | Maks. **3 Produk**.  
-2. **`monthly_1m` (Paket 1 Bulan)**: Rp 30.000 | 30 Hari | Maks. **10 Produk**.  
-3. **`quarterly_3m` (Paket 3 Bulan)**: Rp 90.000 | 90 Hari | Maks. **10 Produk**.  
-4. **`biannual_6m` (Paket 6 Bulan)**: Rp 160.000 | 180 Hari | **Unlimited Produk** (Hemat Rp 20.000).  
-5. **`annual_1y` (Paket 1 Tahun VIP)**: Rp 280.000 | 365 Hari | **Unlimited Produk** (Hemat Rp 80.000 \+ Prioritas Beranda).
+### 2. Verifikasi Kontrak REST API WordPress (`maschan-headless.php`)
+- **Aturan**: Keberhasilan `npx tsc --noEmit` atau `npm run build` **TIDAK** membuktikan bahwa endpoint REST API benar-benar terdaftar di server WordPress.
+- Setiap kali menambahkan pemanggilan `fetch('/wp-json/maschan/v1/...')` baru di frontend, **WAJIB** memastikan rute terdaftar resmi di `maschan-headless.php` via `register_rest_route()`.
 
-### B. Metode Pembayaran & Verifikasi
+### 3. Dilarang Silent Fallback ke URL Blob Lokal Pada Uploader
+- Jika upload file ke server gagal, komponen uploader **DILARANG** menggunakan `URL.createObjectURL(blob)` sebagai fallback palsu yang seolah-olah sukses.
+- Kegagalan upload harus dilaporkan sebagai error eksplisit ke pengguna. Endpoint media upload wajib diverifikasi menggunakan token JWT Bearer (`Authorization: Bearer <token>`).
 
-- **Metode**: Transfer Bank Manual (BCA/Mandiri/BSI/QRIS) dengan harga pas (*flat price*, tanpa kode unik).  
-- **Konfirmasi**: Vendor mengunggah foto struk transfer \+ input Nama Rekening Pengirim \+ tombol kirim WhatsApp ke Admin (`0822-9814-8474`).  
-- **Verifikasi Admin**: Single-click approval di endpoint `POST /maschan/v1/admin/billing/approve`.
-
-### C. Aturan Khusus Autentikasi Admin Headless
-
-// ❌ JANGAN PAKAI INI (Gagal pada REST API JWT)
-
-if (\!current\_user\_can('manage\_options')) { ... }
-
-// ✅ WAJIB PAKAI INI
-
-$admin\_id \= maschan\_get\_authenticated\_admin\_id($request);
-
-if (\!$admin\_id) { ... }
-
-### D. Solusi "Admin Telat Verifikasi" & Gating Downgrade
-
-- **Grace Protection Window**: Status `pending_approval` **menjamin toko vendor TETAP BUKA di publik** (tidak di-expire oleh cron), sehingga keterlambatan admin memverifikasi mutasi tidak merugikan vendor.  
-- **Kebijakan Downgrade**: Produk lama tidak pernah dihapus/disembunyikan. Sistem hanya memblokir penambahan produk BARU jika total produk saat ini $\\ge$ kuota paket aktif.  
-- **Hak Tambah Produk**: `renewal_due` diperbolehkan tambah produk (masa aktif masih sah). `grace_period` dan `payment_rejected` diblokir untuk tambah produk.
+### 4. Penanganan Nilai Bergantung Waktu (*Hydration-Safe Time Pattern*)
+- Nilai waktu dinamis (seperti jam operasional toko `checkStoreStatus`) wajib dihitung di Server Component (`page.tsx`) dan dioper sebagai `initialStoreStatus`, lalu direvalidasi via `useEffect` pasca-mount di Client Component.
 
 ---
 
-## 5\. UI, Komponen, & Alur Navigasi
+## 📱 Standar UI/UX Modern 2026 & Navigasi Adaptif Peran (Role-Adaptive)
 
-1. **Jam Buka & Mode Libur Real-Time (`lib/storeStatus.ts`)**:  
-   - Memvalidasi 7-hari jam operasional dan `vacation_mode`.  
-   - Jika toko libur/tutup, tombol checkout WhatsApp di `<ProductCard />` otomatis digantikan dengan tombol disabled berlogo close/lock (**"Toko Sedang Libur"** / **"Toko Sedang Tutup"**).  
-2. **Keamanan Rendering React 19 / Turbopack**:  
-   - Selalu gunakan composite unique keys pada looping array: `key={item.id ? \`entity-${item.id}-${item.slug}-${index}\` : \`entity-idx-${index}\`}\`.  
-3. **Alur Logout Bersih**:  
-   - `clearVendorSession()` membersihkan `localStorage`, memancarkan event `maschan:auth-change`, dan mengarahkan kembali ke Beranda (`/`) sebagai pengunjung biasa tanpa akun aktif (`window.location.href = '/'`).  
-4. **Proteksi Dashboard**:  
-   - Akses unauthenticated ke `/dashboard/*` otomatis dialihkan ke `/vendor/login`.
+### 1. Prinsip Mobile-First Navigation
+- Di layar smartphone (`< md`), navigasi utama wajib bertumpu pada *Bottom Navigation Bar* (`fixed bottom-0 left-0 right-0 z-50 h-16`) dengan padding bawah yang aman (`pb-20 md:pb-0` pada kontainer halaman).
+
+### 2. Adaptasi Dinamis Berdasarkan Sesi Pengguna:
+- **Tamu / Publik (Guest)**:
+  - *Header*: Logo Mas Chan Digital, Pencarian Produk/Toko, Tombol Daftar Mitra, Tombol Masuk/Login, Dark Mode.
+  - *Bottom Nav*: [Beranda] [Katalog Produk] [Direktori Toko] [Keranjang] [Akun / Masuk].
+- **Mitra Toko / Vendor (`role === 'vendor'`)**:
+  - *Header*: Logo, Pencarian, Badge Nama Toko, Tombol [+ Tambah Produk], Dasbor Toko, Logout.
+  - *Bottom Nav*: [Beranda] [Katalog] [➕ Tambah Produk (FAB Tengah)] [Pesanan Masuk] [Dasbor Toko].
+- **Super Admin (`role === 'admin'`)**:
+  - *Header*: Logo, Pencarian, Badge Super Admin, Dasbor Moderasi, Profil, Logout.
+  - *Bottom Nav*: [Beranda] [Katalog] [🛡️ Moderasi Toko] [Kelola Invoice] [Dasbor Admin].
 
 ---
 
-## 6\. Checklist Verifikasi Sebelum Menyatakan Tugas Selesai
+## 🚀 Protokol Git Otomatis Setiap Selesai Tugas
 
-- [ ] Jalankan `npx tsc --noEmit` untuk memastikan 0 error TypeScript di seluruh project.  
-- [ ] Pastikan tidak ada fallback hardcoded ID (seperti `vendor_id = 2` atau `author_id = 2`).  
-- [ ] Uji kasus *data kosong* (tidak ada sesi login $\\rightarrow$ pastikan tampil error 401 / array kosong, bukan data vendor lain).  
-- [ ] Pastikan seluruh evaluasi filter boolean bersifat eksplisit tanpa *dangling `return true`*.  
-- [ ] Pastikan nomor kontak resmi yang digunakan adalah **`0822-9814-8474`**.  
-- [ ] **Protokol Verifikasi Kode Eksisting**: Sebelum membuat, memperbarui, atau merefaktor kode, agen **WAJIB** memeriksa repositori GitHub resmi (https://github.com/chandraanggaradiputra/maschandigital) atau meminta file proyek terkait agar penulisan kode selalu meneruskan struktur yang sudah ada tanpa menambah hal yang tidak perlu atau menimbulkan error/warning.
-
-5. **Navigasi Berbasis Role (Menu Khusus Vendor vs Guest)**:  
-   - **Guest/Customer**: Menampilkan menu navigasi standar (Beranda, Produk, Toko, Panduan, Masuk/Akun).  
-   - **Vendor Terautentikasi** (`maschan_vendor_session` terdeteksi): Menampilkan menu khusus vendor dengan tata letak: (1) Produk, (2) Panduan, (3) Beranda \[Tengah\], (4) Dashboard, (5) Logout.  
-6. **Halaman `/panduan` Ekspansi Operasional Vendor**:  
-   - Wajib memuat panduan operasional vendor (Manajemen Produk & Kuota, Profil Toko & QR Code, Sistem Langganan & Invoice, Integrasi Tawk.to) tanpa menghapus dokumentasi guest/pembeli yang sudah ada.
+Setiap kali AI Agent selesai mengimplementasikan fitur atau memperbaiki bug, AI Agent **WAJIB** menjalankan urutan perintah:
+1. `npx tsc --noEmit` (Memastikan 0 error TypeScript).
+2. `npm run lint` (Memastikan 0 error linter).
+3. `git add .`
+4. `git commit -m "feat/fix: [ringkasan perubahan ringkas dan deskriptif]"`
+5. `git push origin main`
