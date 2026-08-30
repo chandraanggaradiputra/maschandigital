@@ -667,20 +667,39 @@ export async function getVendors(
     }
   }
 
-  if (district && district !== "Semua") {
-    vendors = vendors.filter(
-      (v) =>
-        v.location_district &&
-        v.location_district.toLowerCase() === district.toLowerCase(),
-    );
+  if (district && district !== "Semua" && district !== "Semua Kecamatan") {
+    const cleanDist = district.replace(/^kec\.\s*/i, "").trim().toLowerCase();
+    vendors = vendors.filter((v) => {
+      const d1 = (v.location_district || "").toLowerCase();
+      const d2 = (v.address?.city || "").toLowerCase();
+      return d1.includes(cleanDist) || d2.includes(cleanDist);
+    });
   }
-  if (searchQuery) {
-    const q = searchQuery.toLowerCase();
-    vendors = vendors.filter(
-      (v) =>
-        (v.store_name && v.store_name.toLowerCase().includes(q)) ||
-        (v.description && v.description.toLowerCase().includes(q)),
-    );
+
+  if (searchQuery && searchQuery.trim()) {
+    const q = searchQuery.toLowerCase().trim();
+    vendors = vendors.filter((v) => {
+      const storeMatch = v.store_name?.toLowerCase().includes(q);
+      const ownerMatch = v.owner_name?.toLowerCase().includes(q);
+      const descMatch = v.description?.toLowerCase().includes(q);
+      const districtMatch =
+        v.location_district?.toLowerCase().includes(q) ||
+        v.address?.city?.toLowerCase().includes(q);
+      const subdistrictMatch =
+        v.location_subdistrict?.toLowerCase().includes(q) ||
+        v.subdistrict?.toLowerCase().includes(q) ||
+        v.address?.street_2?.toLowerCase().includes(q);
+      const streetMatch = v.address?.street_1?.toLowerCase().includes(q);
+
+      return Boolean(
+        storeMatch ||
+          ownerMatch ||
+          descMatch ||
+          districtMatch ||
+          subdistrictMatch ||
+          streetMatch
+      );
+    });
   }
 
   return vendors;

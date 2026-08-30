@@ -20,7 +20,8 @@ import {
   Info,
   Phone,
   FileText,
-  ShieldCheck
+  ShieldCheck,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getVendorSession, logoutVendor, AuthSession } from "@/lib/api/auth";
@@ -175,6 +176,28 @@ export function MobileBottomNav() {
           <div className="flex flex-col gap-2">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">Belanja & Informasi</h3>
             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-1 flex flex-col gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDrawerOpen(false);
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("maschan:open-search"));
+                  }
+                }}
+                className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors text-slate-700 dark:text-slate-200 font-medium text-left w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              >
+                <Search className="w-5 h-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+                <div className="flex items-center justify-between flex-1">
+                  <span>Pencarian Cepat Instan</span>
+                  <span className="text-[10px] bg-blue-100 dark:bg-blue-900/60 text-[#093c96] dark:text-blue-300 font-mono px-1.5 py-0.5 rounded font-bold">
+                    Ctrl+K
+                  </span>
+                </div>
+              </button>
+              <Link href="/products" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors text-slate-700 dark:text-slate-200 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+                <Package className="w-5 h-5 text-amber-500" aria-hidden="true" />
+                <span>Katalog Produk UMKM</span>
+              </Link>
               <Link href="/vendors" className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition-colors text-slate-700 dark:text-slate-200 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
                 <Store className="w-5 h-5 text-indigo-500" aria-hidden="true" />
                 <span>Direktori Toko UMKM</span>

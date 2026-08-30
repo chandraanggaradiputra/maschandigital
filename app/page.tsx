@@ -30,6 +30,7 @@ import { ProductCard } from "@/components/cards/ProductCard";
 import { VendorCard } from "@/components/cards/VendorCard";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { HeroSearch } from "@/components/home/HeroSearch";
 import { getProducts, getVendors, getCategories } from "@/lib/api/wordpress";
 
 function getCategoryIcon(slug: string, className: string = "w-6 h-6") {
@@ -142,66 +143,7 @@ export default async function HomePage() {
             </p>
 
             {/* Quick Hero Search Box */}
-            <search
-              role="search"
-              aria-label="Pencarian Cepat Beranda"
-              className="mx-auto pt-4 max-w-2xl"
-            >
-              <form
-                action="/vendors"
-                method="GET"
-                className="flex sm:flex-row flex-col gap-2.5 bg-white/95 dark:bg-slate-900/95 shadow-card-hover backdrop-blur-lg p-2 border border-white/30 rounded-2xl sm:rounded-full"
-              >
-                <div className="flex flex-1 items-center px-4 py-2">
-                  <label htmlFor="hero-search-query" className="sr-only">
-                    Kata kunci pencarian produk atau toko
-                  </label>
-                  <Search
-                    className="mr-3 w-5 h-5 text-slate-400 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <input
-                    id="hero-search-query"
-                    type="search"
-                    name="q"
-                    placeholder="Cari produk, madu akasia, sate bandeng..."
-                    className="bg-transparent outline-none w-full text-slate-800 dark:text-slate-100 text-sm placeholder-slate-400"
-                  />
-                </div>
-
-                <div className="flex items-center px-4 py-2 border-slate-200 dark:border-slate-800 sm:border-l">
-                  <label htmlFor="hero-district-select" className="sr-only">
-                    Pilih Kecamatan di Kota Serang
-                  </label>
-                  <MapPin
-                    className="mr-2 w-4 h-4 text-brand-600 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <select
-                    id="hero-district-select"
-                    name="district"
-                    className="bg-transparent outline-none font-medium text-slate-700 dark:text-slate-200 text-xs cursor-pointer"
-                  >
-                    <option value="">Semua Kecamatan</option>
-                    <option value="Serang">Kec. Serang</option>
-                    <option value="Cipocok Jaya">Kec. Cipocok Jaya</option>
-                    <option value="Kasemen">Kec. Kasemen</option>
-                    <option value="Curug">Kec. Curug</option>
-                    <option value="Taktakan">Kec. Taktakan</option>
-                    <option value="Walantaka">Kec. Walantaka</option>
-                  </select>
-                </div>
-
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="md"
-                  className="sm:rounded-full"
-                >
-                  Temukan
-                </Button>
-              </form>
-            </search>
+            <HeroSearch />
 
             {/* Value Proportions Badges */}
             <ul className="flex flex-wrap justify-center items-center gap-6 sm:gap-10 m-0 p-0 pt-4 font-medium text-slate-200 text-xs list-none">
