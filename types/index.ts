@@ -9,8 +9,9 @@ export interface ProductCategory {
   id: number;
   name: string;
   slug: string;
+  parent: number; // 0 = Parent Category, > 0 = Subcategory ID
   count?: number;
-  parent?: number;
+  description?: string;
   children?: ProductCategory[];
   image?: string;
 }
