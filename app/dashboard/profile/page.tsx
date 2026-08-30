@@ -997,10 +997,10 @@ export default function VendorProfilePage() {
           </div>
 
           {/* SECTION PENGATURAN TAWK.TO LIVE CHAT */}
-          <div className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+          <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
             
-            {/* 1. Toggle Switch Aktifkan Live Chat */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700">
+            {/* 1. Header & Toggle */}
+            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700">
               <div className="pr-4">
                 <h4 className="text-sm font-bold text-slate-900 dark:text-white font-slab">
                   Aktifkan Live Chat di Toko Saya
@@ -1014,10 +1014,10 @@ export default function VendorProfilePage() {
                 role="switch"
                 aria-checked={chatIntegration.enabled}
                 onClick={() =>
-                  setChatIntegration({
-                    ...chatIntegration,
-                    enabled: !chatIntegration.enabled,
-                  })
+                  setChatIntegration((prev) => ({
+                    ...prev,
+                    enabled: !prev.enabled,
+                  }))
                 }
                 className={cn(
                   "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
@@ -1037,24 +1037,23 @@ export default function VendorProfilePage() {
               </button>
             </div>
 
-            {/* 2. Kolom Input Property ID */}
-            <div className="space-y-1.5 pt-1">
+            {/* 2. KOLOM INPUT PROPERTY ID (WAJIB SELALU TERLIHAT) */}
+            <div className="space-y-1.5">
               <label
-                htmlFor="tawk_property_id"
+                htmlFor="tawk_property_id_input"
                 className="block text-xs font-bold text-slate-800 dark:text-slate-200 font-slab"
               >
                 Property ID <span className="text-rose-500">*</span>
               </label>
               <input
-                id="tawk_property_id"
+                id="tawk_property_id_input"
                 type="text"
-                required={chatIntegration.enabled}
                 value={chatIntegration.property_id || ""}
                 onChange={(e) =>
-                  setChatIntegration({
-                    ...chatIntegration,
+                  setChatIntegration((prev) => ({
+                    ...prev,
                     property_id: e.target.value.trim(),
-                  })
+                  }))
                 }
                 placeholder="Contoh: 65a8b1c2d3e4f5a6b7c8d9e0"
                 className="w-full h-11 px-4 py-2.5 rounded-xl text-sm bg-white dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 focus:border-[#093c96] focus:ring-2 focus:ring-blue-500/20 text-slate-900 dark:text-white outline-none font-mono transition-all block shadow-sm"
@@ -1064,24 +1063,23 @@ export default function VendorProfilePage() {
               </p>
             </div>
 
-            {/* 3. Kolom Input Widget ID */}
-            <div className="space-y-1.5 pt-1">
+            {/* 3. KOLOM INPUT WIDGET ID (WAJIB SELALU TERLIHAT) */}
+            <div className="space-y-1.5">
               <label
-                htmlFor="tawk_widget_id"
+                htmlFor="tawk_widget_id_input"
                 className="block text-xs font-bold text-slate-800 dark:text-slate-200 font-slab"
               >
                 Widget ID <span className="text-rose-500">*</span>
               </label>
               <input
-                id="tawk_widget_id"
+                id="tawk_widget_id_input"
                 type="text"
-                required={chatIntegration.enabled}
                 value={chatIntegration.widget_id || ""}
                 onChange={(e) =>
-                  setChatIntegration({
-                    ...chatIntegration,
+                  setChatIntegration((prev) => ({
+                    ...prev,
                     widget_id: e.target.value.trim(),
-                  })
+                  }))
                 }
                 placeholder="Contoh: 1h9k8m7n6 atau default"
                 className="w-full h-11 px-4 py-2.5 rounded-xl text-sm bg-white dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 focus:border-[#093c96] focus:ring-2 focus:ring-blue-500/20 text-slate-900 dark:text-white outline-none font-mono transition-all block shadow-sm"
@@ -1091,8 +1089,8 @@ export default function VendorProfilePage() {
               </p>
             </div>
 
-            {/* 4. Petunjuk Cara Mendapatkan ID */}
-            <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-xs text-slate-600 dark:text-slate-300 space-y-1.5 mt-2">
+            {/* 4. Box Petunjuk */}
+            <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-xs text-slate-600 dark:text-slate-300 space-y-1.5">
               <p className="font-bold text-[#093c96] dark:text-blue-400">
                 Cara mendapatkan Property ID &amp; Widget ID:
               </p>
