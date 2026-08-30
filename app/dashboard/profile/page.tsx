@@ -186,9 +186,15 @@ export default function VendorProfilePage() {
           if (currentV.store_seo) setStoreSeo(currentV.store_seo);
           if (currentV.chat_integration) {
             setChatIntegration({
-              enabled: currentV.chat_integration.enabled ?? false,
-              property_id: currentV.chat_integration.property_id ?? "",
-              widget_id: currentV.chat_integration.widget_id ?? "",
+              enabled: Boolean(currentV.chat_integration.enabled),
+              property_id: currentV.chat_integration.property_id || "",
+              widget_id: currentV.chat_integration.widget_id || "",
+            });
+          } else {
+            setChatIntegration({
+              enabled: false,
+              property_id: "",
+              widget_id: "",
             });
           }
         } else if (session?.user) {
@@ -198,6 +204,11 @@ export default function VendorProfilePage() {
           setEmail(session.user.email || "");
           setWhatsapp(session.user.phone || "");
           setDistrict(session.user.district || "Cipocok Jaya");
+          setChatIntegration({
+            enabled: false,
+            property_id: "",
+            widget_id: "",
+          });
         }
       } catch (err: unknown) {
         console.error("Gagal mengambil profil vendor:", err);
@@ -230,9 +241,9 @@ export default function VendorProfilePage() {
       vacation_mode: vacationMode,
       store_seo: storeSeo,
       chat_integration: {
-        enabled: chatIntegration.enabled,
-        property_id: chatIntegration.property_id.trim(),
-        widget_id: chatIntegration.widget_id.trim(),
+        enabled: Boolean(chatIntegration.enabled),
+        property_id: (chatIntegration.property_id || "").trim(),
+        widget_id: (chatIntegration.widget_id || "").trim(),
       },
     };
 
