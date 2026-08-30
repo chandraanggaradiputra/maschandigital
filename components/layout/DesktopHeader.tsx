@@ -1,290 +1,211 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
-import {
-  Search,
-  Store,
-  Info,
-  UserPlus,
-  LogIn,
-  LayoutDashboard,
-  LogOut,
-  Tag,
-  Package,
-  BookOpen,
-} from "lucide-react";
-import { ThemeToggle } from "./ThemeToggle";
-import { Button } from "@/components/ui/Button";
-import {
-  getVendorSession,
-  clearVendorSession,
-  AuthSession,
-} from "@/lib/api/auth";
-import { cn } from "@/lib/utils";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { 
+  Store, 
+  Search, 
+  ShoppingBag, 
+  Tag, 
+  BookOpen, 
+  Info, 
+  ExternalLink, 
+  UserPlus, 
+  LogIn, 
+  LogOut, 
+  ShieldCheck, 
+  PlusCircle, 
+  Phone,
+  Home
+} from 'lucide-react';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { Button } from '@/components/ui/Button';
+import { cn } from '@/lib/utils';
+import { getVendorSession, logoutVendor, AuthSession } from '@/lib/api/auth';
+import { useState, useEffect } from 'react';
+
+const MAIN_NAV_ITEMS = [
+  { label: 'Beranda', href: '/', icon: Home },
+  { label: 'Produk', href: '/products', icon: ShoppingBag },
+  { label: 'Kategori', href: '/categories', icon: Tag },
+  { label: 'Vendor', href: '/vendors', icon: Store },
+  { label: 'Panduan', href: '/panduan', icon: BookOpen },
+  { label: 'Tentang Kami', href: '/tentang-kami', icon: Info },
+];
 
 export function DesktopHeader() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [session, setSession] = useState<AuthSession | null>(null);
-  const router = useRouter();
   const pathname = usePathname();
+  const [session, setSession] = useState<AuthSession | null>(null);
 
   useEffect(() => {
-    // Definisikan handler di dalam useEffect agar mematuhi aturan React Hooks exhaustive-deps
     const syncAuth = () => {
       setSession(getVendorSession());
     };
-
     syncAuth();
     window.addEventListener("maschan:auth-change", syncAuth);
     window.addEventListener("storage", syncAuth);
-
     return () => {
       window.removeEventListener("maschan:auth-change", syncAuth);
       window.removeEventListener("storage", syncAuth);
     };
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/products?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
-
-  const handleLogout = () => {
-    clearVendorSession();
-    if (typeof window !== "undefined") {
-      window.location.href = "/";
-    }
-  };
-
   const isVendor = Boolean(session && session.user);
 
   return (
-    <header
-      role="banner"
-      className="hidden md:block top-0 z-40 sticky bg-white/90 dark:bg-surface-darkCard/90 backdrop-blur-md border-slate-200/80 dark:border-slate-800 border-b w-full transition-colors"
-    >
-      {/* Top Tagline Announcement */}
-      <aside
-        aria-label="Pengumuman Marketplace"
-        className="bg-brand-gradient px-4 py-1.5 font-medium text-white text-xs text-center tracking-wide"
-      >
-        📍 Marketplace Lokal Kota Serang • Transaksi Cepat Langsung ke WhatsApp
-        Vendor
-      </aside>
+    <header className="hidden md:block sticky top-0 z-50 w-full shadow-sm transition-colors">
+      {/* 1. TOP ANNOUNCEMENT BAR (IDENTITAS RESMI MAS CHAN DIGITAL) */}
+      <div className="bg-[#093c96] text-white text-xs font-semibold py-1.5 px-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-1.5 mx-auto sm:mx-0">
+            <span>📍</span>
+            <span>Marketplace Lokal Kota Serang • Transaksi Cepat Langsung ke WhatsApp Vendor</span>
+          </div>
+          <div className="hidden sm:flex items-center gap-4 text-blue-100 text-[11px]">
+            <a 
+              href="https://wa.me/6282298148474" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white rounded-sm"
+            >
+              <Phone className="h-3 w-3" aria-hidden="true" />
+              <span>Bantuan CS: 0822-9814-8474</span>
+            </a>
+          </div>
+        </div>
+      </div>
 
-      <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-        <div className="flex justify-between items-center gap-6 h-20">
-          {/* Brand Logo */}
-          <Link
-            href="/"
-            className="group flex items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 shrink-0"
-            aria-label="Mas Chan Digital - Kembali ke Beranda"
-          >
-            <div className="flex justify-center items-center bg-brand-gradient shadow-subtle p-2.5 rounded-2xl w-11 h-11 text-white group-hover:scale-105 transition-transform">
-              <Store className="w-6 h-6" aria-hidden="true" />
+      {/* 2. LAPISAN UTAMA (LOGO, SEARCH, CTA SYIAR SALAF, & AUTH ACTIONS) */}
+      <div className="bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80">
+        <div className="max-w-7xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 gap-4">
+          {/* Logo Mas Chan Digital */}
+          <Link href="/" className="flex items-center gap-3 shrink-0 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-2xl">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#093c96] text-white shadow-md shadow-blue-900/20 group-hover:scale-105 transition-transform">
+              <Store className="h-5 w-5" aria-hidden="true" />
             </div>
-            <div>
-              <span className="bg-brand-gradient bg-clip-text font-slab font-bold text-transparent text-xl tracking-tight">
+            <div className="flex flex-col">
+              <span className="text-lg font-extrabold tracking-tight text-[#093c96] dark:text-blue-400">
                 Mas Chan Digital
               </span>
-              <span className="block font-semibold text-slate-500 dark:text-slate-400 text-xs">
+              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 -mt-1">
                 Marketplace Lokal Serang
               </span>
             </div>
           </Link>
 
-          {/* Accessible Search Bar */}
-          <search role="search" className="flex-1 max-w-lg">
-            <form onSubmit={handleSearch} className="relative">
-              <label htmlFor="desktop-search-input" className="sr-only">
-                Cari produk, oleh-oleh Serang, atau nama toko vendor
-              </label>
-              <input
-                id="desktop-search-input"
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari produk, madu akasia, sate bandeng..."
-                className="bg-slate-100 focus:bg-white dark:bg-slate-800 dark:focus:bg-slate-900 py-2.5 pr-4 pl-11 border border-transparent focus:border-brand-500 rounded-full outline-none w-full text-slate-800 dark:text-slate-100 text-sm transition-all placeholder-slate-400"
-              />
-              <Search
-                className="top-1/2 left-4 absolute w-4 h-4 text-slate-400 -translate-y-1/2"
-                aria-hidden="true"
-              />
-            </form>
-          </search>
+          {/* Search Trigger Ringkas (Ctrl+K) */}
+          <div className="flex-1 max-w-xs lg:max-w-md">
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new CustomEvent("maschan:open-search"));
+                }
+              }}
+              className="w-full flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-2 text-xs text-slate-500 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-white transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              aria-label="Cari produk atau toko"
+            >
+              <div className="flex items-center gap-2">
+                <Search className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+                <span>Cari produk, toko UMKM Serang...</span>
+              </div>
+              <kbd className="hidden lg:inline-flex h-4 items-center rounded border border-slate-200 bg-white px-1.5 text-[10px] font-medium text-slate-400 dark:border-slate-700 dark:bg-slate-900">
+                Ctrl+K
+              </kbd>
+            </button>
+          </div>
 
-          {/* Navigation Links */}
-          <nav
-            aria-label="Navigasi Utama Desktop"
-            className="flex items-center gap-5"
-          >
-            {isVendor ? (
-              /* MENU KHUSUS VENDOR */
-              <ul className="flex items-center gap-5 m-0 p-0 list-none">
-                {/* 1. Produk (Mengarahkan ke Halaman Seluruh Produk /products) */}
-                <li>
-                  <Link
-                    href="/products"
-                    className={cn(
-                      "flex items-center gap-1.5 focus-visible:outline-none font-medium text-sm focus-visible:underline transition-colors",
-                      pathname.startsWith("/products")
-                        ? "text-brand-800 dark:text-brand-400 font-bold"
-                        : "text-slate-600 dark:text-slate-300 hover:text-brand-800 dark:hover:text-brand-400",
-                    )}
-                  >
-                    <Package className="w-4 h-4" aria-hidden="true" />
-                    <span>Produk</span>
-                  </Link>
-                </li>
+          {/* Right Actions: Jembatan Syiar Salaf, ThemeToggle, & Tombol Masuk/Daftar */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            {/* Jembatan Syiar Salaf Serang */}
+            <a
+              href="https://kajian-sunnah-serang.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:scale-105 hover:shadow-emerald-600/20 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+              title="Kunjungi Portal Syiar Salaf Kota Serang"
+            >
+              <span>🕌 Syiar Salaf</span>
+              <ExternalLink className="h-3 w-3 opacity-90" aria-hidden="true" />
+            </a>
 
-                {/* 2. Panduan (Kiri dekat Beranda) */}
-                <li>
-                  <Link
-                    href="/panduan"
-                    className={cn(
-                      "flex items-center gap-1.5 focus-visible:outline-none font-medium text-sm focus-visible:underline transition-colors",
-                      pathname.startsWith("/panduan")
-                        ? "text-brand-800 dark:text-brand-400 font-bold"
-                        : "text-slate-600 dark:text-slate-300 hover:text-brand-800 dark:hover:text-brand-400",
-                    )}
-                  >
-                    <BookOpen className="w-4 h-4" aria-hidden="true" />
-                    <span>Panduan</span>
-                  </Link>
-                </li>
-
-                {/* 3. Beranda (POSISI TENGAH) */}
-                <li>
-                  <Link
-                    href="/"
-                    className={cn(
-                      "focus-visible:outline-none font-semibold text-sm focus-visible:underline transition-colors",
-                      pathname === "/"
-                        ? "text-brand-800 dark:text-brand-400 font-bold"
-                        : "text-slate-600 dark:text-slate-300 hover:text-brand-800 dark:hover:text-brand-400",
-                    )}
-                  >
-                    Beranda
-                  </Link>
-                </li>
-
-                {/* 4. Dashboard (Kanan dekat Beranda) */}
-                <li>
-                  <Link
-                    href="/dashboard"
-                    className={cn(
-                      "flex items-center gap-1.5 focus-visible:outline-none font-medium text-sm focus-visible:underline transition-colors",
-                      pathname.startsWith("/dashboard")
-                        ? "text-brand-800 dark:text-brand-400 font-bold"
-                        : "text-slate-600 dark:text-slate-300 hover:text-brand-800 dark:hover:text-brand-400",
-                    )}
-                  >
-                    <LayoutDashboard className="w-4 h-4" aria-hidden="true" />
-                    <span>Dashboard</span>
-                  </Link>
-                </li>
-
-                {/* 5. Logout */}
-                <li>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="flex items-center gap-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 p-2 rounded-xl font-medium text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 text-sm transition-colors"
-                    title="Keluar dari akun vendor"
-                  >
-                    <LogOut className="w-4 h-4" aria-hidden="true" />
-                    <span>Logout</span>
-                  </button>
-                </li>
-              </ul>
-            ) : (
-              /* MENU GUEST / CUSTOMER ASLI */
-              <ul className="flex items-center gap-5 m-0 p-0 list-none">
-                <li>
-                  <Link
-                    href="/"
-                    className="focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
-                  >
-                    Beranda
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/products"
-                    className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
-                  >
-                    <Package className="w-4 h-4" aria-hidden="true" />
-                    <span>Produk</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/categories"
-                    className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
-                  >
-                    <Tag className="w-4 h-4" aria-hidden="true" />
-                    <span>Kategori</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/vendors"
-                    className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
-                  >
-                    <Store className="w-4 h-4" aria-hidden="true" />
-                    <span>Vendor</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/panduan"
-                    className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
-                  >
-                    <BookOpen className="w-4 h-4" aria-hidden="true" />
-                    <span>Panduan</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/tentang-kami"
-                    className="flex items-center gap-1.5 focus-visible:outline-none font-medium text-slate-600 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-sm focus-visible:underline transition-colors"
-                  >
-                    <Info className="w-4 h-4" aria-hidden="true" />
-                    <span>Tentang Kami</span>
-                  </Link>
-                </li>
-              </ul>
-            )}
-
-            <div
-              className="bg-slate-200 dark:bg-slate-800 w-px h-6"
-              aria-hidden="true"
-            />
+            {/* Dark Mode Toggle */}
             <ThemeToggle />
 
-            {/* Auth Buttons Khusus Guest */}
-            {!isVendor && (
-              <div className="flex items-center gap-2.5">
-                <Link href="/vendor/login">
-                  <Button variant="outline" size="sm">
-                    <LogIn className="w-4 h-4" aria-hidden="true" />
-                    <span>Masuk Vendor</span>
-                  </Button>
+            {/* Tombol Vendor / Profil */}
+            {isVendor && session?.user ? (
+              <div className="flex items-center gap-2 pl-1 border-l border-slate-200 dark:border-slate-800">
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-blue-50 px-3.5 py-2 text-xs font-semibold text-[#093c96] hover:bg-blue-100 dark:bg-blue-950/60 dark:text-blue-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                >
+                  <Store className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span className="truncate max-w-[100px]">{session.user.store_name || session.user.name || 'Dasbor Toko'}</span>
                 </Link>
-                <Link href="/vendor/register">
-                  <Button variant="primary" size="sm">
-                    <UserPlus className="w-4 h-4" aria-hidden="true" />
-                    <span>Daftar Toko</span>
-                  </Button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    logoutVendor("/");
+                  }}
+                  className="rounded-xl p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                  title="Keluar"
+                  aria-label="Keluar dari akun"
+                >
+                  <LogOut className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 pl-1 border-l border-slate-200 dark:border-slate-800">
+                <Link
+                  href="/vendor/login"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                >
+                  <LogIn className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Masuk Vendor</span>
+                </Link>
+                <Link
+                  href="/vendor/register"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#093c96] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 transition-colors shadow-md shadow-blue-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                >
+                  <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Daftar Toko</span>
                 </Link>
               </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* 3. LAPISAN NAVIGASI MENU (SUB-NAVBAR BAWAH) */}
+      <div className="bg-slate-50/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800/80">
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 py-1.5">
+          <nav aria-label="Navigasi Menu Belanja" className="flex items-center gap-1">
+            {MAIN_NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                    isActive
+                      ? "bg-[#093c96] text-white font-semibold shadow-sm"
+                      : "text-slate-600 hover:bg-slate-200/70 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                  )}
+                >
+                  <Icon className={cn("h-3.5 w-3.5", isActive ? "text-white" : "text-slate-400")} aria-hidden="true" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
           </nav>
+
+          {/* Tagline Ringkas Kanan */}
+          <div className="hidden lg:flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+            <span>✨ Transaksi 100% Bebas Biaya Admin</span>
+          </div>
         </div>
       </div>
     </header>

@@ -30,6 +30,7 @@ export interface VendorSummary {
   whatsapp_number: string;
   avatar?: string;
   city?: string;
+  location_district?: string;
   is_verified?: boolean;
   store_hours?: StoreHours;
   vacation_mode?: VacationMode;

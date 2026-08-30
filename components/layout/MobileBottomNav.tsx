@@ -10,30 +10,34 @@ import {
   Tag,
   LogIn,
   Package,
+  ShoppingBag,
   BookOpen,
   LogOut,
+  Plus,
+  Menu,
+  X,
+  ExternalLink,
+  UserPlus,
+  Info,
+  Phone,
+  Search,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  getVendorSession,
-  clearVendorSession,
-  AuthSession,
-} from "@/lib/api/auth";
+import { getVendorSession, logoutVendor, AuthSession } from "@/lib/api/auth";
 
 export function MobileBottomNav() {
   const pathname = usePathname();
   const [session, setSession] = useState<AuthSession | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   useEffect(() => {
-    // Definisikan handler di dalam useEffect agar mematuhi aturan React Hooks exhaustive-deps
     const syncAuth = () => {
       setSession(getVendorSession());
     };
-
     syncAuth();
     window.addEventListener("maschan:auth-change", syncAuth);
     window.addEventListener("storage", syncAuth);
-
     return () => {
       window.removeEventListener("maschan:auth-change", syncAuth);
       window.removeEventListener("storage", syncAuth);
@@ -41,103 +45,449 @@ export function MobileBottomNav() {
   }, []);
 
   const handleLogout = () => {
-    clearVendorSession();
-    if (typeof window !== "undefined") {
-      window.location.href = "/";
-    }
+    setIsDrawerOpen(false);
+    logoutVendor("/");
   };
 
   const isVendor = Boolean(session && session.user);
 
-  // Menu untuk Guest / Pelanggan Umum
-  const guestNavItems = [
-    { label: "Beranda", href: "/", icon: Home, isAction: false },
-    { label: "Produk", href: "/products", icon: Package, isAction: false },
-    { label: "Kategori", href: "/categories", icon: Tag, isAction: false },
-    { label: "Vendor", href: "/vendors", icon: Store, isAction: false },
-    { label: "Akun", href: "/vendor/login", icon: LogIn, isAction: false },
-  ];
+  // Close drawer on path change
+  useEffect(() => {
+    setIsDrawerOpen(false);
+  }, [pathname]);
 
-  // Menu Khusus Akun Vendor (Produk Mengarah ke /products, Beranda di Posisi Tengah)
-  const vendorNavItems = [
-    { label: "Produk", href: "/products", icon: Package, isAction: false },
-    { label: "Panduan", href: "/panduan", icon: BookOpen, isAction: false },
-    { label: "Beranda", href: "/", icon: Home, isAction: false },
-    {
-      label: "Dashboard",
-      href: "/dashboard",
-      icon: LayoutDashboard,
-      isAction: false,
-    },
-    { label: "Logout", href: "#logout", icon: LogOut, isAction: true },
-  ];
-
-  const navItems = isVendor ? vendorNavItems : guestNavItems;
+  // Lock body scroll when drawer open
+  useEffect(() => {
+    if (isDrawerOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isDrawerOpen]);
 
   return (
-    <nav
-      aria-label="Navigasi Bawah Mobile"
-      className="md:hidden bottom-0 z-50 fixed inset-x-0 bg-white/95 dark:bg-surface-darkCard/95 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur-lg px-2 py-1 border-slate-200/90 dark:border-slate-800/90 border-t"
-    >
-      <ul className="flex justify-around items-center m-0 p-0 list-none">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive =
-            !item.isAction &&
-            (pathname === item.href ||
-              (item.href !== "/" && pathname.startsWith(item.href)));
+    <>
+      {/* 5-TAB BOTTOM NAVIGATION BAR */}
+      <nav
+        aria-label="Navigasi Bawah Mobile"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-safe"
+      >
+        <div className="flex items-center justify-around px-2 h-16">
+          {/* Tab 1: Beranda */}
+          <Link
+            href="/"
+            className="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400 focus-visible:outline-none focus-visible:text-brand-600 group"
+            aria-current={pathname === "/" ? "page" : undefined}
+          >
+            <div
+              className={cn(
+                "p-1 rounded-full transition-all duration-200",
+                pathname === "/"
+                  ? "bg-blue-50 text-[#093c96] dark:bg-blue-950/60 dark:text-blue-400 scale-110"
+                  : "group-hover:scale-110"
+              )}
+            >
+              <Home className="w-5 h-5" aria-hidden="true" />
+            </div>
+            <span
+              className={cn(
+                "text-[10px] mt-0.5 font-medium transition-colors",
+                pathname === "/"
+                  ? "text-[#093c96] dark:text-blue-400 font-bold"
+                  : ""
+              )}
+            >
+              Beranda
+            </span>
+          </Link>
 
-          if (item.isAction) {
-            return (
-              <li key={item.label} className="flex-1 text-center">
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="flex flex-col justify-center items-center px-1 py-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 w-full text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 dark:text-slate-400 transition-all duration-150"
-                >
-                  <div className="p-1 rounded-lg transition-colors">
-                    <Icon
-                      className="w-4 sm:w-5 h-4 sm:h-5"
-                      aria-hidden="true"
-                    />
-                  </div>
-                  <span className="mt-0.5 font-slab text-[9px] sm:text-[10px] truncate tracking-tight">
-                    {item.label}
-                  </span>
-                </button>
-              </li>
-            );
-          }
+          {/* Tab 2: Produk */}
+          <Link
+            href="/products"
+            className="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400 focus-visible:outline-none focus-visible:text-brand-600 group"
+            aria-current={pathname.startsWith("/products") ? "page" : undefined}
+          >
+            <div
+              className={cn(
+                "p-1 rounded-full transition-all duration-200",
+                pathname.startsWith("/products")
+                  ? "bg-blue-50 text-[#093c96] dark:bg-blue-950/60 dark:text-blue-400 scale-110"
+                  : "group-hover:scale-110"
+              )}
+            >
+              <ShoppingBag className="w-5 h-5" aria-hidden="true" />
+            </div>
+            <span
+              className={cn(
+                "text-[10px] mt-0.5 font-medium transition-colors",
+                pathname.startsWith("/products")
+                  ? "text-[#093c96] dark:text-blue-400 font-bold"
+                  : ""
+              )}
+            >
+              Produk
+            </span>
+          </Link>
 
-          return (
-            <li key={item.label} className="flex-1 text-center">
+          {/* Tab 3: Center (Role Adaptive) */}
+          <div className="flex flex-col items-center justify-center w-full h-full relative -top-3">
+            {isVendor ? (
               <Link
-                href={item.href}
-                aria-current={isActive ? "page" : undefined}
-                className={cn(
-                  "flex flex-col justify-center items-center px-1 py-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 w-full transition-all duration-150",
-                  isActive
-                    ? "text-brand-800 dark:text-brand-400 font-bold scale-105"
-                    : "text-slate-500 dark:text-slate-400 font-medium hover:text-slate-800 dark:hover:text-slate-200",
-                )}
+                href="/dashboard/products/new"
+                className="flex flex-col items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-full group"
+                aria-label="Tambah Produk Baru"
               >
-                <div
-                  className={cn(
-                    "p-1 rounded-lg transition-colors",
-                    isActive &&
-                      "bg-brand-50 dark:bg-brand-950/80 text-brand-800 dark:text-brand-400",
-                  )}
-                >
-                  <Icon className="w-4 sm:w-5 h-4 sm:h-5" aria-hidden="true" />
+                <div className="w-12 h-12 rounded-full bg-[#093c96] text-white flex items-center justify-center shadow-lg shadow-blue-900/30 group-hover:bg-blue-800 transition-all group-hover:scale-105 active:scale-95">
+                  <Plus className="w-6 h-6" aria-hidden="true" />
                 </div>
-                <span className="mt-0.5 font-slab text-[9px] sm:text-[10px] truncate tracking-tight">
-                  {item.label}
+                <span className="text-[10px] mt-1 font-bold text-[#093c96] dark:text-blue-400">
+                  Jual
                 </span>
               </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
+            ) : (
+              <Link
+                href="/vendors"
+                className="flex flex-col items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-full group"
+                aria-label="Direktori Toko"
+              >
+                <div className="w-12 h-12 rounded-full bg-[#093c96] text-white flex items-center justify-center shadow-lg shadow-blue-900/30 group-hover:bg-blue-800 transition-all group-hover:scale-105 active:scale-95">
+                  <Store className="w-6 h-6" aria-hidden="true" />
+                </div>
+                <span className="text-[10px] mt-1 font-bold text-[#093c96] dark:text-blue-400">
+                  Toko
+                </span>
+              </Link>
+            )}
+          </div>
+
+          {/* Tab 4: Kategori (or Pesanan for vendor) */}
+          {isVendor ? (
+            <Link
+              href="/dashboard/products"
+              className="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400 focus-visible:outline-none focus-visible:text-brand-600 group"
+              aria-current={pathname === "/dashboard/products" ? "page" : undefined}
+            >
+              <div
+                className={cn(
+                  "p-1 rounded-full transition-all duration-200",
+                  pathname === "/dashboard/products"
+                    ? "bg-blue-50 text-[#093c96] dark:bg-blue-950/60 dark:text-blue-400 scale-110"
+                    : "group-hover:scale-110"
+                )}
+              >
+                <Package className="w-5 h-5" aria-hidden="true" />
+              </div>
+              <span
+                className={cn(
+                  "text-[10px] mt-0.5 font-medium transition-colors",
+                  pathname === "/dashboard/products"
+                    ? "text-[#093c96] dark:text-blue-400 font-bold"
+                    : ""
+                )}
+              >
+                Katalog
+              </span>
+            </Link>
+          ) : (
+            <Link
+              href="/categories"
+              className="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400 focus-visible:outline-none focus-visible:text-brand-600 group"
+              aria-current={pathname.startsWith("/categories") ? "page" : undefined}
+            >
+              <div
+                className={cn(
+                  "p-1 rounded-full transition-all duration-200",
+                  pathname.startsWith("/categories")
+                    ? "bg-blue-50 text-[#093c96] dark:bg-blue-950/60 dark:text-blue-400 scale-110"
+                    : "group-hover:scale-110"
+                )}
+              >
+                <Tag className="w-5 h-5" aria-hidden="true" />
+              </div>
+              <span
+                className={cn(
+                  "text-[10px] mt-0.5 font-medium transition-colors",
+                  pathname.startsWith("/categories")
+                    ? "text-[#093c96] dark:text-blue-400 font-bold"
+                    : ""
+                )}
+              >
+                Kategori
+              </span>
+            </Link>
+          )}
+
+          {/* Tab 5: Menu */}
+          <button
+            type="button"
+            onClick={() => setIsDrawerOpen(true)}
+            className="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400 focus-visible:outline-none focus-visible:text-brand-600 group"
+            aria-label="Buka Menu Lainnya"
+            aria-expanded={isDrawerOpen}
+          >
+            <div
+              className={cn(
+                "p-1 rounded-full transition-all duration-200",
+                isDrawerOpen
+                  ? "bg-blue-50 text-[#093c96] dark:bg-blue-950/60 dark:text-blue-400 scale-110"
+                  : "group-hover:scale-110"
+              )}
+            >
+              <Menu className="w-5 h-5" aria-hidden="true" />
+            </div>
+            <span
+              className={cn(
+                "text-[10px] mt-0.5 font-medium transition-colors",
+                isDrawerOpen
+                  ? "text-[#093c96] dark:text-blue-400 font-bold"
+                  : ""
+              )}
+            >
+              Menu
+            </span>
+          </button>
+        </div>
+      </nav>
+
+      {/* BOTTOM SHEET DRAWER */}
+      {isDrawerOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end bg-slate-900/60 backdrop-blur-sm md:hidden animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsDrawerOpen(false);
+            }
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu Eksplorasi"
+        >
+          <div className="w-full max-h-[88vh] flex flex-col rounded-t-3xl border-t border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 transition-all animate-in slide-in-from-bottom duration-300">
+            {/* 1. HEADER DRAWER (TETAP DI ATAS / TIDAK IKUT TER-SCROLL) */}
+            <div className="shrink-0 flex items-center justify-between px-6 pt-5 pb-3.5 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white font-slab">
+                  Menu Eksplorasi
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Mas Chan Digital • Kota Serang
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsDrawerOpen(false)}
+                className="rounded-full p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                aria-label="Tutup Menu"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* 2. AREA KONTEN YANG BISA DI-SCROLL DENGAN MULUS */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5 overscroll-contain">
+              {/* BANNER RINGKAS & MINIMALIS: SYIAR SALAF KOTA SERANG */}
+              <div className="shrink-0 my-1">
+                <a
+                  href="https://kajian-sunnah-serang.vercel.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-white shadow-md shadow-emerald-900/20 active:scale-[0.98] hover:opacity-95 transition-all"
+                  title="Buka Portal Syiar Salaf Kota Serang"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-base">🕌</span>
+                    <span className="text-sm font-bold tracking-tight">
+                      Syiar Salaf Kota Serang
+                    </span>
+                  </div>
+                  <ExternalLink className="h-4 w-4 opacity-80" />
+                </a>
+              </div>
+
+              {/* GRUP 1: BELANJA & INFORMASI */}
+              <div className="shrink-0 space-y-2">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Belanja & Informasi
+                </p>
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDrawerOpen(false);
+                      if (typeof window !== "undefined") {
+                        window.dispatchEvent(new CustomEvent("maschan:open-search"));
+                      }
+                    }}
+                    className="flex w-full items-center justify-between rounded-xl p-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300 font-medium">
+                      <Search className="h-5 w-5 text-[#093c96] dark:text-blue-400" />
+                      <span>Pencarian Cepat Instan</span>
+                    </div>
+                    <kbd className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 dark:border-slate-700 dark:bg-slate-800">
+                      Ctrl+K
+                    </kbd>
+                  </button>
+
+                  <Link
+                    href="/products"
+                    onClick={() => setIsDrawerOpen(false)}
+                    className="flex items-center justify-between rounded-xl p-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300 font-medium">
+                      <ShoppingBag className="h-5 w-5 text-amber-500" />
+                      <span>Katalog Produk UMKM</span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                  </Link>
+
+                  <Link
+                    href="/vendors"
+                    onClick={() => setIsDrawerOpen(false)}
+                    className="flex items-center justify-between rounded-xl p-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300 font-medium">
+                      <Store className="h-5 w-5 text-indigo-500" />
+                      <span>Direktori Toko UMKM</span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                  </Link>
+
+                  <Link
+                    href="/panduan"
+                    onClick={() => setIsDrawerOpen(false)}
+                    className="flex items-center justify-between rounded-xl p-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300 font-medium">
+                      <BookOpen className="h-5 w-5 text-blue-500" />
+                      <span>Panduan Belanja & Mitra</span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                  </Link>
+
+                  <Link
+                    href="/tentang-kami"
+                    onClick={() => setIsDrawerOpen(false)}
+                    className="flex items-center justify-between rounded-xl p-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300 font-medium">
+                      <Info className="h-5 w-5 text-slate-500" />
+                      <span>Tentang Mas Chan Digital</span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                  </Link>
+                </div>
+              </div>
+
+              {/* GRUP 2: AKUN MITRA TOKO */}
+              <div className="shrink-0 space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Akun Mitra Toko
+                </p>
+                <div className="space-y-1">
+                  {isVendor && session?.user ? (
+                    <>
+                      <Link
+                        href="/dashboard"
+                        onClick={() => setIsDrawerOpen(false)}
+                        className="flex items-center justify-between rounded-xl p-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300 font-medium">
+                          <LayoutDashboard className="h-5 w-5 text-[#093c96] dark:text-blue-400" />
+                          <span>
+                            {session.user.store_name || session.user.name || "Dasbor Toko Saya"}
+                          </span>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-slate-400" />
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="flex w-full items-center justify-between rounded-xl p-3 text-left hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-medium transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <LogOut className="h-5 w-5" />
+                          <span>Keluar Akun</span>
+                        </div>
+                        <ChevronRight className="h-4 w-4 opacity-50" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        href="/vendor/register"
+                        onClick={() => setIsDrawerOpen(false)}
+                        className="flex items-center justify-between rounded-xl p-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300 font-medium">
+                          <UserPlus className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                          <span>Daftar Jadi Mitra Toko</span>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-slate-400" />
+                      </Link>
+
+                      <Link
+                        href="/vendor/login"
+                        onClick={() => setIsDrawerOpen(false)}
+                        className="flex items-center justify-between rounded-xl p-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300 font-medium">
+                          <LogIn className="h-5 w-5 text-[#093c96] dark:text-blue-400" />
+                          <span>Masuk Akun Toko</span>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-slate-400" />
+                      </Link>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* GRUP 3: BANTUAN & LEGALITAS */}
+              <div className="shrink-0 space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800 pb-6">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Bantuan & Legalitas
+                </p>
+                <div className="space-y-2.5">
+                  <a
+                    href="https://wa.me/6282298148474?text=Halo%20Mas%20Chan%20Digital,%20saya%20butuh%20bantuan"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between rounded-xl p-3 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 font-medium"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Phone className="h-5 w-5 text-emerald-600" />
+                      <span>CS WhatsApp: 0822-9814-8474</span>
+                    </div>
+                    <ExternalLink className="h-4 w-4 opacity-70" />
+                  </a>
+
+                  <div className="flex items-center justify-center gap-3 pt-1 text-xs text-slate-400">
+                    <Link
+                      href="/syarat-ketentuan"
+                      onClick={() => setIsDrawerOpen(false)}
+                      className="hover:underline"
+                    >
+                      Syarat & Ketentuan
+                    </Link>
+                    <span>•</span>
+                    <Link
+                      href="/kebijakan-privasi"
+                      onClick={() => setIsDrawerOpen(false)}
+                      className="hover:underline"
+                    >
+                      Kebijakan Privasi
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

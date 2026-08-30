@@ -1,70 +1,157 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { Search, MapPin, Package, X, ArrowUpDown } from "lucide-react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { Search, MapPin, Package, X, ArrowUpDown, RefreshCw } from "lucide-react";
 import { Product, ProductCategory } from "@/types";
 import { ProductCard } from "@/components/cards/ProductCard";
 import { checkStoreStatus } from "@/lib/storeStatus";
+import { KECAMATAN_LIST } from "@/lib/constants/serangDistricts";
 
 interface ProductCatalogViewProps {
   initialProducts: Product[];
   categories: ProductCategory[];
 }
 
-const DISTRICTS = [
-  "Semua Kecamatan",
-  "Serang",
-  "Cipocok Jaya",
-  "Kasemen",
-  "Taktakan",
-  "Curug",
-  "Walantaka",
-];
+const DISTRICT_OPTIONS = ["Semua Kecamatan", ...KECAMATAN_LIST];
 
 export function ProductCatalogView({
   initialProducts,
   categories,
 }: ProductCatalogViewProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("semua");
-  const [selectedDistrict, setSelectedDistrict] =
-    useState<string>("Semua Kecamatan");
-  const [sortBy, setSortBy] = useState<"newest" | "price-asc" | "price-desc">(
-    "newest",
-  );
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Inisialisasi state dari searchParams URL
+  const initialQ = searchParams.get("q") || searchParams.get("search") || "";
+  const rawDistrict =
+    searchParams.get("kecamatan") || searchParams.get("district") || "";
+  const initialDistrict =
+    rawDistrict && KECAMATAN_LIST.includes(rawDistrict)
+      ? rawDistrict
+      : "Semua Kecamatan";
+  const initialCategory =
+    searchParams.get("category") || searchParams.get("kategori") || "semua";
+  const initialSort = (searchParams.get("sort") as "newest" | "price-asc" | "price-desc") || "newest";
+
+  const [searchQuery, setSearchQuery] = useState(initialQ);
+  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
+  const [selectedDistrict, setSelectedDistrict] = useState<string>(initialDistrict);
+  const [sortBy, setSortBy] = useState<"newest" | "price-asc" | "price-desc">(initialSort);
   const [onlyOpenStores, setOnlyOpenStores] = useState<boolean>(false);
+
+  // Sinkronkan state lokal saat URL searchParams berubah (navigasi eksternal/back-forward)
+  useEffect(() => {
+    const qParam = searchParams.get("q") || searchParams.get("search") || "";
+    const distParam =
+      searchParams.get("kecamatan") || searchParams.get("district") || "";
+    const catParam =
+      searchParams.get("category") || searchParams.get("kategori") || "semua";
+    const sortParam =
+      (searchParams.get("sort") as "newest" | "price-asc" | "price-desc") || "newest";
+
+    setSearchQuery(qParam);
+    setSelectedDistrict(
+      distParam && KECAMATAN_LIST.includes(distParam)
+        ? distParam
+        : "Semua Kecamatan"
+    );
+    setSelectedCategory(catParam);
+    setSortBy(sortParam);
+  }, [searchParams]);
+
+  // Update URL searchParams tanpa me-refresh halaman
+  const updateUrlParams = useCallback(
+    (newQ: string, newDist: string, newCat: string, newSort: string) => {
+      const params = new URLSearchParams();
+      if (newQ.trim()) params.set("q", newQ.trim());
+      if (newDist && newDist !== "Semua Kecamatan" && newDist !== "Semua") {
+        params.set("kecamatan", newDist);
+      }
+      if (newCat && newCat !== "semua") {
+        params.set("category", newCat);
+      }
+      if (newSort && newSort !== "newest") {
+        params.set("sort", newSort);
+      }
+
+      const queryString = params.toString();
+      const targetUrl = queryString ? `${pathname}?${queryString}` : pathname;
+      router.replace(targetUrl, { scroll: false });
+    },
+    [pathname, router]
+  );
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    updateUrlParams(val, selectedDistrict, selectedCategory, sortBy);
+  };
+
+  const handleDistrictChange = (dist: string) => {
+    setSelectedDistrict(dist);
+    updateUrlParams(searchQuery, dist, selectedCategory, sortBy);
+  };
+
+  const handleCategoryChange = (cat: string) => {
+    setSelectedCategory(cat);
+    updateUrlParams(searchQuery, selectedDistrict, cat, sortBy);
+  };
+
+  const handleSortChange = (sort: "newest" | "price-asc" | "price-desc") => {
+    setSortBy(sort);
+    updateUrlParams(searchQuery, selectedDistrict, selectedCategory, sort);
+  };
 
   // Filter & Sort Logic di Sisi Klien
   const filteredProducts = useMemo(() => {
     let result = [...initialProducts];
 
-    // 1. Filter Pencarian Teks
+    // 1. Filter Pencarian Teks (Multi-field: Nama, Deskripsi, Toko, Kategori, Kota)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.vendor.store_name.toLowerCase().includes(q),
-      );
+      result = result.filter((p) => {
+        const nameMatch = p.name?.toLowerCase().includes(q);
+        const descMatch =
+          p.description?.toLowerCase().includes(q) ||
+          p.short_description?.toLowerCase().includes(q);
+        const storeMatch = p.vendor?.store_name?.toLowerCase().includes(q);
+        const cityMatch =
+          p.vendor?.city?.toLowerCase().includes(q) ||
+          p.vendor?.location_district?.toLowerCase().includes(q);
+        const categoryMatch = p.categories?.some(
+          (c) =>
+            c.name?.toLowerCase().includes(q) ||
+            c.slug?.toLowerCase().includes(q)
+        );
+
+        return Boolean(
+          nameMatch || descMatch || storeMatch || cityMatch || categoryMatch
+        );
+      });
     }
 
     // 2. Filter Kategori
     if (selectedCategory !== "semua") {
       result = result.filter((p) =>
-        p.categories.some(
+        p.categories?.some(
           (c) =>
-            c.slug === selectedCategory ||
-            c.name.toLowerCase() === selectedCategory.toLowerCase(),
-        ),
+            c.slug?.toLowerCase() === selectedCategory.toLowerCase() ||
+            c.name?.toLowerCase() === selectedCategory.toLowerCase()
+        )
       );
     }
 
     // 3. Filter Kecamatan Kota Serang
-    if (selectedDistrict !== "Semua Kecamatan") {
+    if (
+      selectedDistrict !== "Semua Kecamatan" &&
+      selectedDistrict !== "Semua"
+    ) {
+      const targetDist = selectedDistrict.toLowerCase();
       result = result.filter((p) => {
-        const dist = (p.vendor?.city || "").toLowerCase();
-        return dist.includes(selectedDistrict.toLowerCase());
+        const dist1 = (p.vendor?.city || "").toLowerCase();
+        const dist2 = (p.vendor?.location_district || "").toLowerCase();
+        return dist1.includes(targetDist) || dist2.includes(targetDist);
       });
     }
 
@@ -73,21 +160,28 @@ export function ProductCatalogView({
       result = result.filter((p) => {
         const status = checkStoreStatus(
           p.vendor?.store_hours,
-          p.vendor?.vacation_mode,
+          p.vendor?.vacation_mode
         );
-        return status.isOpen && !status.isVacation;
+        return Boolean(status.isOpen && !status.isVacation);
       });
     }
 
     // 5. Pengurutan (Sorting)
     if (sortBy === "price-asc") {
       result.sort(
-        (a, b) => parseFloat(a.price || "0") - parseFloat(b.price || "0"),
+        (a, b) =>
+          parseFloat(a.sale_price || a.price || "0") -
+          parseFloat(b.sale_price || b.price || "0")
       );
     } else if (sortBy === "price-desc") {
       result.sort(
-        (a, b) => parseFloat(b.price || "0") - parseFloat(a.price || "0"),
+        (a, b) =>
+          parseFloat(b.sale_price || b.price || "0") -
+          parseFloat(a.sale_price || a.price || "0")
       );
+    } else {
+      // Default newest
+      result.sort((a, b) => Number(b.id) - Number(a.id));
     }
 
     return result;
@@ -106,6 +200,7 @@ export function ProductCatalogView({
     setSelectedDistrict("Semua Kecamatan");
     setSortBy("newest");
     setOnlyOpenStores(false);
+    router.replace(pathname, { scroll: false });
   };
 
   const hasActiveFilter =
@@ -122,22 +217,22 @@ export function ProductCatalogView({
         {/* Search Bar Input */}
         <div className="relative">
           <Search
-            className="top-1/2 left-4 absolute w-5 h-5 text-slate-400 -translate-y-1/2"
+            className="top-1/2 left-4 absolute w-5 h-5 text-slate-400 -translate-y-1/2 pointer-events-none"
             aria-hidden="true"
           />
           <input
             type="search"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari sate bandeng, madu akasia, batik banten, jasa..."
-            className="bg-slate-50 dark:bg-slate-900 py-3 sm:py-3.5 pr-4 pl-11 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-2xl outline-none focus:ring-1 focus:ring-brand-500 w-full font-sans text-slate-900 dark:text-white text-sm transition-all"
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Cari produk kuliner, madu akasia, batik banten, nama toko..."
+            className="bg-slate-50 dark:bg-slate-900 py-3 sm:py-3.5 pr-10 pl-11 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-2xl outline-none focus:ring-1 focus:ring-brand-500 w-full font-sans text-slate-900 dark:text-white text-sm transition-all"
             aria-label="Cari produk di Kota Serang"
           />
           {searchQuery && (
             <button
               type="button"
-              onClick={() => setSearchQuery("")}
-              className="top-1/2 right-3.5 absolute p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white -translate-y-1/2"
+              onClick={() => handleSearchChange("")}
+              className="top-1/2 right-3.5 absolute p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white -translate-y-1/2 rounded-full"
               aria-label="Hapus kata kunci pencarian"
             >
               <X className="w-4 h-4" />
@@ -145,7 +240,7 @@ export function ProductCatalogView({
           )}
         </div>
 
-        {/* Filter Cepat: Status Toko & Kecamatan */}
+        {/* Quick Filter: Status Toko Real-Time */}
         <div className="flex items-center gap-2 pt-2 pb-1 border-slate-100 dark:border-slate-800 border-t overflow-x-auto no-scrollbar">
           <button
             type="button"
@@ -158,10 +253,23 @@ export function ProductCatalogView({
             aria-pressed={onlyOpenStores}
           >
             <span
-              className={`w-2 h-2 rounded-full ${onlyOpenStores ? "bg-white" : "bg-emerald-500 animate-pulse"}`}
+              className={`w-2 h-2 rounded-full ${
+                onlyOpenStores ? "bg-white" : "bg-emerald-500 animate-pulse"
+              }`}
             />
-            <span>🟢 Hanya Toko Buka</span>
+            <span>🟢 Hanya Toko Buka Sekarang</span>
           </button>
+
+          {hasActiveFilter && (
+            <button
+              type="button"
+              onClick={handleReset}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 transition-colors shrink-0"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Reset Semua Filter</span>
+            </button>
+          )}
         </div>
 
         {/* Dropdown Filters (Kecamatan & Urutan) */}
@@ -169,16 +277,16 @@ export function ProductCatalogView({
           {/* Dropdown Kecamatan */}
           <div className="relative">
             <MapPin
-              className="top-1/2 left-3.5 absolute w-4 h-4 text-brand-600 -translate-y-1/2 pointer-events-none"
+              className="top-1/2 left-3.5 absolute w-4 h-4 text-brand-600 dark:text-brand-400 -translate-y-1/2 pointer-events-none"
               aria-hidden="true"
             />
             <select
               value={selectedDistrict}
-              onChange={(e) => setSelectedDistrict(e.target.value)}
+              onChange={(e) => handleDistrictChange(e.target.value)}
               className="bg-slate-50 dark:bg-slate-900 py-2.5 pr-8 pl-10 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full font-medium text-slate-800 dark:text-slate-200 text-xs sm:text-sm appearance-none cursor-pointer"
               aria-label="Filter berdasarkan kecamatan"
             >
-              {DISTRICTS.map((d) => (
+              {DISTRICT_OPTIONS.map((d) => (
                 <option key={d} value={d}>
                   {d === "Semua Kecamatan"
                     ? "📍 Semua Kecamatan di Serang"
@@ -197,8 +305,8 @@ export function ProductCatalogView({
             <select
               value={sortBy}
               onChange={(e) =>
-                setSortBy(
-                  e.target.value as "newest" | "price-asc" | "price-desc",
+                handleSortChange(
+                  e.target.value as "newest" | "price-asc" | "price-desc"
                 )
               }
               className="bg-slate-50 dark:bg-slate-900 py-2.5 pr-8 pl-10 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full font-medium text-slate-800 dark:text-slate-200 text-xs sm:text-sm appearance-none cursor-pointer"
@@ -210,16 +318,16 @@ export function ProductCatalogView({
             </select>
           </div>
 
-          {/* Reset Filter Button */}
+          {/* Active Filter Indicators */}
           {hasActiveFilter && (
-            <button
-              type="button"
-              onClick={handleReset}
-              className="flex justify-center items-center gap-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 px-4 py-2.5 border border-rose-200 dark:border-rose-800 rounded-xl font-bold text-rose-600 dark:text-rose-400 text-xs transition-colors"
-            >
-              <X className="w-3.5 h-3.5" />
-              <span>Reset Filter</span>
-            </button>
+            <div className="hidden lg:flex items-center text-xs text-slate-500 font-medium px-2">
+              <span>
+                Filter aktif:{" "}
+                <strong className="text-[#093c96] dark:text-blue-400">
+                  {filteredProducts.length} produk cocok
+                </strong>
+              </span>
+            </div>
           )}
         </div>
 
@@ -228,10 +336,10 @@ export function ProductCatalogView({
           <div className="flex items-center gap-2 pt-2 pb-1 border-slate-100 dark:border-slate-800 border-t overflow-x-auto no-scrollbar">
             <button
               type="button"
-              onClick={() => setSelectedCategory("semua")}
+              onClick={() => handleCategoryChange("semua")}
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${
                 selectedCategory === "semua"
-                  ? "bg-brand-800 text-white shadow-xs"
+                  ? "bg-[#093c96] text-white shadow-xs"
                   : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
               }`}
             >
@@ -242,10 +350,11 @@ export function ProductCatalogView({
               <button
                 type="button"
                 key={c.slug}
-                onClick={() => setSelectedCategory(c.slug)}
+                onClick={() => handleCategoryChange(c.slug)}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${
-                  selectedCategory === c.slug
-                    ? "bg-brand-800 text-white shadow-xs"
+                  selectedCategory.toLowerCase() === c.slug.toLowerCase() ||
+                  selectedCategory.toLowerCase() === c.name.toLowerCase()
+                    ? "bg-[#093c96] text-white shadow-xs"
                     : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
                 }`}
               >
@@ -265,6 +374,15 @@ export function ProductCatalogView({
             {filteredProducts.length}
           </strong>{" "}
           produk di Kota Serang
+          {searchQuery && (
+            <span>
+              {" "}
+              untuk kata kunci &ldquo;<strong>{searchQuery}</strong>&rdquo;
+            </span>
+          )}
+          {selectedDistrict !== "Semua Kecamatan" && (
+            <span> di Kec. <strong>{selectedDistrict}</strong></span>
+          )}
         </p>
       </div>
 
@@ -299,7 +417,7 @@ export function ProductCatalogView({
           <button
             type="button"
             onClick={handleReset}
-            className="bg-brand-800 hover:bg-brand-900 shadow-subtle px-4 py-2 rounded-xl font-bold text-white text-xs transition-colors"
+            className="bg-[#093c96] hover:bg-blue-800 shadow-subtle px-4 py-2 rounded-xl font-bold text-white text-xs transition-colors"
           >
             Lihat Semua Produk
           </button>

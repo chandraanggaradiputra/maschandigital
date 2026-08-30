@@ -10,28 +10,25 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { VendorCollectionJsonLd } from "@/components/seo/VendorCollectionJsonLd";
 import { getVendors } from "@/lib/api/wordpress";
+import { KECAMATAN_LIST } from "@/lib/constants/serangDistricts";
 
 type VendorsPageProps = {
   searchParams: Promise<{
     q?: string;
+    search?: string;
     district?: string;
+    kecamatan?: string;
     category?: string;
   }>;
 };
 
 export default async function VendorsPage({ searchParams }: VendorsPageProps) {
-  const { q: query = "", district = "" } = await searchParams;
+  const params = await searchParams;
+  const query = (params.q || params.search || "").trim();
+  const district = (params.district || params.kecamatan || "").trim();
   const vendors = await getVendors(district, query);
 
-  const districts = [
-    "Semua",
-    "Cipocok Jaya",
-    "Serang",
-    "Kasemen",
-    "Curug",
-    "Taktakan",
-    "Walantaka",
-  ];
+  const districts = ["Semua", ...KECAMATAN_LIST];
 
   return (
     <div className="space-y-6 sm:space-y-8 py-6 sm:py-10">

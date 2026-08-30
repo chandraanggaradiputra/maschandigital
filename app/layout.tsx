@@ -9,6 +9,7 @@ import { MarketplaceJsonLd } from "@/components/seo/MarketplaceJsonLd";
 import { TawkRouteGuard } from "@/components/chat/TawkRouteGuard";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
+import { GlobalSearchModal } from "@/components/ui/GlobalSearchModal";
 
 const robotoSlab = Roboto_Slab({
   subsets: ["latin"],
@@ -133,6 +134,9 @@ export default function RootLayout({
 
           {/* Mobile Bottom Navigation */}
           <MobileBottomNav />
+
+          {/* Global Instant Search Modal (Ctrl+K) */}
+          <GlobalSearchModal />
         </ThemeProvider>
       </body>
     </html>

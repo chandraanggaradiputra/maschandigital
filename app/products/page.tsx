@@ -92,10 +92,18 @@ export default async function ProductsIndexPage() {
 
       {/* 2. Main Product Catalog Section */}
       <SectionContainer className="py-0">
-        <ProductCatalogView
-          initialProducts={allProducts}
-          categories={allCategories}
-        />
+        <React.Suspense
+          fallback={
+            <div className="p-12 text-center text-slate-400 text-sm">
+              Memuat katalog produk UMKM Kota Serang...
+            </div>
+          }
+        >
+          <ProductCatalogView
+            initialProducts={allProducts}
+            categories={allCategories}
+          />
+        </React.Suspense>
       </SectionContainer>
     </div>
   );
