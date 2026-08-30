@@ -2,7 +2,14 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Search, MapPin, Package, X, ArrowUpDown, RefreshCw } from "lucide-react";
+import {
+  Search,
+  Tag,
+  Package,
+  X,
+  ArrowUpDown,
+  RefreshCw,
+} from "lucide-react";
 import { Product, ProductCategory } from "@/types";
 import { ProductCard } from "@/components/cards/ProductCard";
 import { checkStoreStatus } from "@/lib/storeStatus";
@@ -13,8 +20,6 @@ interface ProductCatalogViewProps {
   initialProducts: Product[];
   categories: ProductCategory[];
 }
-
-const DISTRICT_OPTIONS = ["Semua Kecamatan", ...KECAMATAN_LIST];
 
 export function ProductCatalogView({
   initialProducts,
@@ -34,12 +39,52 @@ export function ProductCatalogView({
       : "Semua Kecamatan";
   const initialCategory =
     searchParams.get("category") || searchParams.get("kategori") || "semua";
-  const initialSort = (searchParams.get("sort") as "newest" | "price-asc" | "price-desc") || "newest";
+  const rawSort = searchParams.get("sort") || "recommended";
+  const initialSort =
+    rawSort === "price-asc"
+      ? "price_asc"
+      : rawSort === "price-desc"
+        ? "price_desc"
+        : rawSort;
+
+  // Resolusi Kategori Utama (Parent Category)
+  const parentCategories = useMemo(
+    () => categories.filter((c) => !c.parent || Number(c.parent) === 0),
+    [categories],
+  );
+
+  const initialParentId = useMemo(() => {
+    if (!initialCategory || initialCategory === "semua") return 0;
+    const cat = categories.find(
+      (c) =>
+        c.slug?.toLowerCase() === initialCategory.toLowerCase() ||
+        c.name?.toLowerCase() === initialCategory.toLowerCase() ||
+        String(c.id) === initialCategory,
+    );
+    if (!cat) return 0;
+    return cat.parent && Number(cat.parent) > 0
+      ? Number(cat.parent)
+      : Number(cat.id);
+  }, [initialCategory, categories]);
+
+  const initialSubcategoryId = useMemo(() => {
+    if (!initialCategory || initialCategory === "semua") return 0;
+    const cat = categories.find(
+      (c) =>
+        c.slug?.toLowerCase() === initialCategory.toLowerCase() ||
+        c.name?.toLowerCase() === initialCategory.toLowerCase() ||
+        String(c.id) === initialCategory,
+    );
+    if (!cat) return 0;
+    return cat.parent && Number(cat.parent) > 0 ? Number(cat.id) : 0;
+  }, [initialCategory, categories]);
 
   const [searchQuery, setSearchQuery] = useState(initialQ);
+  const [selectedParentId, setSelectedParentId] = useState<number>(initialParentId);
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number>(initialSubcategoryId);
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
   const [selectedDistrict, setSelectedDistrict] = useState<string>(initialDistrict);
-  const [sortBy, setSortBy] = useState<"newest" | "price-asc" | "price-desc">(initialSort);
+  const [sortBy, setSortBy] = useState<string>(initialSort);
   const [onlyOpenStores, setOnlyOpenStores] = useState<boolean>(false);
 
   // Sinkronkan state lokal saat URL searchParams berubah (navigasi eksternal/back-forward)
@@ -49,18 +94,45 @@ export function ProductCatalogView({
       searchParams.get("kecamatan") || searchParams.get("district") || "";
     const catParam =
       searchParams.get("category") || searchParams.get("kategori") || "semua";
-    const sortParam =
-      (searchParams.get("sort") as "newest" | "price-asc" | "price-desc") || "newest";
+    const sortParam = searchParams.get("sort") || "recommended";
 
     setSearchQuery(qParam);
     setSelectedDistrict(
       distParam && KECAMATAN_LIST.includes(distParam)
         ? distParam
-        : "Semua Kecamatan"
+        : "Semua Kecamatan",
     );
     setSelectedCategory(catParam);
-    setSortBy(sortParam);
-  }, [searchParams]);
+
+    if (catParam === "semua" || !catParam) {
+      setSelectedParentId(0);
+      setSelectedSubcategoryId(0);
+    } else {
+      const cat = categories.find(
+        (c) =>
+          c.slug?.toLowerCase() === catParam.toLowerCase() ||
+          c.name?.toLowerCase() === catParam.toLowerCase() ||
+          String(c.id) === catParam,
+      );
+      if (cat) {
+        if (cat.parent && Number(cat.parent) > 0) {
+          setSelectedParentId(Number(cat.parent));
+          setSelectedSubcategoryId(Number(cat.id));
+        } else {
+          setSelectedParentId(Number(cat.id));
+          setSelectedSubcategoryId(0);
+        }
+      }
+    }
+
+    if (sortParam === "price_asc" || sortParam === "price-asc") {
+      setSortBy("price_asc");
+    } else if (sortParam === "price_desc" || sortParam === "price-desc") {
+      setSortBy("price_desc");
+    } else {
+      setSortBy("recommended");
+    }
+  }, [searchParams, categories]);
 
   // Update URL searchParams tanpa me-refresh halaman
   const updateUrlParams = useCallback(
@@ -73,7 +145,7 @@ export function ProductCatalogView({
       if (newCat && newCat !== "semua") {
         params.set("category", newCat);
       }
-      if (newSort && newSort !== "newest") {
+      if (newSort && newSort !== "recommended" && newSort !== "newest") {
         params.set("sort", newSort);
       }
 
@@ -81,7 +153,7 @@ export function ProductCatalogView({
       const targetUrl = queryString ? `${pathname}?${queryString}` : pathname;
       router.replace(targetUrl, { scroll: false });
     },
-    [pathname, router]
+    [pathname, router],
   );
 
   const handleSearchChange = (val: string) => {
@@ -89,19 +161,47 @@ export function ProductCatalogView({
     updateUrlParams(val, selectedDistrict, selectedCategory, sortBy);
   };
 
-  const handleDistrictChange = (dist: string) => {
-    setSelectedDistrict(dist);
-    updateUrlParams(searchQuery, dist, selectedCategory, sortBy);
+  const handleParentChange = (pId: number) => {
+    setSelectedParentId(pId);
+    setSelectedSubcategoryId(0);
+    if (pId === 0) {
+      setSelectedCategory("semua");
+      updateUrlParams(searchQuery, selectedDistrict, "semua", sortBy);
+    } else {
+      const parentCat = categories.find((c) => Number(c.id) === pId);
+      const catSlug = parentCat ? parentCat.slug : String(pId);
+      setSelectedCategory(catSlug);
+      updateUrlParams(searchQuery, selectedDistrict, catSlug, sortBy);
+    }
   };
 
-  const handleCategoryChange = (cat: string) => {
-    setSelectedCategory(cat);
-    updateUrlParams(searchQuery, selectedDistrict, cat, sortBy);
+  const handleCategoryChange = (slug: string) => {
+    setSelectedCategory(slug);
+    if (slug === "semua") {
+      setSelectedParentId(0);
+      setSelectedSubcategoryId(0);
+    } else {
+      const cat = categories.find(
+        (c) =>
+          c.slug?.toLowerCase() === slug.toLowerCase() ||
+          c.name?.toLowerCase() === slug.toLowerCase(),
+      );
+      if (cat) {
+        if (cat.parent && Number(cat.parent) > 0) {
+          setSelectedParentId(Number(cat.parent));
+          setSelectedSubcategoryId(Number(cat.id));
+        } else {
+          setSelectedParentId(Number(cat.id));
+          setSelectedSubcategoryId(0);
+        }
+      }
+    }
+    updateUrlParams(searchQuery, selectedDistrict, slug, sortBy);
   };
 
-  const handleSortChange = (sort: "newest" | "price-asc" | "price-desc") => {
-    setSortBy(sort);
-    updateUrlParams(searchQuery, selectedDistrict, selectedCategory, sort);
+  const handleSortChange = (newSort: string) => {
+    setSortBy(newSort);
+    updateUrlParams(searchQuery, selectedDistrict, selectedCategory, newSort);
   };
 
   // Cek apakah data kategori memiliki struktur hierarki parent-child murni WCFM/WooCommerce
@@ -111,6 +211,11 @@ export function ProductCatalogView({
 
   // Ambil kategori induk aktif untuk menampilkan subkategori dinamis
   const activeParentCategory = useMemo(() => {
+    if (selectedParentId > 0) {
+      return (
+        categories.find((c) => Number(c.id) === selectedParentId) || null
+      );
+    }
     if (selectedCategory === "semua") return null;
     const cat = categories.find(
       (c) =>
@@ -119,10 +224,12 @@ export function ProductCatalogView({
     );
     if (!cat) return null;
     if (cat.parent && Number(cat.parent) > 0) {
-      return categories.find((c) => Number(c.id) === Number(cat.parent)) || cat;
+      return (
+        categories.find((c) => Number(c.id) === Number(cat.parent)) || cat
+      );
     }
     return cat;
-  }, [selectedCategory, categories]);
+  }, [selectedParentId, selectedCategory, categories]);
 
   const activeSubcategories = useMemo(() => {
     if (!activeParentCategory) return [];
@@ -150,17 +257,67 @@ export function ProductCatalogView({
         const categoryMatch = p.categories?.some(
           (c) =>
             c.name?.toLowerCase().includes(q) ||
-            c.slug?.toLowerCase().includes(q)
+            c.slug?.toLowerCase().includes(q),
         );
 
         return Boolean(
-          nameMatch || descMatch || storeMatch || cityMatch || categoryMatch
+          nameMatch || descMatch || storeMatch || cityMatch || categoryMatch,
         );
       });
     }
 
     // 2. Filter Kategori (Mendukung Parent & Subkategori murni dari taksonomi WooCommerce / WCFM)
-    if (selectedCategory !== "semua") {
+    if (selectedSubcategoryId > 0) {
+      const subCat = categories.find(
+        (c) => Number(c.id) === selectedSubcategoryId,
+      );
+      if (subCat) {
+        const subSlug = subCat.slug.toLowerCase();
+        const subName = subCat.name.toLowerCase();
+        result = result.filter((p) =>
+          p.categories?.some((c) => {
+            const cSlug = (c.slug || "").toLowerCase();
+            const cName = (c.name || "").toLowerCase();
+            return (
+              Number(c.id) === subCat.id ||
+              cSlug === subSlug ||
+              cName === subName
+            );
+          }),
+        );
+      }
+    } else if (selectedParentId > 0) {
+      const parentCat = categories.find(
+        (c) => Number(c.id) === selectedParentId,
+      );
+      if (parentCat) {
+        const matchingIds = new Set<number>([parentCat.id]);
+        const matchingSlugs = new Set<string>([
+          parentCat.slug.toLowerCase(),
+          parentCat.name.toLowerCase(),
+        ]);
+
+        categories
+          .filter((c) => Number(c.parent) === parentCat.id)
+          .forEach((sub) => {
+            matchingIds.add(sub.id);
+            if (sub.slug) matchingSlugs.add(sub.slug.toLowerCase());
+            if (sub.name) matchingSlugs.add(sub.name.toLowerCase());
+          });
+
+        result = result.filter((p) =>
+          p.categories?.some((c) => {
+            const cSlug = (c.slug || "").toLowerCase();
+            const cName = (c.name || "").toLowerCase();
+            return (
+              matchingIds.has(Number(c.id)) ||
+              matchingSlugs.has(cSlug) ||
+              matchingSlugs.has(cName)
+            );
+          }),
+        );
+      }
+    } else if (selectedCategory !== "semua") {
       const selectedSlug = selectedCategory.toLowerCase();
       const matchingCategorySlugs = new Set<string>([selectedSlug]);
 
@@ -171,15 +328,18 @@ export function ProductCatalogView({
       );
 
       if (currentCat) {
-        if (currentCat.slug) matchingCategorySlugs.add(currentCat.slug.toLowerCase());
-        if (currentCat.name) matchingCategorySlugs.add(currentCat.name.toLowerCase());
+        if (currentCat.slug)
+          matchingCategorySlugs.add(currentCat.slug.toLowerCase());
+        if (currentCat.name)
+          matchingCategorySlugs.add(currentCat.name.toLowerCase());
 
-        // Kumpulkan seluruh subkategori anak jika kategori yang dipilih adalah parent
         categories
           .filter((c) => Number(c.parent) === Number(currentCat.id))
           .forEach((child) => {
-            if (child.slug) matchingCategorySlugs.add(child.slug.toLowerCase());
-            if (child.name) matchingCategorySlugs.add(child.name.toLowerCase());
+            if (child.slug)
+              matchingCategorySlugs.add(child.slug.toLowerCase());
+            if (child.name)
+              matchingCategorySlugs.add(child.name.toLowerCase());
           });
       }
 
@@ -206,7 +366,9 @@ export function ProductCatalogView({
         .trim();
       result = result.filter((p) => {
         const vendorDist = resolveVendorDistrict(p.vendor).toLowerCase();
-        return vendorDist.includes(targetDist) || targetDist.includes(vendorDist);
+        return (
+          vendorDist.includes(targetDist) || targetDist.includes(vendorDist)
+        );
       });
     }
 
@@ -215,27 +377,27 @@ export function ProductCatalogView({
       result = result.filter((p) => {
         const status = checkStoreStatus(
           p.vendor?.store_hours,
-          p.vendor?.vacation_mode
+          p.vendor?.vacation_mode,
         );
         return Boolean(status.isOpen && !status.isVacation);
       });
     }
 
     // 5. Pengurutan (Sorting)
-    if (sortBy === "price-asc") {
+    if (sortBy === "price_asc" || sortBy === "price-asc") {
       result.sort(
         (a, b) =>
           parseFloat(a.sale_price || a.price || "0") -
-          parseFloat(b.sale_price || b.price || "0")
+          parseFloat(b.sale_price || b.price || "0"),
       );
-    } else if (sortBy === "price-desc") {
+    } else if (sortBy === "price_desc" || sortBy === "price-desc") {
       result.sort(
         (a, b) =>
           parseFloat(b.sale_price || b.price || "0") -
-          parseFloat(a.sale_price || a.price || "0")
+          parseFloat(a.sale_price || a.price || "0"),
       );
     } else {
-      // Default newest
+      // Default newest / recommended
       result.sort((a, b) => Number(b.id) - Number(a.id));
     }
 
@@ -244,7 +406,10 @@ export function ProductCatalogView({
     initialProducts,
     searchQuery,
     selectedCategory,
+    selectedParentId,
+    selectedSubcategoryId,
     selectedDistrict,
+    categories,
     sortBy,
     onlyOpenStores,
   ]);
@@ -252,8 +417,10 @@ export function ProductCatalogView({
   const handleReset = () => {
     setSearchQuery("");
     setSelectedCategory("semua");
+    setSelectedParentId(0);
+    setSelectedSubcategoryId(0);
     setSelectedDistrict("Semua Kecamatan");
-    setSortBy("newest");
+    setSortBy("recommended");
     setOnlyOpenStores(false);
     router.replace(pathname, { scroll: false });
   };
@@ -261,8 +428,11 @@ export function ProductCatalogView({
   const hasActiveFilter =
     searchQuery !== "" ||
     selectedCategory !== "semua" ||
-    selectedDistrict !== "Semua Kecamatan" ||
-    sortBy !== "newest" ||
+    selectedParentId !== 0 ||
+    selectedSubcategoryId !== 0 ||
+    (selectedDistrict !== "Semua Kecamatan" &&
+      selectedDistrict !== "Semua") ||
+    (sortBy !== "recommended" && sortBy !== "newest") ||
     onlyOpenStores;
 
   return (
@@ -280,7 +450,7 @@ export function ProductCatalogView({
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Cari produk kuliner, madu akasia, batik banten, nama toko..."
-            className="bg-slate-50 dark:bg-slate-900 py-3 sm:py-3.5 pr-10 pl-11 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-2xl outline-none focus:ring-1 focus:ring-brand-500 w-full font-sans text-slate-900 dark:text-white text-sm transition-all"
+            className="bg-slate-50 dark:bg-slate-900 py-3 sm:py-3.5 pr-10 pl-11 border border-slate-200 focus:border-[#093c96] dark:border-slate-800 rounded-2xl outline-none focus:ring-1 focus:ring-[#093c96] w-full font-sans text-slate-900 dark:text-white text-sm transition-all"
             aria-label="Cari produk di Kota Serang"
           />
           {searchQuery && (
@@ -327,63 +497,56 @@ export function ProductCatalogView({
           )}
         </div>
 
-        {/* Dropdown Filters (Kecamatan & Urutan) */}
-        <div className="gap-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {/* Dropdown Kecamatan */}
+        {/* Grid 2 Dropdown Utama: Kategori Utama & Urutan */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Dropdown Kategori Utama (Parent Category) */}
           <div className="relative">
-            <MapPin
-              className="top-1/2 left-3.5 absolute w-4 h-4 text-brand-600 dark:text-brand-400 -translate-y-1/2 pointer-events-none"
+            <Tag
+              className="w-4 h-4 text-[#093c96] dark:text-blue-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
               aria-hidden="true"
             />
             <select
-              value={selectedDistrict}
-              onChange={(e) => handleDistrictChange(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-900 py-2.5 pr-8 pl-10 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full font-medium text-slate-800 dark:text-slate-200 text-xs sm:text-sm appearance-none cursor-pointer"
-              aria-label="Filter berdasarkan kecamatan"
+              value={selectedParentId}
+              onChange={(e) => {
+                const pId = Number(e.target.value);
+                handleParentChange(pId);
+              }}
+              className="w-full pl-10 pr-8 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:border-[#093c96] cursor-pointer appearance-none font-medium transition-colors"
+              aria-label="Filter berdasarkan Kategori Utama"
             >
-              {DISTRICT_OPTIONS.map((d) => (
-                <option key={d} value={d}>
-                  {d === "Semua Kecamatan"
-                    ? "📍 Semua Kecamatan di Serang"
-                    : `📍 Kec. ${d}`}
+              <option value="0">
+                🏷️ Semua Kategori Utama (
+                {categories
+                  .filter((c) => !c.parent || Number(c.parent) === 0)
+                  .reduce((acc, curr) => acc + (curr.count || 0), 0) ||
+                  initialProducts.length}
+                )
+              </option>
+              {parentCategories.map((parent) => (
+                <option key={parent.id} value={parent.id}>
+                  {parent.name} ({parent.count || 0})
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Dropdown Urutan Harga */}
+          {/* Dropdown Urutan */}
           <div className="relative">
             <ArrowUpDown
-              className="top-1/2 left-3.5 absolute w-4 h-4 text-slate-400 -translate-y-1/2 pointer-events-none"
+              className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
               aria-hidden="true"
             />
             <select
               value={sortBy}
-              onChange={(e) =>
-                handleSortChange(
-                  e.target.value as "newest" | "price-asc" | "price-desc"
-                )
-              }
-              className="bg-slate-50 dark:bg-slate-900 py-2.5 pr-8 pl-10 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full font-medium text-slate-800 dark:text-slate-200 text-xs sm:text-sm appearance-none cursor-pointer"
-              aria-label="Urutkan produk"
+              onChange={(e) => handleSortChange(e.target.value)}
+              className="w-full pl-10 pr-8 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:border-[#093c96] cursor-pointer appearance-none font-medium transition-colors"
+              aria-label="Urutkan Produk"
             >
-              <option value="newest">Terbaru / Rekomendasi</option>
-              <option value="price-asc">Harga: Terendah ke Tertinggi</option>
-              <option value="price-desc">Harga: Tertinggi ke Terendah</option>
+              <option value="recommended">⇅ Terbaru / Rekomendasi</option>
+              <option value="price_asc">💰 Harga: Termurah ke Termahal</option>
+              <option value="price_desc">💎 Harga: Termahal ke Termurah</option>
             </select>
           </div>
-
-          {/* Active Filter Indicators */}
-          {hasActiveFilter && (
-            <div className="hidden lg:flex items-center text-xs text-slate-500 font-medium px-2">
-              <span>
-                Filter aktif:{" "}
-                <strong className="text-[#093c96] dark:text-blue-400">
-                  {filteredProducts.length} produk cocok
-                </strong>
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Quick Category Filter Pills */}
@@ -394,7 +557,7 @@ export function ProductCatalogView({
                 type="button"
                 onClick={() => handleCategoryChange("semua")}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${
-                  selectedCategory === "semua"
+                  selectedCategory === "semua" && selectedParentId === 0
                     ? "bg-[#093c96] text-white shadow-xs"
                     : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
                 }`}
@@ -407,10 +570,10 @@ export function ProductCatalogView({
                 : categories
               ).map((c) => {
                 const isSelected =
-                  selectedCategory.toLowerCase() === c.slug.toLowerCase() ||
-                  selectedCategory.toLowerCase() === c.name.toLowerCase() ||
-                  (activeParentCategory &&
-                    Number(activeParentCategory.id) === Number(c.id));
+                  (selectedCategory.toLowerCase() === c.slug.toLowerCase() ||
+                    selectedCategory.toLowerCase() === c.name.toLowerCase() ||
+                    selectedParentId === Number(c.id)) &&
+                  selectedSubcategoryId === 0;
 
                 return (
                   <button
@@ -443,19 +606,16 @@ export function ProductCatalogView({
                     handleCategoryChange(activeParentCategory.slug)
                   }
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all shrink-0 ${
-                    activeParentCategory &&
-                    (selectedCategory.toLowerCase() ===
-                      activeParentCategory.slug.toLowerCase() ||
-                      selectedCategory.toLowerCase() ===
-                        activeParentCategory.name.toLowerCase())
+                    selectedSubcategoryId === 0
                       ? "bg-blue-100 dark:bg-blue-950 text-[#093c96] dark:text-blue-300 font-bold"
                       : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800"
                   }`}
                 >
-                  Semua
+                  Semua di {activeParentCategory?.name}
                 </button>
                 {activeSubcategories.map((sub) => {
                   const isSubSelected =
+                    selectedSubcategoryId === sub.id ||
                     selectedCategory.toLowerCase() === sub.slug.toLowerCase() ||
                     selectedCategory.toLowerCase() === sub.name.toLowerCase();
 
@@ -471,7 +631,9 @@ export function ProductCatalogView({
                       }`}
                     >
                       {sub.name}{" "}
-                      {sub.count !== undefined && sub.count > 0 && `(${sub.count})`}
+                      {sub.count !== undefined &&
+                        sub.count > 0 &&
+                        `(${sub.count})`}
                     </button>
                   );
                 })}
@@ -496,45 +658,49 @@ export function ProductCatalogView({
             </span>
           )}
           {selectedDistrict !== "Semua Kecamatan" && (
-            <span> di Kec. <strong>{selectedDistrict}</strong></span>
+            <span>
+              {" "}
+              di Kec. <strong>{selectedDistrict}</strong>
+            </span>
           )}
         </p>
       </div>
 
-      {/* Products Grid */}
+      {/* Product Grid View */}
       {filteredProducts.length > 0 ? (
-        <div className="gap-3 sm:gap-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-          {filteredProducts.map((product, idx) => (
+        <div className="gap-4 sm:gap-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {filteredProducts.map((product, index) => (
             <ProductCard
               key={
                 product.id
-                  ? `catalog-prod-${product.id}-${product.slug}`
-                  : `catalog-prod-idx-${idx}`
+                  ? `prod-${product.id}-${product.slug}-${index}`
+                  : `prod-idx-${index}`
               }
               product={product}
             />
           ))}
         </div>
       ) : (
-        <div className="space-y-4 bg-white dark:bg-surface-darkCard p-6 py-16 border border-slate-200 dark:border-slate-800 border-dashed rounded-3xl text-center">
-          <div className="flex justify-center items-center bg-slate-100 dark:bg-slate-800 mx-auto rounded-2xl w-16 h-16 text-slate-400">
-            <Package className="w-8 h-8" />
+        /* Empty State */
+        <div className="bg-slate-50 dark:bg-slate-900/50 p-8 sm:p-12 border border-slate-200/80 dark:border-slate-800 border-dashed rounded-3xl text-center">
+          <div className="flex justify-center items-center bg-blue-50 dark:bg-blue-950/50 mx-auto mb-4 rounded-full w-14 h-14 text-[#093c96] dark:text-blue-400">
+            <Package className="w-7 h-7" aria-hidden="true" />
           </div>
-          <div className="space-y-1">
-            <h3 className="font-slab font-bold text-slate-800 dark:text-slate-200 text-base">
-              Tidak Ada Produk yang Sesuai
-            </h3>
-            <p className="mx-auto max-w-sm text-slate-400 text-xs">
-              Coba gunakan kata kunci pencarian lain atau ubah filter kecamatan
-              dan kategori Anda.
-            </p>
-          </div>
+          <h2 className="mb-2 font-bold font-slab text-slate-900 dark:text-white text-lg">
+            Tidak Ada Produk Ditemukan
+          </h2>
+          <p className="mx-auto mb-6 max-w-md text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
+            {searchQuery
+              ? `Tidak ada produk yang sesuai dengan pencarian "${searchQuery}". Silakan coba kata kunci lain atau reset filter pencarian.`
+              : "Belum ada produk yang sesuai dengan filter yang Anda pilih."}
+          </p>
           <button
             type="button"
             onClick={handleReset}
-            className="bg-[#093c96] hover:bg-blue-800 shadow-subtle px-4 py-2 rounded-xl font-bold text-white text-xs transition-colors"
+            className="inline-flex items-center gap-2 bg-[#093c96] hover:bg-blue-800 text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl transition-all shadow-md active:scale-95"
           >
-            Lihat Semua Produk
+            <RefreshCw className="w-4 h-4" />
+            <span>Reset Semua Filter</span>
           </button>
         </div>
       )}
