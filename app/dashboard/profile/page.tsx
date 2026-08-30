@@ -39,6 +39,7 @@ import {
   VacationMode,
   StoreSEO,
   VendorSocials,
+  ChatIntegration,
 } from "@/types";
 
 export default function VendorProfilePage() {
@@ -103,9 +104,11 @@ export default function VendorProfilePage() {
   });
 
   // Tab 7: Integrasi Live Chat Tawk.to (opsional, per-vendor)
-  const [isTawkEnabled, setIsTawkEnabled] = useState(false);
-  const [tawkPropertyId, setTawkPropertyId] = useState("");
-  const [tawkWidgetId, setTawkWidgetId] = useState("");
+  const [chatIntegration, setChatIntegration] = useState<ChatIntegration>({
+    enabled: false,
+    property_id: "",
+    widget_id: "",
+  });
 
   // Modal QR Code
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
@@ -182,9 +185,11 @@ export default function VendorProfilePage() {
           if (currentV.vacation_mode) setVacationMode(currentV.vacation_mode);
           if (currentV.store_seo) setStoreSeo(currentV.store_seo);
           if (currentV.chat_integration) {
-            setIsTawkEnabled(currentV.chat_integration.enabled ?? false);
-            setTawkPropertyId(currentV.chat_integration.property_id ?? "");
-            setTawkWidgetId(currentV.chat_integration.widget_id ?? "");
+            setChatIntegration({
+              enabled: currentV.chat_integration.enabled ?? false,
+              property_id: currentV.chat_integration.property_id ?? "",
+              widget_id: currentV.chat_integration.widget_id ?? "",
+            });
           }
         } else if (session?.user) {
           setStoreName(session.user.store_name || "");
@@ -225,9 +230,9 @@ export default function VendorProfilePage() {
       vacation_mode: vacationMode,
       store_seo: storeSeo,
       chat_integration: {
-        enabled: isTawkEnabled,
-        property_id: tawkPropertyId.trim(),
-        widget_id: tawkWidgetId.trim(),
+        enabled: chatIntegration.enabled,
+        property_id: chatIntegration.property_id.trim(),
+        widget_id: chatIntegration.widget_id.trim(),
       },
     };
 
@@ -981,11 +986,11 @@ export default function VendorProfilePage() {
           </div>
 
           {/* SECTION PENGATURAN TAWK.TO LIVE CHAT */}
-          <div className="space-y-5 rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-
-            {/* 1. Toggle Aktifkan Live Chat */}
+          <div className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+            
+            {/* 1. Toggle Switch Aktifkan Live Chat */}
             <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700">
-              <div>
+              <div className="pr-4">
                 <h4 className="text-sm font-bold text-slate-900 dark:text-white font-slab">
                   Aktifkan Live Chat di Toko Saya
                 </h4>
@@ -996,24 +1001,33 @@ export default function VendorProfilePage() {
               <button
                 type="button"
                 role="switch"
-                aria-checked={isTawkEnabled}
-                onClick={() => setIsTawkEnabled(!isTawkEnabled)}
+                aria-checked={chatIntegration.enabled}
+                onClick={() =>
+                  setChatIntegration({
+                    ...chatIntegration,
+                    enabled: !chatIntegration.enabled,
+                  })
+                }
                 className={cn(
                   "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-                  isTawkEnabled ? "bg-[#093c96]" : "bg-slate-300 dark:bg-slate-700"
+                  chatIntegration.enabled
+                    ? "bg-[#093c96]"
+                    : "bg-slate-300 dark:bg-slate-700"
                 )}
               >
                 <span
                   className={cn(
                     "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                    isTawkEnabled ? "translate-x-5" : "translate-x-0"
+                    chatIntegration.enabled
+                      ? "translate-x-5"
+                      : "translate-x-0"
                   )}
                 />
               </button>
             </div>
 
             {/* 2. Kolom Input Property ID */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 pt-1">
               <label
                 htmlFor="tawk_property_id"
                 className="block text-xs font-bold text-slate-800 dark:text-slate-200 font-slab"
@@ -1022,13 +1036,17 @@ export default function VendorProfilePage() {
               </label>
               <input
                 id="tawk_property_id"
-                name="tawk_property_id"
                 type="text"
-                required={isTawkEnabled}
-                value={tawkPropertyId}
-                onChange={(e) => setTawkPropertyId(e.target.value)}
+                required={chatIntegration.enabled}
+                value={chatIntegration.property_id || ""}
+                onChange={(e) =>
+                  setChatIntegration({
+                    ...chatIntegration,
+                    property_id: e.target.value.trim(),
+                  })
+                }
                 placeholder="Contoh: 65a8b1c2d3e4f5a6b7c8d9e0"
-                className="w-full h-11 px-4 py-2.5 rounded-xl text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 focus:border-[#093c96] focus:ring-2 focus:ring-blue-500/20 text-slate-900 dark:text-white outline-none font-mono transition-all block shadow-sm"
+                className="w-full h-11 px-4 py-2.5 rounded-xl text-sm bg-white dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 focus:border-[#093c96] focus:ring-2 focus:ring-blue-500/20 text-slate-900 dark:text-white outline-none font-mono transition-all block shadow-sm"
               />
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 ID Properti unik dari dashboard Tawk.to Anda (24 karakter hex).
@@ -1036,7 +1054,7 @@ export default function VendorProfilePage() {
             </div>
 
             {/* 3. Kolom Input Widget ID */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 pt-1">
               <label
                 htmlFor="tawk_widget_id"
                 className="block text-xs font-bold text-slate-800 dark:text-slate-200 font-slab"
@@ -1045,21 +1063,25 @@ export default function VendorProfilePage() {
               </label>
               <input
                 id="tawk_widget_id"
-                name="tawk_widget_id"
                 type="text"
-                required={isTawkEnabled}
-                value={tawkWidgetId}
-                onChange={(e) => setTawkWidgetId(e.target.value)}
+                required={chatIntegration.enabled}
+                value={chatIntegration.widget_id || ""}
+                onChange={(e) =>
+                  setChatIntegration({
+                    ...chatIntegration,
+                    widget_id: e.target.value.trim(),
+                  })
+                }
                 placeholder="Contoh: 1h9k8m7n6 atau default"
-                className="w-full h-11 px-4 py-2.5 rounded-xl text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 focus:border-[#093c96] focus:ring-2 focus:ring-blue-500/20 text-slate-900 dark:text-white outline-none font-mono transition-all block shadow-sm"
+                className="w-full h-11 px-4 py-2.5 rounded-xl text-sm bg-white dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 focus:border-[#093c96] focus:ring-2 focus:ring-blue-500/20 text-slate-900 dark:text-white outline-none font-mono transition-all block shadow-sm"
               />
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 ID Widget chat (biasanya berawalan &quot;1h...&quot; atau &quot;default&quot;).
               </p>
             </div>
 
-            {/* 4. Box Petunjuk Cara Mendapatkan ID */}
-            <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-xs text-slate-600 dark:text-slate-300 space-y-1.5">
+            {/* 4. Petunjuk Cara Mendapatkan ID */}
+            <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-xs text-slate-600 dark:text-slate-300 space-y-1.5 mt-2">
               <p className="font-bold text-[#093c96] dark:text-blue-400">
                 Cara mendapatkan Property ID &amp; Widget ID:
               </p>
