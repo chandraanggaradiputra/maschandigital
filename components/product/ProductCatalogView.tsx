@@ -549,96 +549,50 @@ export function ProductCatalogView({
           </div>
         </div>
 
-        {/* Quick Category Filter Pills */}
-        {categories.length > 0 && (
-          <div className="space-y-2 pt-2 border-slate-100 dark:border-slate-800 border-t">
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-              <button
-                type="button"
-                onClick={() => handleCategoryChange("semua")}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${
-                  selectedCategory === "semua" && selectedParentId === 0
-                    ? "bg-[#093c96] text-white shadow-xs"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-                }`}
-              >
-                Semua Kategori
-              </button>
+        {/* Baris Subkategori Dinamis (Hanya muncul jika kategori induk aktif memiliki anak) */}
+        {activeSubcategories.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pl-2 py-1.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-100 dark:border-slate-800/80">
+            <span className="text-[11px] font-semibold text-slate-400 shrink-0 px-1">
+              Subkategori:
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                activeParentCategory &&
+                handleCategoryChange(activeParentCategory.slug)
+              }
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all shrink-0 ${
+                selectedSubcategoryId === 0
+                  ? "bg-blue-100 dark:bg-blue-950 text-[#093c96] dark:text-blue-300 font-bold"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800"
+              }`}
+            >
+              Semua di {activeParentCategory?.name}
+            </button>
+            {activeSubcategories.map((sub) => {
+              const isSubSelected =
+                selectedSubcategoryId === sub.id ||
+                selectedCategory.toLowerCase() === sub.slug.toLowerCase() ||
+                selectedCategory.toLowerCase() === sub.name.toLowerCase();
 
-              {(hasHierarchy
-                ? categories.filter((c) => !c.parent || Number(c.parent) === 0)
-                : categories
-              ).map((c) => {
-                const isSelected =
-                  (selectedCategory.toLowerCase() === c.slug.toLowerCase() ||
-                    selectedCategory.toLowerCase() === c.name.toLowerCase() ||
-                    selectedParentId === Number(c.id)) &&
-                  selectedSubcategoryId === 0;
-
-                return (
-                  <button
-                    type="button"
-                    key={c.slug}
-                    onClick={() => handleCategoryChange(c.slug)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 ${
-                      isSelected
-                        ? "bg-[#093c96] text-white shadow-xs"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-                    }`}
-                  >
-                    {c.name}{" "}
-                    {c.count !== undefined && c.count > 0 && `(${c.count})`}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Subkategori Dinamis (Hanya muncul jika kategori induk aktif memiliki anak) */}
-            {activeSubcategories.length > 0 && (
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pl-2 py-1.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-100 dark:border-slate-800/80">
-                <span className="text-[11px] font-semibold text-slate-400 shrink-0 px-1">
-                  Subkategori:
-                </span>
+              return (
                 <button
                   type="button"
-                  onClick={() =>
-                    activeParentCategory &&
-                    handleCategoryChange(activeParentCategory.slug)
-                  }
+                  key={`sub-${sub.slug}`}
+                  onClick={() => handleCategoryChange(sub.slug)}
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all shrink-0 ${
-                    selectedSubcategoryId === 0
-                      ? "bg-blue-100 dark:bg-blue-950 text-[#093c96] dark:text-blue-300 font-bold"
-                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800"
+                    isSubSelected
+                      ? "bg-blue-600 text-white font-bold shadow-xs"
+                      : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
                   }`}
                 >
-                  Semua di {activeParentCategory?.name}
+                  {sub.name}{" "}
+                  {sub.count !== undefined &&
+                    sub.count > 0 &&
+                    `(${sub.count})`}
                 </button>
-                {activeSubcategories.map((sub) => {
-                  const isSubSelected =
-                    selectedSubcategoryId === sub.id ||
-                    selectedCategory.toLowerCase() === sub.slug.toLowerCase() ||
-                    selectedCategory.toLowerCase() === sub.name.toLowerCase();
-
-                  return (
-                    <button
-                      type="button"
-                      key={`sub-${sub.slug}`}
-                      onClick={() => handleCategoryChange(sub.slug)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all shrink-0 ${
-                        isSubSelected
-                          ? "bg-blue-600 text-white font-bold shadow-xs"
-                          : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
-                      }`}
-                    >
-                      {sub.name}{" "}
-                      {sub.count !== undefined &&
-                        sub.count > 0 &&
-                        `(${sub.count})`}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+              );
+            })}
           </div>
         )}
       </div>
