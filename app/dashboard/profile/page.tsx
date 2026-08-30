@@ -18,6 +18,7 @@ import {
   Download,
   Printer,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { MediaUploader } from "@/components/forms/MediaUploader";
 import { StoreQrModal } from "@/components/qr/StoreQrModal";
@@ -38,7 +39,6 @@ import {
   VacationMode,
   StoreSEO,
   VendorSocials,
-  ChatIntegration,
 } from "@/types";
 
 export default function VendorProfilePage() {
@@ -103,11 +103,9 @@ export default function VendorProfilePage() {
   });
 
   // Tab 7: Integrasi Live Chat Tawk.to (opsional, per-vendor)
-  const [chatIntegration, setChatIntegration] = useState<ChatIntegration>({
-    enabled: false,
-    property_id: "",
-    widget_id: "",
-  });
+  const [isTawkEnabled, setIsTawkEnabled] = useState(false);
+  const [tawkPropertyId, setTawkPropertyId] = useState("");
+  const [tawkWidgetId, setTawkWidgetId] = useState("");
 
   // Modal QR Code
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
@@ -183,8 +181,11 @@ export default function VendorProfilePage() {
           if (currentV.store_hours) setStoreHours(currentV.store_hours);
           if (currentV.vacation_mode) setVacationMode(currentV.vacation_mode);
           if (currentV.store_seo) setStoreSeo(currentV.store_seo);
-          if (currentV.chat_integration)
-            setChatIntegration(currentV.chat_integration);
+          if (currentV.chat_integration) {
+            setIsTawkEnabled(currentV.chat_integration.enabled ?? false);
+            setTawkPropertyId(currentV.chat_integration.property_id ?? "");
+            setTawkWidgetId(currentV.chat_integration.widget_id ?? "");
+          }
         } else if (session?.user) {
           setStoreName(session.user.store_name || "");
           setVendorSlug(session.user.slug || "toko-vendor");
@@ -223,7 +224,11 @@ export default function VendorProfilePage() {
       store_hours: storeHours,
       vacation_mode: vacationMode,
       store_seo: storeSeo,
-      chat_integration: chatIntegration,
+      chat_integration: {
+        enabled: isTawkEnabled,
+        property_id: tawkPropertyId.trim(),
+        widget_id: tawkWidgetId.trim(),
+      },
     };
 
     const res = await updateVendorProfile(vendorId, payload);
@@ -975,123 +980,113 @@ export default function VendorProfilePage() {
             </p>
           </div>
 
-          <div className="flex justify-between items-center gap-4 bg-slate-50 dark:bg-slate-900/60 p-4 border border-slate-200 dark:border-slate-800 rounded-2xl">
-            <div>
-              <p className="font-slab font-bold text-slate-800 dark:text-slate-200 text-sm">
-                Aktifkan Live Chat di Toko Saya
-              </p>
-              <p className="mt-0.5 text-slate-500 dark:text-slate-400 text-xs">
-                Kalau Property ID / Widget ID belum diisi, widget tidak akan
-                muncul walau tombol ini aktif.
-              </p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={chatIntegration.enabled}
-              onClick={() =>
-                setChatIntegration((prev) => ({
-                  ...prev,
-                  enabled: !prev.enabled,
-                }))
-              }
-              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-                chatIntegration.enabled
-                  ? "bg-brand-600"
-                  : "bg-slate-300 dark:bg-slate-700"
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  chatIntegration.enabled ? "translate-x-6" : "translate-x-1"
-                }`}
-              />
-            </button>
-          </div>
+          {/* SECTION PENGATURAN TAWK.TO LIVE CHAT */}
+          <div className="space-y-5 rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
 
-          {/* PENGATURAN TAWK.TO LIVE CHAT */}
-          <div className="space-y-4 pt-2">
-            {/* Input Property ID */}
-            <div>
+            {/* 1. Toggle Aktifkan Live Chat */}
+            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700">
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white font-slab">
+                  Aktifkan Live Chat di Toko Saya
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Kalau Property ID / Widget ID belum diisi, widget tidak akan muncul walau tombol ini aktif.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isTawkEnabled}
+                onClick={() => setIsTawkEnabled(!isTawkEnabled)}
+                className={cn(
+                  "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                  isTawkEnabled ? "bg-[#093c96]" : "bg-slate-300 dark:bg-slate-700"
+                )}
+              >
+                <span
+                  className={cn(
+                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                    isTawkEnabled ? "translate-x-5" : "translate-x-0"
+                  )}
+                />
+              </button>
+            </div>
+
+            {/* 2. Kolom Input Property ID */}
+            <div className="space-y-1.5">
               <label
-                htmlFor="tawk-property-id"
-                className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 font-slab"
+                htmlFor="tawk_property_id"
+                className="block text-xs font-bold text-slate-800 dark:text-slate-200 font-slab"
               >
                 Property ID <span className="text-rose-500">*</span>
               </label>
               <input
-                id="tawk-property-id"
+                id="tawk_property_id"
+                name="tawk_property_id"
                 type="text"
-                value={chatIntegration.property_id}
-                onChange={(e) =>
-                  setChatIntegration((prev) => ({
-                    ...prev,
-                    property_id: e.target.value.trim(),
-                  }))
-                }
+                required={isTawkEnabled}
+                value={tawkPropertyId}
+                onChange={(e) => setTawkPropertyId(e.target.value)}
                 placeholder="Contoh: 65a8b1c2d3e4f5a6b7c8d9e0"
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#093c96] text-slate-900 dark:text-white outline-none font-mono transition-colors"
+                className="w-full h-11 px-4 py-2.5 rounded-xl text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 focus:border-[#093c96] focus:ring-2 focus:ring-blue-500/20 text-slate-900 dark:text-white outline-none font-mono transition-all block shadow-sm"
               />
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 ID Properti unik dari dashboard Tawk.to Anda (24 karakter hex).
               </p>
             </div>
 
-            {/* Input Widget ID */}
-            <div>
+            {/* 3. Kolom Input Widget ID */}
+            <div className="space-y-1.5">
               <label
-                htmlFor="tawk-widget-id"
-                className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 font-slab"
+                htmlFor="tawk_widget_id"
+                className="block text-xs font-bold text-slate-800 dark:text-slate-200 font-slab"
               >
                 Widget ID <span className="text-rose-500">*</span>
               </label>
               <input
-                id="tawk-widget-id"
+                id="tawk_widget_id"
+                name="tawk_widget_id"
                 type="text"
-                value={chatIntegration.widget_id}
-                onChange={(e) =>
-                  setChatIntegration((prev) => ({
-                    ...prev,
-                    widget_id: e.target.value.trim(),
-                  }))
-                }
-                placeholder="Contoh: 1h9k8m7n6"
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-[#093c96] text-slate-900 dark:text-white outline-none font-mono transition-colors"
+                required={isTawkEnabled}
+                value={tawkWidgetId}
+                onChange={(e) => setTawkWidgetId(e.target.value)}
+                placeholder="Contoh: 1h9k8m7n6 atau default"
+                className="w-full h-11 px-4 py-2.5 rounded-xl text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 focus:border-[#093c96] focus:ring-2 focus:ring-blue-500/20 text-slate-900 dark:text-white outline-none font-mono transition-all block shadow-sm"
               />
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 ID Widget chat (biasanya berawalan &quot;1h...&quot; atau &quot;default&quot;).
               </p>
             </div>
-          </div>
 
-          <div className="bg-brand-50/60 dark:bg-brand-950/40 p-4 border border-brand-100 dark:border-brand-900/60 rounded-2xl">
-            <p className="mb-1.5 font-slab font-bold text-brand-900 dark:text-brand-200 text-xs">
-              Cara mendapatkan Property ID & Widget ID:
-            </p>
-            <ol className="space-y-1 text-slate-600 dark:text-slate-400 text-xs list-decimal list-inside">
-              <li>
-                Buat akun gratis di{" "}
-                <a
-                  href="https://www.tawk.to"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold text-brand-700 dark:text-brand-400 underline"
-                >
-                  tawk.to
-                </a>{" "}
-                (kalau belum punya)
-              </li>
-              <li>
-                Buka Dashboard Tawk.to → Administration → Channels → Chat Widget
-              </li>
-              <li>
-                Lihat kode embed yang muncul — formatnya{" "}
-                <code className="bg-white dark:bg-slate-900 px-1 rounded">
-                  embed.tawk.to/PROPERTY_ID/WIDGET_ID
-                </code>
-              </li>
-              <li>Salin kedua bagian ID tersebut ke kolom di atas</li>
-            </ol>
+            {/* 4. Box Petunjuk Cara Mendapatkan ID */}
+            <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-xs text-slate-600 dark:text-slate-300 space-y-1.5">
+              <p className="font-bold text-[#093c96] dark:text-blue-400">
+                Cara mendapatkan Property ID &amp; Widget ID:
+              </p>
+              <ol className="list-decimal list-inside space-y-1 text-slate-500 dark:text-slate-400">
+                <li>
+                  Buat akun gratis di{" "}
+                  <a
+                    href="https://www.tawk.to"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#093c96] dark:text-blue-400 font-semibold underline"
+                  >
+                    tawk.to
+                  </a>{" "}
+                  (kalau belum punya)
+                </li>
+                <li>Buka Dashboard Tawk.to ➔ Administration ➔ Channels ➔ Chat Widget</li>
+                <li>
+                  Lihat kode embed yang muncul — formatnya:{" "}
+                  <code className="bg-white dark:bg-slate-800 px-1 py-0.5 rounded font-mono text-[10px]">
+                    embed.tawk.to/PROPERTY_ID/WIDGET_ID
+                  </code>
+                </li>
+                <li>Salin kedua bagian ID tersebut ke kolom di atas lalu klik tombol Simpan di bawah.</li>
+              </ol>
+            </div>
+
           </div>
         </section>
       )}
