@@ -65,11 +65,10 @@ export async function generateMetadata({
     vendor.store_seo?.metaDescription ||
     fallbackDescription;
 
-  // Prioritaskan Foto Profil / Avatar Toko, disusul Banner, lalu Fallback Aset Resmi
+  // Foto Profil / Avatar Toko, dengan fallback avatar default
   const mainImage =
     vendor.avatar ||
-    vendor.banner ||
-    "https://maschandigital.id/mas-chan-digital.webp";
+    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=800&auto=format&fit=crop&q=80";
 
   const canonicalUrl = `/vendors/${slug}`;
   const fullVendorUrl = `https://maschandigital.id/vendors/${slug}`;
@@ -97,7 +96,7 @@ export async function generateMetadata({
       ],
     },
     twitter: {
-      card: "summary_large_image",
+      card: "summary",
       title: seoTitle,
       description: seoDesc,
       images: [mainImage],
