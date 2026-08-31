@@ -22,7 +22,7 @@ export function VendorJsonLd({ vendor, vendorUrl }: VendorJsonLdProps) {
 
   const openingHoursSpec = vendor.store_hours
     ? Object.entries(vendor.store_hours)
-        .filter(([_, schedule]) => schedule?.isOpen)
+        .filter(([, schedule]) => schedule?.isOpen)
         .map(([dayKey, schedule]) => ({
           "@type": "OpeningHoursSpecification",
           dayOfWeek: dayMap[dayKey] || "Monday",
@@ -48,8 +48,8 @@ export function VendorJsonLd({ vendor, vendorUrl }: VendorJsonLdProps) {
     "@type": "Store",
     name: vendor.store_name,
     image:
-      vendor.banner ||
       vendor.avatar ||
+      vendor.banner ||
       "https://maschandigital.id/mas-chan-digital.webp",
     description:
       vendor.description ||

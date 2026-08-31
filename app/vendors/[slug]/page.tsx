@@ -54,11 +54,54 @@ export async function generateMetadata({
     return { title: "Vendor Tidak Ditemukan - Mas Chan Digital" };
   }
 
+  const seoTitle =
+    vendor.store_seo?.seoTitle ||
+    `${vendor.store_name} - Toko Resmi di Kota Serang | Mas Chan Digital`;
+
+  const rawDescription = vendor.description?.trim();
+  const fallbackDescription = `Kunjungi profil toko ${vendor.store_name} di Kota Serang. Lihat katalog produk dan pesan langsung via WhatsApp.`;
+  const seoDesc =
+    rawDescription ||
+    vendor.store_seo?.metaDescription ||
+    fallbackDescription;
+
+  // Prioritaskan Foto Profil / Avatar Toko, disusul Banner, lalu Fallback Aset Resmi
+  const mainImage =
+    vendor.avatar ||
+    vendor.banner ||
+    "https://maschandigital.id/mas-chan-digital.webp";
+
+  const canonicalUrl = `/vendors/${slug}`;
+  const fullVendorUrl = `https://maschandigital.id/vendors/${slug}`;
+
   return {
-    title: `${vendor.store_name} - Toko Resmi di Kota Serang | Mas Chan Digital`,
-    description:
-      vendor.description ||
-      `Kunjungi profil toko ${vendor.store_name} di Kota Serang. Lihat katalog produk dan pesan langsung via WhatsApp.`,
+    title: seoTitle,
+    description: seoDesc,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: seoTitle,
+      description: seoDesc,
+      url: fullVendorUrl,
+      siteName: "Mas Chan Digital",
+      locale: "id_ID",
+      type: "website",
+      images: [
+        {
+          url: mainImage,
+          width: 800,
+          height: 800,
+          alt: `Foto Profil Toko ${vendor.store_name} di Mas Chan Digital`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: seoTitle,
+      description: seoDesc,
+      images: [mainImage],
+    },
   };
 }
 

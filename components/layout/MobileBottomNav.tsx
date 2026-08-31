@@ -51,10 +51,11 @@ export function MobileBottomNav() {
 
   const isVendor = Boolean(session && session.user);
 
-  // Close drawer on path change
-  useEffect(() => {
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
     setIsDrawerOpen(false);
-  }, [pathname]);
+  }
 
   // Lock body scroll when drawer open
   useEffect(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   Search,
@@ -88,7 +88,11 @@ export function ProductCatalogView({
   const [onlyOpenStores, setOnlyOpenStores] = useState<boolean>(false);
 
   // Sinkronkan state lokal saat URL searchParams berubah (navigasi eksternal/back-forward)
-  useEffect(() => {
+  const currentParamsString = searchParams.toString();
+  const [prevParamsString, setPrevParamsString] = useState(currentParamsString);
+
+  if (prevParamsString !== currentParamsString) {
+    setPrevParamsString(currentParamsString);
     const qParam = searchParams.get("q") || searchParams.get("search") || "";
     const distParam =
       searchParams.get("kecamatan") || searchParams.get("district") || "";
@@ -132,7 +136,7 @@ export function ProductCatalogView({
     } else {
       setSortBy("recommended");
     }
-  }, [searchParams, categories]);
+  }
 
   // Update URL searchParams tanpa me-refresh halaman
   const updateUrlParams = useCallback(

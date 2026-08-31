@@ -1,19 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useTransition } from "react";
+import React, { useState, useEffect, useRef, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   Search,
   X,
-  Store,
-  Package,
   Tag,
   MapPin,
   ArrowRight,
   Sparkles,
   Loader2,
-  ExternalLink,
   ChevronRight,
 } from "lucide-react";
 import { Product, Vendor, ProductCategory } from "@/types";
@@ -46,12 +43,37 @@ export function GlobalSearchModal() {
     categories: [],
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // 1. Keyboard Shortcut Listener (Ctrl+K / Cmd+K & Escape)
+  // 1. Debounce Pencarian API
+  const fetchSearchResults = useCallback(async (searchQuery: string) => {
+    setIsLoading(true);
+    try {
+      const url = searchQuery.trim()
+        ? `/api/search?q=${encodeURIComponent(searchQuery.trim())}`
+        : `/api/search`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setResults({
+            products: data.products || [],
+            vendors: data.vendors || [],
+            categories: data.categories || [],
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Gagal melakukan pencarian:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // 2. Keyboard Shortcut Listener (Ctrl+K / Cmd+K & Escape)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
@@ -76,15 +98,17 @@ export function GlobalSearchModal() {
     };
   }, [isOpen]);
 
-  // 2. Focus input saat modal dibuka & Kunci scroll body
+  // 3. Focus input saat modal dibuka & Kunci scroll body
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         inputRef.current?.focus();
       }, 50);
-      // Fetch initial recommendations
-      fetchSearchResults("");
+      return () => {
+        clearTimeout(timer);
+        document.body.style.overflow = "unset";
+      };
     } else {
       document.body.style.overflow = "unset";
     }
@@ -94,31 +118,6 @@ export function GlobalSearchModal() {
     };
   }, [isOpen]);
 
-  // 3. Debounce Pencarian API
-  const fetchSearchResults = async (searchQuery: string) => {
-    setIsLoading(true);
-    try {
-      const url = searchQuery.trim()
-        ? `/api/search?q=${encodeURIComponent(searchQuery.trim())}`
-        : `/api/search`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          setResults({
-            products: data.products || [],
-            vendors: data.vendors || [],
-            categories: data.categories || [],
-          });
-        }
-      }
-    } catch (err) {
-      console.error("Gagal melakukan pencarian:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
     if (!isOpen) return;
 
@@ -127,7 +126,7 @@ export function GlobalSearchModal() {
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [query, isOpen]);
+  }, [query, isOpen, fetchSearchResults]);
 
   // Navigasi ke URL hasil
   const handleNavigate = (url: string) => {
