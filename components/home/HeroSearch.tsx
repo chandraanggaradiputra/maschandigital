@@ -20,9 +20,6 @@ export function HeroSearch() {
 
     if (searchMode === "products") {
       if (cleanKeyword) params.set("q", cleanKeyword);
-      if (selectedDistrict && selectedDistrict !== "Semua Kecamatan") {
-        params.set("kecamatan", selectedDistrict);
-      }
       const qs = params.toString();
       router.push(qs ? `/products?${qs}` : "/products");
     } else {
@@ -101,36 +98,38 @@ export function HeroSearch() {
           />
         </div>
 
-        {/* Dropdown Kecamatan */}
-        <div className="flex items-center px-4 py-2 border-slate-200 dark:border-slate-800 sm:border-l">
-          <label htmlFor="hero-district-select" className="sr-only">
-            Pilih Kecamatan di Kota Serang
-          </label>
-          <MapPin
-            className="mr-2 w-4 h-4 text-brand-600 dark:text-brand-400 shrink-0"
-            aria-hidden="true"
-          />
-          <select
-            id="hero-district-select"
-            value={selectedDistrict}
-            onChange={(e) => setSelectedDistrict(e.target.value)}
-            className="bg-transparent outline-none font-medium text-slate-700 dark:text-slate-200 text-xs sm:text-sm cursor-pointer"
-            aria-label="Pilih Kecamatan"
-          >
-            <option value="" className="text-slate-900 bg-white dark:bg-slate-900 dark:text-white">
-              Semua Kecamatan
-            </option>
-            {KECAMATAN_LIST.map((kec) => (
-              <option
-                key={kec}
-                value={kec}
-                className="text-slate-900 bg-white dark:bg-slate-900 dark:text-white"
-              >
-                Kec. {kec}
+        {/* Dropdown Kecamatan - Hanya muncul di mode vendor */}
+        {searchMode === "vendors" && (
+          <div className="flex items-center px-4 py-2 border-slate-200 dark:border-slate-800 sm:border-l">
+            <label htmlFor="hero-district-select" className="sr-only">
+              Pilih Kecamatan di Kota Serang
+            </label>
+            <MapPin
+              className="mr-2 w-4 h-4 text-brand-600 dark:text-brand-400 shrink-0"
+              aria-hidden="true"
+            />
+            <select
+              id="hero-district-select"
+              value={selectedDistrict}
+              onChange={(e) => setSelectedDistrict(e.target.value)}
+              className="bg-transparent outline-none font-medium text-slate-700 dark:text-slate-200 text-xs sm:text-sm cursor-pointer"
+              aria-label="Pilih Kecamatan"
+            >
+              <option value="" className="text-slate-900 bg-white dark:bg-slate-900 dark:text-white">
+                Semua Kecamatan
               </option>
-            ))}
-          </select>
-        </div>
+              {KECAMATAN_LIST.map((kec) => (
+                <option
+                  key={kec}
+                  value={kec}
+                  className="text-slate-900 bg-white dark:bg-slate-900 dark:text-white"
+                >
+                  Kec. {kec}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Tombol Submit */}
         <Button
