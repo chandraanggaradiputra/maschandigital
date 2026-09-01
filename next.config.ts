@@ -4,11 +4,11 @@ const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
-      { protocol: "https", hostname: "app.maschandigital.id" },
-      { protocol: "https", hostname: "maschandigital.id" },
-      { protocol: "https", hostname: "images.unsplash.com" },
-      { protocol: "https", hostname: "*.gravatar.com" },
-      { protocol: "https", hostname: "secure.gravatar.com" },
+      { protocol: "https", hostname: "app.maschandigital.id", pathname: "/**" },
+      { protocol: "https", hostname: "maschandigital.id", pathname: "/**" },
+      { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },
+      { protocol: "https", hostname: "*.gravatar.com", pathname: "/**" },
+      { protocol: "https", hostname: "secure.gravatar.com", pathname: "/**" },
     ],
   },
   // Header Keamanan Tambahan
@@ -21,6 +21,8 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-XSS-Protection", value: "1; mode=block" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains; preload" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), browsing-topics=()" },
         ],
       },
     ];
