@@ -11,6 +11,8 @@ import { TawkRouteGuard } from "@/components/chat/TawkRouteGuard";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import { GlobalSearchModal } from "@/components/ui/GlobalSearchModal";
+import { Suspense } from "react";
+import { PageviewTracker } from "@/components/analytics/PageviewTracker";
 import { cn } from "../lib/utils";
 
 const robotoSlab = Roboto_Slab({
@@ -127,6 +129,9 @@ export default function RootLayout({
             style={{ display: "none", visibility: "hidden" }}
           />
         </noscript>
+        <Suspense fallback={null}>
+          <PageviewTracker />
+        </Suspense>
         <MarketplaceJsonLd />
         <PwaInstallPrompt />
         <PwaRegister />

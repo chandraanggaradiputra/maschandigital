@@ -125,6 +125,7 @@ declare global {
       shutdown?: () => void;
       onLoad?: () => void;
       isChatHidden?: () => boolean;
+      disableTitleNotification?: boolean;
       [key: string]: unknown;
     };
     Tawk_LoadStart?: Date;
@@ -239,6 +240,7 @@ function injectTawkScript(propertyId: string, widgetId: string) {
   window.Tawk_API.onLoad = function () {
     showTawkWidget();
   };
+  window.Tawk_API.disableTitleNotification = true;
 
   const script = document.createElement("script");
   script.id = "tawk-script-element";
