@@ -11,6 +11,7 @@ import {
   Lock,
 } from "lucide-react";
 import { getCategories } from "@/lib/api/wordpress";
+import { TrackedVendorRegisterLink } from "@/components/analytics/TrackedVendorRegisterLink";
 
 export async function Footer() {
   const allCategories = await getCategories();
@@ -111,12 +112,13 @@ export async function Footer() {
                 </Link>
               </li>
               <li>
-                <Link
+                <TrackedVendorRegisterLink
                   href="/vendor/register"
+                  sourceLocation="footer"
                   className="focus-visible:outline-none hover:text-brand-300 focus-visible:underline transition-colors"
                 >
                   Daftar Toko (Gratis)
-                </Link>
+                </TrackedVendorRegisterLink>
               </li>
               <li>
                 <Link

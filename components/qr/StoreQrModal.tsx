@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { QRCodeGenerator } from "@/lib/qrGenerator";
 import { Button } from "@/components/ui/Button";
+import { trackShareAction } from "@/lib/analytics";
 
 interface StoreQrModalProps {
   isOpen: boolean;
@@ -243,6 +244,12 @@ export function StoreQrModal({
 
     return () => clearTimeout(timer);
   }, [isOpen, renderCanvas]);
+
+  useEffect(() => {
+    if (isOpen) {
+      trackShareAction({ actionType: "open_qr", targetName: storeName });
+    }
+  }, [isOpen, storeName]);
 
   const handleDownload = () => {
     const canvas = canvasRef.current;

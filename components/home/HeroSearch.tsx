@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { KECAMATAN_LIST } from "@/lib/constants/serangDistricts";
 import { cn } from "@/lib/utils";
 
+import { trackSearchEvent } from "@/lib/analytics";
+
 export function HeroSearch() {
   const router = useRouter();
   const [searchMode, setSearchMode] = useState<"products" | "vendors">("products");
@@ -17,6 +19,11 @@ export function HeroSearch() {
     e.preventDefault();
     const cleanKeyword = keyword.trim();
     const params = new URLSearchParams();
+
+    trackSearchEvent({
+      searchTerm: cleanKeyword,
+      district: searchMode === "vendors" ? selectedDistrict : undefined,
+    });
 
     if (searchMode === "products") {
       if (cleanKeyword) params.set("q", cleanKeyword);
@@ -111,7 +118,11 @@ export function HeroSearch() {
             <select
               id="hero-district-select"
               value={selectedDistrict}
-              onChange={(e) => setSelectedDistrict(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedDistrict(val);
+                trackSearchEvent({ searchTerm: keyword.trim(), district: val });
+              }}
               className="bg-transparent outline-none font-medium text-slate-700 dark:text-slate-200 text-xs sm:text-sm cursor-pointer"
               aria-label="Pilih Kecamatan"
             >

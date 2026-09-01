@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { HeroSearch } from "@/components/home/HeroSearch";
 import { getProducts, getVendors, getCategories } from "@/lib/api/wordpress";
+import { TrackedVendorRegisterLink } from "@/components/analytics/TrackedVendorRegisterLink";
 
 function getCategoryIcon(slug: string, className: string = "w-6 h-6") {
   const s = slug.toLowerCase();
@@ -370,7 +371,7 @@ export default async function HomePage() {
             </ul>
 
             <div className="flex sm:flex-row flex-col gap-3 pt-2">
-              <Link href="/vendor/register">
+              <TrackedVendorRegisterLink href="/vendor/register" sourceLocation="hero_cta">
                 <Button
                   variant="secondary"
                   size="md"
@@ -379,7 +380,7 @@ export default async function HomePage() {
                   <span>Daftar Toko Gratis</span>
                   <ArrowRight className="w-4 h-4" aria-hidden="true" />
                 </Button>
-              </Link>
+              </TrackedVendorRegisterLink>
               <Link href="/tentang-kami">
                 <Button
                   variant="outline"

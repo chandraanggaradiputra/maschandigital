@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Share2, Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { trackShareAction } from "@/lib/analytics";
 
 interface ShareButtonProps {
   title: string;
@@ -31,6 +32,8 @@ export function ShareButton({
     // Tentukan URL target langsung saat tombol diklik (bebas dari useEffect/re-render)
     const targetUrl =
       url || (typeof window !== "undefined" ? window.location.href : "");
+
+    trackShareAction({ actionType: "share_link", targetName: title });
 
     // 1. Coba Web Share API (Smartphone Android / iOS)
     if (typeof navigator !== "undefined" && navigator.share) {

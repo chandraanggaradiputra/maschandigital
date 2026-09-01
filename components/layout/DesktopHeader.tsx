@@ -22,6 +22,7 @@ import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { getVendorSession, logoutVendor, AuthSession } from '@/lib/api/auth';
+import { trackVendorRegisterClick } from '@/lib/analytics';
 import { useState, useEffect } from 'react';
 
 const MAIN_NAV_ITEMS = [
@@ -165,6 +166,7 @@ export function DesktopHeader() {
                 </Link>
                 <Link
                   href="/vendor/register"
+                  onClick={() => trackVendorRegisterClick('header')}
                   className="inline-flex items-center gap-1.5 rounded-xl bg-[#093c96] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-800 transition-colors shadow-md shadow-blue-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                 >
                   <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />

@@ -32,16 +32,38 @@
 
 import { useEffect, useRef } from "react";
 import { trackProductView } from "@/lib/api/wordpress";
+import { trackViewProduct } from "@/lib/analytics";
 
-export function ProductViewTracker({ productId }: { productId: number }) {
+interface ProductViewTrackerProps {
+  productId: number;
+  productName: string;
+  price: number;
+  vendorName: string;
+  category: string;
+}
+
+export function ProductViewTracker({
+  productId,
+  productName,
+  price,
+  vendorName,
+  category,
+}: ProductViewTrackerProps) {
   const trackedRef = useRef(false);
 
   useEffect(() => {
     if (productId && !trackedRef.current) {
       trackedRef.current = true;
       trackProductView(productId);
+      trackViewProduct({
+        productId,
+        productName,
+        price,
+        vendorName,
+        category,
+      });
     }
-  }, [productId]);
+  }, [productId, productName, price, vendorName, category]);
 
   return null;
 }

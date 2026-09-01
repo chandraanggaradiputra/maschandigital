@@ -140,7 +140,13 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
       className="space-y-8 sm:space-y-12 py-6 sm:py-10"
     >
       {/* Pelacak Tayangan Produk Otomatis */}
-      <ProductViewTracker productId={product.id} />
+      <ProductViewTracker 
+        productId={product.id} 
+        productName={product.name}
+        price={parseFloat(currentPrice)}
+        vendorName={vendor?.store_name || "Unknown"}
+        category={product.categories?.[0]?.name || "Uncategorized"}
+      />
       {/* Product Json LTD */}
       <ProductJsonLd product={product} />
 
