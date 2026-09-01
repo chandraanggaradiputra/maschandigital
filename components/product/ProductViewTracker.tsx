@@ -1,69 +1,38 @@
-// "use client";
-
-// import { useEffect } from "react";
-// import { trackProductView } from "@/lib/api/wordpress";
-
-// interface ProductViewTrackerProps {
-//   productId: number;
-// }
-
-// export function ProductViewTracker({ productId }: ProductViewTrackerProps) {
-//   useEffect(() => {
-//     if (!productId || productId <= 0) return;
-
-//     // Kirim sinyal view ke server WordPress di latar belakang
-//     const wpUrl =
-//       process.env.NEXT_PUBLIC_WORDPRESS_URL || "https://app.maschandigital.id";
-
-//     fetch(`${wpUrl}/wp-json/maschan/v1/products/${productId}/view`, {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json",
-//       },
-//       keepalive: true,
-//     }).catch(() => {
-//       // Abaikan error di client agar tidak mengganggu pengalaman pengguna
-//     });
-//   }, [productId]);
-
-//   return null; // Komponen berjalan di latar belakang tanpa merender elemen visual
-// }
 "use client";
 
 import { useEffect, useRef } from "react";
 import { trackProductView } from "@/lib/api/wordpress";
-import { trackViewProduct } from "@/lib/analytics";
+import { trackViewProduct, trackEcommerceViewItem } from "@/lib/analytics";
+import type { Product } from "@/types";
 
 interface ProductViewTrackerProps {
-  productId: number;
-  productName: string;
-  price: number;
-  vendorName: string;
-  category: string;
+  product: Product;
 }
 
-export function ProductViewTracker({
-  productId,
-  productName,
-  price,
-  vendorName,
-  category,
-}: ProductViewTrackerProps) {
+export function ProductViewTracker({ product }: ProductViewTrackerProps) {
   const trackedRef = useRef(false);
 
   useEffect(() => {
-    if (productId && !trackedRef.current) {
+    if (product && product.id && !trackedRef.current) {
       trackedRef.current = true;
-      trackProductView(productId);
+      trackProductView(product.id);
+      
+      const currentPrice = product.on_sale && product.sale_price
+        ? parseFloat(product.sale_price)
+        : parseFloat(product.regular_price || product.price);
+
       trackViewProduct({
-        productId,
-        productName,
-        price,
-        vendorName,
-        category,
+        productId: product.id,
+        productName: product.name,
+        price: currentPrice,
+        vendorName: product.vendor?.store_name || "Unknown",
+        category: product.categories?.[0]?.name || "Uncategorized",
       });
+
+      trackEcommerceViewItem(product);
     }
-  }, [productId, productName, price, vendorName, category]);
+  }, [product]);
 
   return null;
 }
+

@@ -3,7 +3,7 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import { X, Minus, Plus, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { trackWhatsAppClick } from "@/lib/analytics";
+import { trackWhatsAppClick, trackEcommerceBeginCheckout, trackEcommercePurchase } from "@/lib/analytics";
 import {
   formatRupiah,
   generateWhatsAppOrderUrl,
@@ -70,10 +70,18 @@ export function WhatsAppOrderModal({
     if (isOpen) {
       triggerRef.current = document.activeElement;
       dialogRef.current?.focus();
+      
+      trackEcommerceBeginCheckout({
+        productId: productId || "direct_store",
+        productName,
+        unitPrice,
+        qty: 1,
+        vendorName,
+      });
     } else if (triggerRef.current instanceof HTMLElement) {
       triggerRef.current.focus();
     }
-  }, [isOpen]);
+  }, [isOpen, productId, productName, unitPrice, vendorName]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -124,6 +132,16 @@ export function WhatsAppOrderModal({
       productName,
       productId: productId ? String(productId) : undefined,
       kecamatan,
+    });
+
+    trackEcommercePurchase({
+      productId: productId || "direct_store",
+      productName,
+      unitPrice,
+      qty,
+      vendorName,
+      kecamatan,
+      metodeAntar: METODE_ANTAR_LABEL[metodeAntar],
     });
 
     window.open(url, "_blank", "noopener,noreferrer");

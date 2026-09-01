@@ -1,6 +1,8 @@
 // lib/analytics.ts
 'use client';
 
+import type { Product } from '@/types';
+
 declare global {
   interface Window {
     dataLayer?: Record<string, unknown>[];
@@ -102,5 +104,94 @@ export function trackKajianFilter(params: {
     target_audience: params.targetAudience,
     masjid_name: params.masjidName ?? 'Semua Masjid',
     kecamatan: params.kecamatan ?? 'Semua Kecamatan',
+  });
+}
+
+// 🛒 8. GA4 Ecommerce: view_item
+export function trackEcommerceViewItem(product: Product): void {
+  // Reset ecommerce data
+  pushToDataLayer({ ecommerce: null });
+
+  pushToDataLayer({
+    event: 'view_item',
+    ecommerce: {
+      currency: 'IDR',
+      value: Number(product.price),
+      items: [
+        {
+          item_id: String(product.id),
+          item_name: product.name,
+          price: Number(product.price),
+          item_brand: product.vendor?.store_name,
+          item_category: product.categories?.[0]?.name,
+          item_location_id: `Kec. ${product.vendor?.location_district || 'Kota Serang'}`,
+          quantity: 1,
+        },
+      ],
+    },
+  });
+}
+
+// 🛒 9. GA4 Ecommerce: begin_checkout
+export function trackEcommerceBeginCheckout(params: {
+  productId: number | string;
+  productName: string;
+  unitPrice: number;
+  qty: number;
+  vendorName: string;
+  kecamatan?: string;
+}): void {
+  const value = params.unitPrice * params.qty;
+  pushToDataLayer({ ecommerce: null });
+  pushToDataLayer({
+    event: 'begin_checkout',
+    ecommerce: {
+      currency: 'IDR',
+      value: value,
+      items: [
+        {
+          item_id: String(params.productId),
+          item_name: params.productName,
+          price: params.unitPrice,
+          item_brand: params.vendorName,
+          item_location_id: params.kecamatan ? `Kec. ${params.kecamatan}` : 'Kota Serang',
+          quantity: params.qty,
+        },
+      ],
+    },
+  });
+}
+
+// 🛒 10. GA4 Ecommerce: purchase
+export function trackEcommercePurchase(params: {
+  productId: number | string;
+  productName: string;
+  unitPrice: number;
+  qty: number;
+  vendorName: string;
+  kecamatan: string;
+  metodeAntar: string;
+}): void {
+  const value = params.unitPrice * params.qty;
+  const transactionId = `WA-ORD-${Date.now()}`;
+  pushToDataLayer({ ecommerce: null });
+  pushToDataLayer({
+    event: 'purchase',
+    ecommerce: {
+      transaction_id: transactionId,
+      currency: 'IDR',
+      value: value,
+      shipping: params.metodeAntar,
+      items: [
+        {
+          item_id: String(params.productId),
+          item_name: params.productName,
+          price: params.unitPrice,
+          item_brand: params.vendorName,
+          item_location_id: `Kec. ${params.kecamatan}`,
+          quantity: params.qty,
+        },
+      ],
+    },
   });
 }
