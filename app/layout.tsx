@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Roboto_Slab } from "next/font/google";
-import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
+import { GoogleTagManager } from "@next/third-parties/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { DesktopHeader } from "@/components/layout/DesktopHeader";
@@ -108,9 +108,8 @@ export default function RootLayout({
   
   return (
     <html lang="id" suppressHydrationWarning className={robotoSlab.variable}>
+      {gtmId && <GoogleTagManager gtmId={gtmId} />}
       <body className={cn('flex', 'flex-col', 'bg-surface-light', 'dark:bg-surface-dark', 'min-h-screen', 'font-sans', 'antialiased', 'transition-colors', 'duration-200')}>
-        {gtmId && <GoogleTagManager gtmId={gtmId} />}
-        {process.env.NEXT_PUBLIC_GA_ID && <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />}
         <MarketplaceJsonLd />
         <PwaInstallPrompt />
         <PwaRegister />
