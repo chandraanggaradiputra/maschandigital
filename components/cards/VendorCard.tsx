@@ -12,6 +12,7 @@ import { Vendor } from "@/types";
 import { generateWhatsAppVendorUrl, resolveVendorDistrict } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { trackWhatsAppClick } from "@/lib/analytics";
 
 interface VendorCardProps {
   vendor: Vendor;
@@ -147,6 +148,12 @@ export function VendorCard({ vendor, className }: VendorCardProps) {
             href={waUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => {
+              trackWhatsAppClick({
+                vendorName: vendor.store_name,
+                kecamatan: resolveVendorDistrict(vendor),
+              });
+            }}
             className="flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp-500"
             aria-label={`Hubungi toko ${vendor.store_name} melalui WhatsApp`}
           >

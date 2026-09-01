@@ -11,6 +11,8 @@ import { TawkRouteGuard } from "@/components/chat/TawkRouteGuard";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import { GlobalSearchModal } from "@/components/ui/GlobalSearchModal";
+import { cn } from "../lib/utils";
+
 
 const robotoSlab = Roboto_Slab({
   subsets: ["latin"],
@@ -102,11 +104,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
+  
   return (
     <html lang="id" suppressHydrationWarning className={robotoSlab.variable}>
-      <body className="flex flex-col bg-surface-light dark:bg-surface-dark min-h-screen font-sans antialiased transition-colors duration-200">
-        {process.env.NEXT_PUBLIC_GTM_ID && <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID} />}
-        {process.env.NEXT_PUBLIC_GA_ID && <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />}
+      <body className={cn('flex', 'flex-col', 'bg-surface-light', 'dark:bg-surface-dark', 'min-h-screen', 'font-sans', 'antialiased', 'transition-colors', 'duration-200')}>
         <MarketplaceJsonLd />
         <PwaInstallPrompt />
         <PwaRegister />
@@ -115,7 +117,7 @@ export default function RootLayout({
           {/* Aksesibilitas: Skip Link */}
           <a
             href="#main-content"
-            className="sr-only focus:not-sr-only focus:top-4 focus:left-4 focus:z-50 focus:absolute focus:bg-brand-800 focus:shadow-lg focus:px-4 focus:py-2 focus:rounded-xl focus:outline-none focus:text-white"
+            className={cn('sr-only', 'focus:not-sr-only', 'focus:top-4', 'focus:left-4', 'focus:z-50', 'focus:absolute', 'focus:bg-brand-800', 'focus:shadow-lg', 'focus:px-4', 'focus:py-2', 'focus:rounded-xl', 'focus:outline-none', 'focus:text-white')}
           >
             Lewati ke konten utama
           </a>
@@ -127,7 +129,7 @@ export default function RootLayout({
           <main
             id="main-content"
             tabIndex={-1}
-            className="flex-1 focus:outline-none w-full"
+            className={cn('flex-1', 'focus:outline-none', 'w-full')}
           >
             {children}
           </main>
@@ -142,6 +144,8 @@ export default function RootLayout({
           <GlobalSearchModal />
         </ThemeProvider>
       </body>
+      {gtmId && <GoogleTagManager gtmId={gtmId} />}
+      {process.env.NEXT_PUBLIC_GA_ID && <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />}
     </html>
   );
 }

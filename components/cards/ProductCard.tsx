@@ -12,10 +12,11 @@ import {
   Eye,
 } from "lucide-react";
 import { Product } from "@/types";
-import { formatRupiah, generateWhatsAppProductUrl } from "@/lib/utils";
+import { formatRupiah, generateWhatsAppProductUrl, resolveVendorDistrict } from "@/lib/utils";
 import { checkStoreStatus, StoreStatus } from "@/lib/storeStatus";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { trackWhatsAppClick } from "@/lib/analytics";
 
 interface ProductCardProps {
   product: Product;
@@ -270,6 +271,14 @@ export function ProductCard({
                 href={waUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => {
+                  trackWhatsAppClick({
+                    vendorName: product.vendor?.store_name || "Unknown",
+                    productId: String(product.id),
+                    productName: product.name,
+                    kecamatan: product.vendor ? resolveVendorDistrict(product.vendor) : "Unknown",
+                  });
+                }}
                 className="flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp-500"
                 aria-label={`Pesan ${product.name} lewat chat WhatsApp ke ${product.vendor?.store_name}`}
               >

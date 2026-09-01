@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { checkStoreStatus, type StoreStatus } from "@/lib/storeStatus";
 import type { StoreHours, VacationMode } from "@/types";
 import { WhatsAppOrderModal } from "./WhatsAppOrderModal";
+import { trackWhatsAppClick } from "@/lib/analytics";
 
 export interface OrderSectionProps {
   initialStoreStatus: StoreStatus;
@@ -168,6 +169,14 @@ export function OrderSection({
                 href={directWaUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => {
+                  trackWhatsAppClick({
+                    vendorName,
+                    productId: productId ? String(productId) : undefined,
+                    productName,
+                    kecamatan: "Unknown",
+                  });
+                }}
                 className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp-500 w-full"
                 aria-label={`Tanya penjual tentang ${productName} lewat chat WhatsApp`}
               >

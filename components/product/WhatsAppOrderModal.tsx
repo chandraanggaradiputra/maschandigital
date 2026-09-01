@@ -3,7 +3,7 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import { X, Minus, Plus, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { trackWhatsAppClick } from "@/lib/api/wordpress";
+import { trackWhatsAppClick } from "@/lib/analytics";
 import {
   formatRupiah,
   generateWhatsAppOrderUrl,
@@ -119,9 +119,12 @@ export function WhatsAppOrderModal({
       productUrl,
     });
 
-    if (productId) {
-      trackWhatsAppClick(productId);
-    }
+    trackWhatsAppClick({
+      vendorName,
+      productName,
+      productId: productId ? String(productId) : undefined,
+      kecamatan,
+    });
 
     window.open(url, "_blank", "noopener,noreferrer");
     onClose();
