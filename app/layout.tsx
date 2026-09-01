@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Roboto_Slab } from "next/font/google";
-import { GoogleTagManager } from "@next/third-parties/google";
+import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { DesktopHeader } from "@/components/layout/DesktopHeader";
@@ -12,7 +12,6 @@ import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import { GlobalSearchModal } from "@/components/ui/GlobalSearchModal";
 import { cn } from "../lib/utils";
-
 
 const robotoSlab = Roboto_Slab({
   subsets: ["latin"],
@@ -104,12 +103,30 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
+  const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-TDW48ZDV';
   
   return (
     <html lang="id" suppressHydrationWarning className={robotoSlab.variable}>
-      {gtmId && <GoogleTagManager gtmId={gtmId} />}
+      <head>
+        <Script id="google-tag-manager" strategy="afterInteractive">
+          {`
+            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+            j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+            'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+            })(window,document,'script','dataLayer','${GTM_ID}');
+          `}
+        </Script>
+      </head>
       <body className={cn('flex', 'flex-col', 'bg-surface-light', 'dark:bg-surface-dark', 'min-h-screen', 'font-sans', 'antialiased', 'transition-colors', 'duration-200')}>
+        <noscript>
+          <iframe
+            src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
+            height="0"
+            width="0"
+            style={{ display: "none", visibility: "hidden" }}
+          />
+        </noscript>
         <MarketplaceJsonLd />
         <PwaInstallPrompt />
         <PwaRegister />
