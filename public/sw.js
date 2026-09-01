@@ -1,5 +1,5 @@
 // Service Worker untuk PWA Mas Chan Digital Kota Serang
-const CACHE_NAME = "maschan-pwa-v1";
+const CACHE_NAME = "maschan-pwa-v2";
 const STATIC_PRECACHE = [
   "/",
   "/manifest.webmanifest",
@@ -30,16 +30,38 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Hanya proses request GET, lewati API calls dan GraphQL agar data selalu fresh
   if (event.request.method !== "GET") return;
-  const url = event.request.url;
-  if (url.includes("/wp-json/") || url.includes("/graphql")) {
+
+  let url;
+  try {
+    url = new URL(event.request.url);
+  } catch (e) {
+    return;
+  }
+
+  if (url.origin !== self.location.origin) return;
+
+  const urlStr = url.href;
+  if (
+    urlStr.includes("gtm_debug") ||
+    urlStr.includes("/wp-json/") ||
+    urlStr.includes("/graphql") ||
+    urlStr.includes("/api/")
+  ) {
     return;
   }
 
   event.respondWith(
     fetch(event.request).catch(() => {
-      return caches.match(event.request);
-    }),
+      return caches.match(event.request).then((cachedResponse) => {
+        return (
+          cachedResponse ||
+          new Response(
+            "Anda sedang offline dan halaman tidak tersedia di cache.",
+            { status: 503, statusText: "Service Unavailable" }
+          )
+        );
+      });
+    })
   );
 });
