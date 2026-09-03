@@ -33,6 +33,7 @@ import { Badge } from "@/components/ui/Badge";
 import { HeroSearch } from "@/components/home/HeroSearch";
 import { getProducts, getVendors, getCategories } from "@/lib/api/wordpress";
 import { TrackedVendorRegisterLink } from "@/components/analytics/TrackedVendorRegisterLink";
+import { SocialProofStats } from "@/components/social-proof/SocialProofStats";
 
 function getCategoryIcon(slug: string, className: string = "w-6 h-6") {
   const s = slug.toLowerCase();
@@ -173,6 +174,8 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      <SocialProofStats totalProducts={products.length} totalVendors={vendors.length} />
 
       {/* 2. KATEGORI PILIHAN */}
       <SectionContainer

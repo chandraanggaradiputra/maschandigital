@@ -12,6 +12,7 @@ import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import { GlobalSearchModal } from "@/components/ui/GlobalSearchModal";
 import { Suspense } from "react";
+import { VendorPromoToast } from "@/components/social-proof/VendorPromoToast";
 import { PageviewTracker } from "@/components/analytics/PageviewTracker";
 import { cn } from "../lib/utils";
 
@@ -165,6 +166,8 @@ export default function RootLayout({
 
           {/* Global Instant Search Modal (Ctrl+K) */}
           <GlobalSearchModal />
+
+          <VendorPromoToast />
         </ThemeProvider>
       </body>
     </html>

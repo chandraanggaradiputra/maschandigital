@@ -174,7 +174,7 @@ export const TUTORIAL_MODULES: TutorialModule[] = [
             },
             {
               title: '2. Mengonfirmasi Ketersediaan Stok',
-              description: 'Balas pesan pembeli dengan ramah untuk mengonfirmasi ketersediaan stok barang dan nomor rekening pembayaran pribadi Anda (BCA, Mandiri, BRI, BSI, atau QRIS pribadi).',
+              description: 'Balas pesan pembeli dengan ramah untuk mengonfirmasi ketersediaan stok barang dan nomor rekening pembayaran atau E-Wallet pribadi Anda (BCA, Mandiri, BRI, DANA/OVO, atau QRIS pribadi).',
             },
             {
               title: '3. Kesepakatan Pengiriman atau COD',
@@ -244,8 +244,8 @@ export const TUTORIAL_MODULES: TutorialModule[] = [
               tips: 'Email tagihan memuat nomor invoice, nominal transfer pas, dan tombol langsung ke halaman pembayaran.',
             },
             {
-              title: '3. Transfer Bank Manual & Unggah Bukti Bayar',
-              description: 'Lakukan transfer ke rekening resmi Bank Syariah Indonesia (BSI) 7304526968 a.n. Chandra Anggara Diputra. Setelah transfer berhasil, unggah foto bukti struk dan isi nama pemilik rekening pengirim di dashboard.',
+              title: '3. Transfer E-Wallet Manual & Unggah Bukti Bayar',
+              description: 'Lakukan transfer ke E-Wallet resmi (DANA, OVO, GoPay, atau ShopeePay) bernomor 0822-9814-8474 a.n. Chandra Anggara Diputra. Setelah transfer berhasil, unggah foto bukti struk dan isi nama pemilik rekening/akun pengirim di dashboard.',
             },
             {
               title: '4. Terima Email "Bukti Pembayaran Diterima" & Jaminan Grace Protection',

@@ -33,15 +33,11 @@ import {
 import { getVendorSession } from "@/lib/api/auth";
 import { PlanId, SubscriptionStatus } from "@/types";
 
-const BANK_ACCOUNTS = [
-  { bank: "BCA", number: "GANTI-NOMOR-REKENING", holder: "GANTI NAMA PEMILIK" },
-  {
-    bank: "Mandiri",
-    number: "GANTI-NOMOR-REKENING",
-    holder: "GANTI NAMA PEMILIK",
-  },
-  { bank: "BSI", number: "7304526968", holder: "Chandra Anggara Diputra" },
-  { bank: "BRI", number: "GANTI-NOMOR-REKENING", holder: "GANTI NAMA PEMILIK" },
+const PAYMENT_ACCOUNTS = [
+  { bank: "DANA", number: "0822-9814-8474", holder: "Chandra Anggara Diputra" },
+  { bank: "OVO", number: "0822-9814-8474", holder: "Chandra Anggara Diputra" },
+  { bank: "GoPay", number: "0822-9814-8474", holder: "Chandra Anggara Diputra" },
+  { bank: "ShopeePay", number: "0822-9814-8474", holder: "Chandra Anggara Diputra" },
 ];
 
 const PLAN_ORDER: PlanId[] = [
@@ -88,7 +84,7 @@ export default function DashboardBillingPage() {
 
   const [proofImageUrl, setProofImageUrl] = useState("");
   const [senderAccountName, setSenderAccountName] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("BCA");
+  const [paymentMethod, setPaymentMethod] = useState("DANA");
   const [isSubmittingConfirm, setIsSubmittingConfirm] = useState(false);
   const [confirmError, setConfirmError] = useState("");
   const [confirmSuccess, setConfirmSuccess] = useState(false);
@@ -416,9 +412,7 @@ export default function DashboardBillingPage() {
 
           {/* Rekening tujuan */}
           <div className="gap-2.5 grid sm:grid-cols-2 mb-5">
-            {BANK_ACCOUNTS.filter(
-              (acc) => acc.number !== "GANTI-NOMOR-REKENING",
-            ).map((acc) => (
+            {PAYMENT_ACCOUNTS.map((acc) => (
               <div
                 key={acc.bank}
                 className="flex items-start gap-2.5 bg-slate-50 dark:bg-slate-800/60 p-3 border border-slate-200 dark:border-slate-700 rounded-xl"
@@ -491,12 +485,11 @@ export default function DashboardBillingPage() {
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   className="bg-white dark:bg-slate-900 px-3.5 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 w-full text-sm"
                 >
-                  <option value="BCA">BCA</option>
-                  <option value="Mandiri">Mandiri</option>
-                  <option value="BSI">BSI</option>
-                  <option value="BRI">BRI</option>
-                  <option value="QRIS">QRIS</option>
-                  <option value="Lainnya">Lainnya</option>
+                  <option value="DANA">DANA (0822-9814-8474)</option>
+                  <option value="OVO">OVO (0822-9814-8474)</option>
+                  <option value="GoPay">GoPay (0822-9814-8474)</option>
+                  <option value="ShopeePay">ShopeePay (0822-9814-8474)</option>
+                  <option value="Transfer Bank">Transfer Bank Lainnya</option>
                 </select>
               </div>
 
