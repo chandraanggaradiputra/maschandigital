@@ -9,6 +9,7 @@ import {
   X,
   ArrowUpDown,
   RefreshCw,
+  MapPin,
 } from "lucide-react";
 import { Product, ProductCategory } from "@/types";
 import { ProductCard } from "@/components/cards/ProductCard";
@@ -600,6 +601,83 @@ export function ProductCatalogView({
           </div>
         )}
       </div>
+
+      {/* Active Filter Chips */}
+      {hasActiveFilter && (
+        <div className="flex flex-wrap items-center gap-2 px-1">
+          {searchQuery && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
+              <Search className="w-3.5 h-3.5" />
+              <span>&quot;{searchQuery}&quot;</span>
+              <button
+                type="button"
+                onClick={() => handleSearchChange("")}
+                className="hover:text-blue-900 dark:hover:text-blue-100 ml-0.5"
+                aria-label="Hapus filter pencarian"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+          {selectedDistrict !== "Semua Kecamatan" && selectedDistrict !== "Semua" && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300">
+              <MapPin className="w-3.5 h-3.5" />
+              <span>Kec. {selectedDistrict}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedDistrict("Semua Kecamatan");
+                  updateUrlParams(searchQuery, "Semua Kecamatan", selectedCategory, sortBy);
+                }}
+                className="hover:text-purple-900 dark:hover:text-purple-100 ml-0.5"
+                aria-label="Hapus filter kecamatan"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+          {selectedCategory !== "semua" && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300">
+              <Tag className="w-3.5 h-3.5" />
+              <span className="capitalize">{selectedCategory}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCategory("semua");
+                  setSelectedParentId(0);
+                  setSelectedSubcategoryId(0);
+                  updateUrlParams(searchQuery, selectedDistrict, "semua", sortBy);
+                }}
+                className="hover:text-orange-900 dark:hover:text-orange-100 ml-0.5"
+                aria-label="Hapus filter kategori"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+          {onlyOpenStores && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Hanya Toko Buka</span>
+              <button
+                type="button"
+                onClick={() => setOnlyOpenStores(false)}
+                className="hover:text-emerald-900 dark:hover:text-emerald-100 ml-0.5"
+                aria-label="Hapus filter toko buka"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={handleReset}
+            className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 transition-colors"
+          >
+            Hapus Semua Filter
+          </button>
+        </div>
+      )}
 
       {/* Results Header Count */}
       <div className="flex justify-between items-center px-1">
