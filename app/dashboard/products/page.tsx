@@ -15,32 +15,52 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { getMyVendorProducts, deleteProduct } from "@/lib/api/wordpress";
+import { getBillingInfo } from "@/lib/api/billing";
 import { formatRupiah } from "@/lib/utils";
-import { Product } from "@/types";
+import { Product, VendorSubscription } from "@/types";
 
 export default function DashboardProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [subscription, setSubscription] = useState<VendorSubscription | null>(
+    null,
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [deleteNotice, setDeleteNotice] = useState("");
 
   useEffect(() => {
-    async function loadProducts() {
+    async function loadData() {
       setIsLoading(true);
       try {
-        const liveProducts = await getMyVendorProducts();
+        const [liveProducts, billingData] = await Promise.all([
+          getMyVendorProducts(),
+          getBillingInfo(),
+        ]);
         setProducts(liveProducts);
+        if (billingData?.subscription) {
+          setSubscription(billingData.subscription);
+        }
       } catch (err: unknown) {
-        console.error("Gagal memuat produk vendor:", err);
+        console.error("Gagal memuat produk atau langganan vendor:", err);
       } finally {
         setIsLoading(false);
       }
     }
-    loadProducts();
+    loadData();
   }, []);
 
   const handleDelete = async (id: number, name: string) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus produk "${name}"?`)) {
+    const isOverQuota = Boolean(
+      subscription &&
+        subscription.plan_id === "free_forever" &&
+        products.length >= subscription.max_products,
+    );
+
+    const confirmMessage = isOverQuota
+      ? `⚠️ PERINGATAN KUOTA PRODUK:\n\nAkun toko Anda saat ini berada pada Paket Starter UMKM (kuota maksimal ${subscription?.max_products} produk) dengan total ${products.length} produk aktif.\n\nJika Anda menghapus produk "${name}", Anda TIDAK DAPAT menambahkan produk baru lagi karena total produk toko Anda masih mencapai atau melebihi kuota gratis, kecuali setelah Anda meng-upgrade paket langganan.\n\nApakah Anda yakin ingin tetap menghapus produk ini?`
+      : `Apakah Anda yakin ingin menghapus produk "${name}"?`;
+
+    if (confirm(confirmMessage)) {
       const ok = await deleteProduct(id);
       if (ok) {
         setProducts((prev) => prev.filter((p) => p.id !== id));

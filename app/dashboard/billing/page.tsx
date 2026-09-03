@@ -265,8 +265,6 @@ export default function DashboardBillingPage() {
     setIsSubmittingConfirm(false);
   };
 
-  const handleConfirmSubmit = handleSubmitConfirm;
-
   const handleCancelInvoice = async (invoiceId: number) => {
     if (
       !confirm(
@@ -779,6 +777,7 @@ export default function DashboardBillingPage() {
               const plan = plans[planId];
               const isCurrentPlan = subscription.plan_id === planId;
               const isUnlimited = plan.max_products === -1;
+              const isLockedStarter = !isCurrentPlan && plan.price === 0;
 
               return (
                 <div
@@ -810,10 +809,10 @@ export default function DashboardBillingPage() {
                       : `${plan.max_products} produk`}
                   </p>
                   <Button
-                    variant={isCurrentPlan ? "outline" : "primary"}
+                    variant={isCurrentPlan || isLockedStarter ? "outline" : "primary"}
                     size="sm"
                     fullWidth
-                    disabled={renewingPlan !== null || isCurrentPlan}
+                    disabled={renewingPlan !== null || isCurrentPlan || isLockedStarter}
                     onClick={() => handleRenew(planId)}
                     className="mt-auto"
                   >
@@ -828,11 +827,16 @@ export default function DashboardBillingPage() {
                     <span>
                       {isCurrentPlan
                         ? "Paket Saat Ini"
-                        : plan.price === 0
-                          ? "Turun ke Paket Ini"
+                        : isLockedStarter
+                          ? "Otomatis Saat Langganan Berakhir"
                           : "Pilih Paket Ini"}
                     </span>
                   </Button>
+                  {isLockedStarter && (
+                    <p className="mt-2 text-slate-500 dark:text-slate-400 text-[11px] text-center leading-tight">
+                      Paket Starter UMKM hanya diterapkan secara otomatis oleh sistem jika masa aktif paket Anda telah berakhir.
+                    </p>
+                  )}
                 </div>
               );
             })}

@@ -1668,6 +1668,22 @@ add_action('rest_api_init', function () {
                 return new WP_Error('invalid_plan', 'Paket langganan tidak dikenali.', ['status' => 400]);
             }
 
+            // Proteksi: Kunci penurunan ke Paket Starter jika paket berbayar masih aktif
+            if ($plan_id === 'free_forever') {
+                $current_sub = maschan_get_vendor_subscription($vendor_id);
+                if (
+                    $current_sub &&
+                    $current_sub['plan_id'] !== 'free_forever' &&
+                    in_array($current_sub['status'], ['active', 'renewal_due', 'grace_period'], true)
+                ) {
+                    return new WP_Error(
+                        'downgrade_not_allowed',
+                        'Penurunan ke Paket Starter UMKM hanya berlaku secara otomatis oleh sistem saat masa aktif langganan Anda telah berakhir.',
+                        ['status' => 400]
+                    );
+                }
+            }
+
             if ((int)$plan['price'] === 0) {
                 $current_end_date = get_user_meta($vendor_id, 'maschan_subscription_end_date', true);
                 $new_end_date = maschan_calculate_new_end_date($current_end_date, $plan['duration_days']);
