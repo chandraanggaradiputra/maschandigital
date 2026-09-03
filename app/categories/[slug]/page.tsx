@@ -18,6 +18,7 @@ import { SectionContainer } from "@/components/layout/SectionContainer";
 import { ProductCard } from "@/components/cards/ProductCard";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import { getCategories, getProducts } from "@/lib/api/wordpress";
 
 type CategoryPageProps = {
@@ -137,6 +138,13 @@ export default async function CategoryProductPage({
       aria-labelledby="category-title"
       className="space-y-8 sm:space-y-12 pb-16"
     >
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Beranda", url: "/" },
+          { name: "Kategori", url: "/categories" },
+          { name: titleName, url: `/categories/${slug}` },
+        ]}
+      />
       {/* 1. HERO HEADER KATEGORI */}
       <header className="relative bg-brand-gradient py-10 sm:py-14 overflow-hidden text-white">
         <div

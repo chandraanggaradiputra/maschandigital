@@ -15,11 +15,11 @@ import { SectionContainer } from "@/components/layout/SectionContainer";
 import { Button } from "@/components/ui/Button";
 
 export const metadata: Metadata = {
-  title: "Syarat & Ketentuan - Mas Chan Digital",
+  title: "Syarat & Ketentuan",
   description:
     "Syarat dan ketentuan resmi penggunaan platform marketplace direktori Mas Chan Digital bagi pengunjung dan vendor UMKM di Kota Serang.",
   openGraph: {
-    title: "Syarat & Ketentuan - Mas Chan Digital",
+    title: "Syarat & Ketentuan",
     description:
       "Syarat dan ketentuan resmi penggunaan platform marketplace direktori Mas Chan Digital.",
     url: "https://maschandigital.id/syarat-ketentuan",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Syarat & Ketentuan - Mas Chan Digital",
+    title: "Syarat & Ketentuan",
     description:
       "Syarat dan ketentuan resmi penggunaan platform marketplace Mas Chan Digital.",
     images: ["/mas-chan-digital.webp"],

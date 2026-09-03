@@ -6,11 +6,11 @@ import { SectionContainer } from "@/components/layout/SectionContainer";
 import { Button } from "@/components/ui/Button";
 
 export const metadata: Metadata = {
-  title: "Kebijakan Privasi - Mas Chan Digital",
+  title: "Kebijakan Privasi",
   description:
     "Kebijakan privasi dan perlindungan data pribadi pengguna serta mitra vendor terdaftar di platform marketplace Mas Chan Digital Kota Serang.",
   openGraph: {
-    title: "Kebijakan Privasi - Mas Chan Digital",
+    title: "Kebijakan Privasi",
     description:
       "Kebijakan privasi dan perlindungan data pribadi pengguna serta mitra vendor terdaftar di platform marketplace Mas Chan Digital.",
     url: "https://maschandigital.id/kebijakan-privasi",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kebijakan Privasi - Mas Chan Digital",
+    title: "Kebijakan Privasi",
     description: "Kebijakan privasi dan perlindungan data di Mas Chan Digital.",
     images: ["/mas-chan-digital.webp"],
   },

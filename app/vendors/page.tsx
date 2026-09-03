@@ -11,6 +11,12 @@ import { Badge } from "@/components/ui/Badge";
 import { VendorCollectionJsonLd } from "@/components/seo/VendorCollectionJsonLd";
 import { getVendors } from "@/lib/api/wordpress";
 import { KECAMATAN_LIST } from "@/lib/constants/serangDistricts";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Direktori Toko & Vendor UMKM Kota Serang",
+  description: "Daftar lengkap toko dan vendor UMKM lokal yang terverifikasi di Kota Serang.",
+};
 
 type VendorsPageProps = {
   searchParams: Promise<{

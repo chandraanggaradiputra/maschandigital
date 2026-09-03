@@ -16,6 +16,7 @@ import { VendorTawkChat } from "@/components/chat/VendorTawkChat";
 import { ProductJsonLd } from "@/components/seo/ProductJsonLd";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductViewTracker } from "@/components/product/ProductViewTracker";
+import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import {
   getProductBySlug,
   getProducts,
@@ -143,6 +144,13 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
       <ProductViewTracker product={product} />
       {/* Product Json LTD */}
       <ProductJsonLd product={product} />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Beranda", url: "/" },
+          { name: "Produk", url: "/products" },
+          { name: product.name, url: `/products/${product.slug}` },
+        ]}
+      />
 
       {/* Breadcrumb */}
       <SectionContainer className="py-0">

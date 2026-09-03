@@ -19,11 +19,11 @@ import { SectionContainer } from "@/components/layout/SectionContainer";
 import { TUTORIAL_MODULES, getAllTutorialChapters } from "@/lib/tutorialData";
 
 export const metadata: Metadata = {
-  title: "Pusat Panduan & Tutorial Vendor - Mas Chan Digital",
+  title: "Pusat Panduan & Tutorial Vendor",
   description:
     "Dokumentasi dan kurikulum tutorial lengkap bagi pelaku UMKM di Kota Serang untuk mengelola toko, katalog produk, dan transaksi WhatsApp di Mas Chan Digital.",
   openGraph: {
-    title: "Pusat Panduan & Tutorial Vendor - Mas Chan Digital",
+    title: "Pusat Panduan & Tutorial Vendor",
     description:
       "Panduan lengkap cara berjualan dan mengoptimasi toko UMKM di Kota Serang.",
     url: "https://maschandigital.id/panduan",
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Pusat Panduan & Tutorial Vendor - Mas Chan Digital",
+    title: "Pusat Panduan & Tutorial Vendor",
     description:
       "Panduan lengkap cara berjualan di Mas Chan Digital Kota Serang.",
     images: ["/mas-chan-digital.webp"],

@@ -18,11 +18,11 @@ import { SectionContainer } from "@/components/layout/SectionContainer";
 import { Button } from "@/components/ui/Button";
 
 export const metadata: Metadata = {
-  title: "Tentang Kami - Mas Chan Digital | Marketplace Lokal Kota Serang",
+  title: "Tentang Kami",
   description:
     "Mengenal Mas Chan Digital, platform marketplace direktori lokal untuk memajukan UMKM di Kota Serang melalui transaksi langsung ke WhatsApp vendor tanpa potongan biaya gateway.",
   openGraph: {
-    title: "Tentang Kami - Mas Chan Digital | Marketplace Lokal Kota Serang",
+    title: "Tentang Kami",
     description:
       "Mengenal Mas Chan Digital, platform marketplace direktori lokal untuk memajukan UMKM di Kota Serang melalui transaksi langsung ke WhatsApp vendor.",
     url: "https://maschandigital.id/tentang-kami",
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Tentang Kami - Mas Chan Digital | Marketplace Lokal Kota Serang",
+    title: "Tentang Kami",
     description:
       "Platform marketplace lokal untuk memajukan UMKM di Kota Serang.",
     images: ["/mas-chan-digital.webp"],

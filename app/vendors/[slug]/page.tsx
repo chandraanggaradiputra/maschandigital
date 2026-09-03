@@ -24,6 +24,7 @@ import { SectionContainer } from "@/components/layout/SectionContainer";
 import { ProductCard } from "@/components/cards/ProductCard";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import { getVendorBySlug, getVendorProducts } from "@/lib/api/wordpress";
 import { generateWhatsAppVendorUrl } from "@/lib/utils";
 import { checkStoreStatus } from "@/lib/storeStatus";
@@ -169,6 +170,13 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
     >
       {/* Vendor Json LD */}
       <VendorJsonLd vendor={vendor} />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Beranda", url: "/" },
+          { name: "Vendor", url: "/vendors" },
+          { name: vendor.store_name, url: `/vendors/${vendor.slug}` },
+        ]}
+      />
 
       {/* Konten */}
       {/* <VendorTawkChat
