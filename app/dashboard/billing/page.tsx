@@ -15,10 +15,12 @@ import {
   MessageCircle,
   Crown,
   Ban,
+  UploadCloud,
+  RefreshCw,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { MediaUploader } from "@/components/forms/MediaUploader";
 import {
   getBillingInfo,
   renewSubscription,
@@ -83,6 +85,9 @@ export default function DashboardBillingPage() {
   const [renewError, setRenewError] = useState("");
 
   const [proofImageUrl, setProofImageUrl] = useState("");
+  const [selectedProofFile, setSelectedProofFile] = useState<File | null>(null);
+  const [proofPreviewUrl, setProofPreviewUrl] = useState("");
+  const [proofFileError, setProofFileError] = useState("");
   const [senderAccountName, setSenderAccountName] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("DANA");
   const [isSubmittingConfirm, setIsSubmittingConfirm] = useState(false);
@@ -110,6 +115,68 @@ export default function DashboardBillingPage() {
     loadBilling();
   }, [loadBilling]);
 
+  useEffect(() => {
+    return () => {
+      if (proofPreviewUrl && proofPreviewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(proofPreviewUrl);
+      }
+    };
+  }, [proofPreviewUrl]);
+
+  const handleProofFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    const allowedExtensions = ["jpg", "jpeg", "png", "webp", "jfif"];
+    const allowedMimeTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/jfif",
+      "image/pjpeg",
+    ];
+
+    const fileExt = file.name.split(".").pop()?.toLowerCase() || "";
+    const isMimeValid = allowedMimeTypes.includes(file.type);
+    const isExtValid = allowedExtensions.includes(fileExt);
+
+    if (!isMimeValid && !isExtValid) {
+      setProofFileError(
+        "Format file tidak didukung! Gunakan JPG, PNG, WebP, atau JFIF.",
+      );
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setProofFileError("Ukuran file maksimal 5MB.");
+      e.target.value = "";
+      return;
+    }
+
+    setProofFileError("");
+    if (proofPreviewUrl && proofPreviewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(proofPreviewUrl);
+    }
+    setSelectedProofFile(file);
+    const objectUrl = URL.createObjectURL(file);
+    setProofPreviewUrl(objectUrl);
+  };
+
+  const handleRemoveProofFile = () => {
+    if (proofPreviewUrl && proofPreviewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(proofPreviewUrl);
+    }
+    setSelectedProofFile(null);
+    setProofPreviewUrl("");
+    setProofImageUrl("");
+    const fileInput = document.getElementById(
+      "proof-file-input",
+    ) as HTMLInputElement | null;
+    if (fileInput) fileInput.value = "";
+  };
+
   const handleRenew = async (planId: PlanId) => {
     setRenewingPlan(planId);
     setRenewError("");
@@ -122,8 +189,8 @@ export default function DashboardBillingPage() {
     setRenewingPlan(null);
   };
 
-  const handleConfirmSubmit = async (invoiceId: number) => {
-    if (!proofImageUrl || !senderAccountName.trim()) {
+  const handleSubmitConfirm = async (invoiceId: number) => {
+    if ((!selectedProofFile && !proofImageUrl) || !senderAccountName.trim()) {
       setConfirmError(
         "Foto bukti transfer dan nama pemilik rekening wajib diisi.",
       );
@@ -131,20 +198,74 @@ export default function DashboardBillingPage() {
     }
     setIsSubmittingConfirm(true);
     setConfirmError("");
+
+    let finalProofUrl = proofImageUrl;
+
+    // Deferred Upload: unggah ke /media/upload saat tombol konfirmasi diklik
+    if (selectedProofFile) {
+      try {
+        const WP_API_URL =
+          process.env.NEXT_PUBLIC_WORDPRESS_URL ||
+          "https://app.maschandigital.id";
+        const formData = new FormData();
+        formData.append("file", selectedProofFile);
+
+        const session = getVendorSession();
+        const headers: Record<string, string> = {};
+        if (session?.token) headers["Authorization"] = `Bearer ${session.token}`;
+
+        const uploadRes = await fetch(
+          `${WP_API_URL}/wp-json/maschan/v1/media/upload`,
+          {
+            method: "POST",
+            headers,
+            body: formData,
+          },
+        );
+
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok || !uploadData.success || !uploadData.url) {
+          throw new Error(
+            uploadData.message ||
+              "Gagal mengunggah foto bukti transfer ke server.",
+          );
+        }
+
+        finalProofUrl = uploadData.url;
+        setProofImageUrl(finalProofUrl);
+      } catch (uploadErr) {
+        console.error("Upload Error:", uploadErr);
+        setConfirmError(
+          uploadErr instanceof Error
+            ? uploadErr.message
+            : "Terjadi kesalahan saat mengunggah foto bukti transfer.",
+        );
+        setIsSubmittingConfirm(false);
+        return;
+      }
+    }
+
     const result = await confirmPayment({
       invoiceId,
-      proofImageUrl,
+      proofImageUrl: finalProofUrl,
       senderAccountName: senderAccountName.trim(),
       paymentMethod,
     });
     if (result.success) {
       setConfirmSuccess(true);
+      if (proofPreviewUrl && proofPreviewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(proofPreviewUrl);
+      }
+      setSelectedProofFile(null);
+      setProofPreviewUrl("");
       await loadBilling();
     } else {
       setConfirmError(result.message);
     }
     setIsSubmittingConfirm(false);
   };
+
+  const handleConfirmSubmit = handleSubmitConfirm;
 
   const handleCancelInvoice = async (invoiceId: number) => {
     if (
@@ -158,6 +279,11 @@ export default function DashboardBillingPage() {
     setCancelError("");
     const result = await cancelInvoice(invoiceId);
     if (result.success) {
+      if (proofPreviewUrl && proofPreviewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(proofPreviewUrl);
+      }
+      setSelectedProofFile(null);
+      setProofPreviewUrl("");
       setProofImageUrl("");
       setSenderAccountName("");
       await loadBilling();
@@ -449,11 +575,98 @@ export default function DashboardBillingPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <MediaUploader
-                label="Foto Bukti Transfer"
-                helpText="Unggah screenshot/foto struk transfer yang jelas menampilkan nominal dan tanggal."
-                onImageChange={(url) => setProofImageUrl(url)}
-              />
+              <div>
+                <label className="block mb-1.5 font-slab font-bold text-slate-800 dark:text-slate-200 text-sm">
+                  Foto Bukti Transfer
+                </label>
+
+                <input
+                  type="file"
+                  id="proof-file-input"
+                  accept="image/jpeg,image/png,image/webp,image/jfif,image/pjpeg,.jpg,.jpeg,.png,.webp,.jfif"
+                  onChange={handleProofFileSelect}
+                  className="sr-only"
+                />
+
+                {proofFileError && (
+                  <div className="flex items-center gap-2 bg-rose-50 dark:bg-rose-950/80 mb-2 p-2.5 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-700 dark:text-rose-300 text-xs">
+                    <AlertTriangle
+                      className="w-4 h-4 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <span>{proofFileError}</span>
+                  </div>
+                )}
+
+                {proofPreviewUrl ? (
+                  <div className="group relative bg-slate-100 dark:bg-slate-900 shadow-sm border-2 border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-xs aspect-square overflow-hidden">
+                    <img
+                      src={proofPreviewUrl}
+                      alt="Pratinjau Bukti Transfer"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 flex justify-center items-center gap-2 bg-slate-950/60 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 p-4 transition-opacity">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() =>
+                          document.getElementById("proof-file-input")?.click()
+                        }
+                        aria-label="Ganti foto bukti transfer"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
+                        <span>Ganti</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        onClick={handleRemoveProofFile}
+                        aria-label="Hapus foto bukti transfer"
+                      >
+                        <X className="w-3.5 h-3.5" aria-hidden="true" />
+                        <span>Hapus</span>
+                      </Button>
+                    </div>
+                    <div className="bottom-2 left-2 z-10 absolute">
+                      <span className="inline-flex items-center gap-1 bg-amber-500/90 backdrop-blur-sm px-2 py-0.5 rounded-full font-bold text-[10px] text-white">
+                        <Clock className="w-3 h-3" aria-hidden="true" />
+                        Siap Diunggah Saat Konfirmasi
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() =>
+                      document.getElementById("proof-file-input")?.click()
+                    }
+                    onKeyDown={(e) =>
+                      e.key === "Enter" &&
+                      document.getElementById("proof-file-input")?.click()
+                    }
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Pilih foto struk bukti transfer"
+                    className="bg-slate-50/50 hover:bg-brand-50/20 dark:bg-slate-900/30 p-6 sm:p-8 border-2 border-slate-300 hover:border-brand-500 dark:border-slate-700 dark:hover:border-brand-400 border-dashed rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 w-full text-center transition-all cursor-pointer"
+                  >
+                    <div className="flex justify-center items-center bg-brand-100 dark:bg-brand-950/80 mx-auto mb-2 rounded-2xl w-10 h-10 text-brand-700 dark:text-brand-400">
+                      <UploadCloud className="w-5 h-5" aria-hidden="true" />
+                    </div>
+                    <p className="font-slab font-bold text-slate-800 dark:text-slate-200 text-sm">
+                      Pilih Foto Struk / Bukti Transfer
+                    </p>
+                    <p className="mt-1 text-slate-500 dark:text-slate-400 text-xs">
+                      Format: JPG, PNG, WebP, atau JFIF. Maksimal 5MB.
+                    </p>
+                  </div>
+                )}
+                <p className="mt-1.5 text-slate-500 dark:text-slate-400 text-xs">
+                  Unggah screenshot/foto struk transfer yang jelas menampilkan
+                  nominal dan tanggal. Foto akan diunggah ke server saat Anda
+                  menekan tombol kirim di bawah.
+                </p>
+              </div>
 
               <div>
                 <label
@@ -506,7 +719,7 @@ export default function DashboardBillingPage() {
               <div className="flex sm:flex-row flex-col gap-2.5">
                 <Button
                   variant="primary"
-                  onClick={() => handleConfirmSubmit(payableInvoice.id)}
+                  onClick={() => handleSubmitConfirm(payableInvoice.id)}
                   disabled={isSubmittingConfirm}
                   fullWidth
                 >

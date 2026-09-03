@@ -634,6 +634,14 @@ function maschan_approve_invoice($invoice_id, $admin_id) {
     update_post_meta($invoice_id, 'approved_at', current_time('c'));
     update_post_meta($invoice_id, 'approved_by', $admin_id);
 
+    $invoice_number = get_the_title($invoice_id);
+    $amount         = (int)get_post_meta($invoice_id, 'amount', true);
+    $vendor         = maschan_extract_full_vendor($vendor_id);
+    if ($vendor) {
+        maschan_email_vendor_approved($vendor, $plan['name'], $plan['max_products']);
+        maschan_email_admin_invoice_approved($vendor, $invoice_number, $plan['name'], $amount);
+    }
+
     return [
         'success' => true,
         'message' => 'Tagihan disetujui. Masa aktif vendor diperpanjang.',
@@ -666,6 +674,13 @@ function maschan_reject_invoice($invoice_id, $reason) {
     $vendor_sub_status = get_user_meta($vendor_id, 'maschan_subscription_status', true);
     if ($vendor_sub_status === 'pending_approval') {
         update_user_meta($vendor_id, 'maschan_subscription_status', 'payment_rejected');
+    }
+
+    $invoice_number = get_the_title($invoice_id);
+    $vendor         = maschan_extract_full_vendor($vendor_id);
+    if ($vendor) {
+        maschan_email_vendor_rejected($vendor, $reason);
+        maschan_email_admin_invoice_rejected($vendor, $invoice_number, $reason);
     }
 
     return [
@@ -836,6 +851,21 @@ add_action('graphql_register_types', function () {
         },
     ]);
 });
+
+// Dukungan format gambar JFIF di WordPress Media Library
+add_filter('upload_mimes', function ($mimes) {
+    $mimes['jfif'] = 'image/jpeg';
+    return $mimes;
+});
+
+add_filter('wp_check_filetype_and_ext', function ($data, $file, $filename, $mimes) {
+    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    if ($ext === 'jfif') {
+        $data['ext']  = 'jfif';
+        $data['type'] = 'image/jpeg';
+    }
+    return $data;
+}, 10, 4);
 
 // 7. REST API ENDPOINTS
 add_action('rest_api_init', function () {
@@ -1148,9 +1178,12 @@ add_action('rest_api_init', function () {
             }
 
             $file = $_FILES['file'];
-            $allowed_types = ['image/jpeg', 'image/png', 'image/webp'];
-            if (!in_array($file['type'], $allowed_types, true)) {
-                return new WP_Error('invalid_type', 'Tipe file tidak didukung. Gunakan JPG, PNG, atau WebP.', ['status' => 400]);
+            $allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/jfif', 'image/pjpeg'];
+            $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
+            $allowed_exts = ['jpg', 'jpeg', 'png', 'webp', 'jfif'];
+
+            if (!in_array($file['type'], $allowed_types, true) && !in_array($ext, $allowed_exts, true)) {
+                return new WP_Error('invalid_type', 'Tipe file tidak didukung. Gunakan JPG, PNG, WebP, atau JFIF.', ['status' => 400]);
             }
             $max_size = 5 * 1024 * 1024;
             if ($file['size'] > $max_size) {
@@ -1699,6 +1732,13 @@ add_action('rest_api_init', function () {
             update_post_meta($post_id, 'plan_id', $plan_id);
             update_post_meta($post_id, 'amount', $plan['price']);
             update_post_meta($post_id, 'invoice_status', 'unpaid');
+
+            $invoice_number = get_the_title($post_id);
+            $vendor         = maschan_extract_full_vendor($vendor_id);
+            if ($vendor) {
+                maschan_email_invoice_created($vendor, $invoice_number, $plan['name'], $plan['price']);
+                maschan_email_admin_invoice_created($vendor, $invoice_number, $plan['name'], $plan['price']);
+            }
 
             return rest_ensure_response([
                 'success' => true,
@@ -2596,22 +2636,58 @@ function maschan_email_admin_new_vendor($vendor) {
 // --- 2. Pengajuan Perpanjangan / Upgrade Paket ------------------------------
 
 function maschan_email_invoice_created($vendor, $invoice_number, $plan_name, $amount) {
+    $recipient_name = !empty($vendor['owner_name']) ? $vendor['owner_name'] : $vendor['store_name'];
     $body = '
-        <h2 style="margin:0 0 12px; color:#093c96;">Tagihan Paket Langganan Anda</h2>
-        <p>Halo ' . esc_html($vendor['store_name']) . ', berikut rincian tagihan untuk paket yang Anda pilih:</p>
-        <table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="font-size:13px; background-color:#f8fafc; border-radius:10px; margin:16px 0;">
-            <tr><td style="color:#64748b; width:140px; padding-left:12px;">No. Invoice</td><td><strong>' . esc_html($invoice_number) . '</strong></td></tr>
-            <tr><td style="color:#64748b; padding-left:12px;">Paket</td><td>' . esc_html($plan_name) . '</td></tr>
-            <tr><td style="color:#64748b; padding-left:12px;">Nominal Transfer</td><td><strong style="color:#093c96; font-size:16px;">Rp ' . number_format((int)$amount, 0, ',', '.') . '</strong></td></tr>
+        <h2 style="margin:0 0 16px; color:#093c96; font-size:20px; font-weight:bold;">Tagihan Paket Langganan Anda</h2>
+        <p style="margin:0 0 12px; color:#334155; font-size:14px; line-height:1.6;">
+            Halo <strong>' . esc_html($recipient_name) . '</strong>, berikut rincian tagihan untuk paket yang Anda pilih:
+        </p>
+        <table role="presentation" width="100%" cellpadding="8" cellspacing="0" style="font-size:13px; background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; margin:16px 0;">
+            <tr><td style="color:#64748b; width:140px; border-bottom:1px solid #e2e8f0;">No. Invoice</td><td style="border-bottom:1px solid #e2e8f0;"><strong>' . esc_html($invoice_number) . '</strong></td></tr>
+            <tr><td style="color:#64748b; border-bottom:1px solid #e2e8f0;">Paket Dipilih</td><td style="border-bottom:1px solid #e2e8f0;">' . esc_html($plan_name) . '</td></tr>
+            <tr><td style="color:#64748b;">Nominal Transfer</td><td><strong style="color:#093c96; font-size:16px;">Rp ' . number_format((int)$amount, 0, ',', '.') . '</strong></td></tr>
         </table>
-        <p>Silakan buka dashboard billing untuk melihat nomor rekening tujuan transfer dan mengunggah bukti pembayaran Anda.</p>'
+
+        <div style="background-color:#f0f9ff; border:1px solid #bae6fd; border-radius:10px; padding:16px; margin:16px 0;">
+            <p style="margin:0 0 10px 0; font-weight:bold; color:#0369a1; font-size:14px;">Rekening Resmi Pembayaran (E-Wallet):</p>
+            <p style="margin:0 0 6px 0; color:#334155; font-size:13px;">• <strong>DANA:</strong> 0822-9814-8474 (a.n. Chandra Anggara Diputra)</p>
+            <p style="margin:0 0 6px 0; color:#334155; font-size:13px;">• <strong>OVO:</strong> 0822-9814-8474 (a.n. Chandra Anggara Diputra)</p>
+            <p style="margin:0 0 6px 0; color:#334155; font-size:13px;">• <strong>GoPay:</strong> 0822-9814-8474 (a.n. Chandra Anggara Diputra)</p>
+            <p style="margin:0; color:#334155; font-size:13px;">• <strong>ShopeePay:</strong> 0822-9814-8474 (a.n. Chandra Anggara Diputra)</p>
+        </div>
+
+        <p style="margin:16px 0; color:#475569; font-size:13px; line-height:1.5;">
+            Setelah melakukan transfer, silakan buka dashboard billing untuk mengunggah foto bukti transfer dan mengisi nama pemilik rekening.
+        </p>'
         . maschan_email_button('Buka Halaman Pembayaran', 'https://maschandigital.id/dashboard/billing');
 
     maschan_send_mailketing_email(
         $vendor['email'],
-        $vendor['store_name'],
+        $recipient_name,
         'Tagihan Paket ' . $plan_name . ' — ' . $invoice_number,
         maschan_email_shell('Rincian tagihan paket langganan Anda', $body)
+    );
+}
+
+function maschan_email_admin_invoice_created($vendor, $invoice_number, $plan_name, $amount) {
+    $admin_link = admin_url('edit.php?post_type=maschan_invoice');
+    $body = '
+        <h2 style="margin:0 0 12px; color:#093c96;">Tagihan Baru Dibuat</h2>
+        <p>Vendor <strong>' . esc_html($vendor['store_name']) . '</strong> telah memilih paket langganan:</p>
+        <table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="font-size:13px;">
+            <tr><td style="color:#64748b; width:140px;">No. Invoice</td><td><strong>' . esc_html($invoice_number) . '</strong></td></tr>
+            <tr><td style="color:#64748b;">Paket</td><td>' . esc_html($plan_name) . '</td></tr>
+            <tr><td style="color:#64748b;">Nominal</td><td>Rp ' . number_format((int)$amount, 0, ',', '.') . '</td></tr>
+            <tr><td style="color:#64748b;">Toko</td><td>' . esc_html($vendor['store_name']) . '</td></tr>
+            <tr><td style="color:#64748b;">Pemilik</td><td>' . esc_html($vendor['owner_name'] ?: '-') . ' (' . esc_html($vendor['email']) . ')</td></tr>
+        </table>'
+        . maschan_email_button('Lihat Semua Tagihan di WP-Admin', $admin_link);
+
+    maschan_send_mailketing_email(
+        maschan_admin_notification_email(),
+        'Admin',
+        'Tagihan Baru Dibuat: ' . $invoice_number . ' — ' . $vendor['store_name'],
+        maschan_email_shell('Ada tagihan baru dibuat oleh vendor', $body)
     );
 }
 
@@ -2669,6 +2745,25 @@ function maschan_email_vendor_approved($vendor, $plan_name, $max_products) {
     );
 }
 
+function maschan_email_admin_invoice_approved($vendor, $invoice_number, $plan_name, $amount) {
+    $body = '
+        <h2 style="margin:0 0 12px; color:#16a34a;">Tagihan Telah Disetujui ✓</h2>
+        <p>Tagihan langganan berikut telah disetujui:</p>
+        <table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="font-size:13px;">
+            <tr><td style="color:#64748b; width:140px;">No. Invoice</td><td><strong>' . esc_html($invoice_number) . '</strong></td></tr>
+            <tr><td style="color:#64748b;">Toko</td><td><strong>' . esc_html($vendor['store_name']) . '</strong></td></tr>
+            <tr><td style="color:#64748b;">Paket</td><td>' . esc_html($plan_name) . '</td></tr>
+            <tr><td style="color:#64748b;">Nominal</td><td>Rp ' . number_format((int)$amount, 0, ',', '.') . '</td></tr>
+        </table>';
+
+    maschan_send_mailketing_email(
+        maschan_admin_notification_email(),
+        'Admin',
+        'Tagihan Disetujui: ' . $invoice_number . ' — ' . $vendor['store_name'],
+        maschan_email_shell('Tagihan langganan vendor telah disetujui', $body)
+    );
+}
+
 // --- 5. Penolakan Pembayaran -------------------------------------------------
 
 function maschan_email_vendor_rejected($vendor, $reason) {
@@ -2684,6 +2779,24 @@ function maschan_email_vendor_rejected($vendor, $reason) {
         $vendor['store_name'],
         'Pembayaran Ditolak — Perlu Diunggah Ulang',
         maschan_email_shell('Bukti pembayaran perlu diunggah ulang', $body)
+    );
+}
+
+function maschan_email_admin_invoice_rejected($vendor, $invoice_number, $reason) {
+    $body = '
+        <h2 style="margin:0 0 12px; color:#e11d48;">Tagihan Ditolak</h2>
+        <p>Tagihan langganan berikut telah ditolak:</p>
+        <table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="font-size:13px;">
+            <tr><td style="color:#64748b; width:140px;">No. Invoice</td><td><strong>' . esc_html($invoice_number) . '</strong></td></tr>
+            <tr><td style="color:#64748b;">Toko</td><td><strong>' . esc_html($vendor['store_name']) . '</strong></td></tr>
+            <tr><td style="color:#64748b;">Alasan Penolakan</td><td>' . esc_html($reason) . '</td></tr>
+        </table>';
+
+    maschan_send_mailketing_email(
+        maschan_admin_notification_email(),
+        'Admin',
+        'Tagihan Ditolak: ' . $invoice_number . ' — ' . $vendor['store_name'],
+        maschan_email_shell('Tagihan vendor telah ditolak', $body)
     );
 }
 

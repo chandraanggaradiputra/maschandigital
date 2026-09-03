@@ -23,7 +23,7 @@ export function MediaUploader({
   initialImage = "",
   onImageChange,
   label = "Foto Produk (WordPress Media)",
-  helpText = "Format: JPG, PNG, atau WebP. Maksimal 5MB. Gambar akan diunggah langsung ke Media Library WordPress.",
+  helpText = "Format: JPG, PNG, WebP, atau JFIF. Maksimal 5MB. Gambar akan diunggah langsung ke Media Library WordPress.",
 }: MediaUploaderProps) {
   const [previewUrl, setPreviewUrl] = useState<string>(initialImage);
   const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -38,6 +38,28 @@ export function MediaUploader({
     if (!files || files.length === 0) return;
 
     const file = files[0];
+
+    const allowedExtensions = ["jpg", "jpeg", "png", "webp", "jfif"];
+    const allowedMimeTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/jfif",
+      "image/pjpeg",
+    ];
+
+    const fileExt = file.name.split(".").pop()?.toLowerCase() || "";
+    const isMimeValid = allowedMimeTypes.includes(file.type);
+    const isExtValid = allowedExtensions.includes(fileExt);
+
+    if (!isMimeValid && !isExtValid) {
+      setErrorMessage(
+        "Format file tidak didukung! Gunakan JPG, PNG, WebP, atau JFIF.",
+      );
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
     setIsUploading(true);
     setErrorMessage("");
 
@@ -105,7 +127,7 @@ export function MediaUploader({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/jpeg,image/png,image/webp,image/jfif,image/pjpeg,.jpg,.jpeg,.png,.webp,.jfif"
         onChange={handleFileSelect}
         className="sr-only"
         id={`wp-media-input-${label.replace(/[^a-zA-Z0-9]/g, "-")}`}
