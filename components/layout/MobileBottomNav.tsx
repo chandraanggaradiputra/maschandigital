@@ -69,6 +69,10 @@ export function MobileBottomNav() {
     };
   }, [isDrawerOpen]);
 
+  const isProductDetail = pathname.startsWith("/products/") && pathname !== "/products";
+
+  if (isProductDetail) return null;
+
   return (
     <>
       {/* 5-TAB BOTTOM NAVIGATION BAR */}

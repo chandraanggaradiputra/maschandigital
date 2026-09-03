@@ -137,7 +137,7 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
   return (
     <article
       aria-labelledby="product-main-title"
-      className="space-y-8 sm:space-y-12 py-6 sm:py-10"
+      className="space-y-8 sm:space-y-12 py-6 sm:py-10 pb-28 md:pb-12"
     >
       {/* Pelacak Tayangan Produk Otomatis */}
       <ProductViewTracker product={product} />
