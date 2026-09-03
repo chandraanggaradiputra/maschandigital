@@ -964,7 +964,14 @@ add_action('rest_api_init', function () {
             update_user_meta($user_id, 'maschan_plan_id', 'free_forever');
             update_user_meta($user_id, 'maschan_subscription_end_date', null);
 
-            $token = maschan_generate_jwt($user_id);
+            $token       = maschan_generate_jwt($user_id);
+            $full_vendor = maschan_extract_full_vendor($user_id);
+
+            if ($full_vendor) {
+                maschan_email_vendor_welcome($full_vendor);
+                maschan_email_admin_new_vendor($full_vendor);
+            }
+            maschan_add_subscriber_to_list($email, (!empty($owner_name) ? $owner_name : $store_name), $clean_phone);
 
             return rest_ensure_response([
                 'success' => true,
@@ -2253,6 +2260,12 @@ function maschan_admin_notification_email() {
     return 'admin@maschandigital.id';
 }
 
+function maschan_mailketing_vendor_list_id() {
+    return defined('MAILKETING_VENDOR_LIST_ID') && !empty(MAILKETING_VENDOR_LIST_ID)
+        ? MAILKETING_VENDOR_LIST_ID
+        : '92356';
+}
+
 /**
  * SATU-SATUNYA tempat pemanggilan API Mailketing boleh berada. Kontrak API
  * v2 (dikonfirmasi dari dokumentasi resmi https://api.mailketing.co.id/docs/):
@@ -2302,6 +2315,42 @@ function maschan_send_mailketing_email($to_email, $to_name, $subject, $html_cont
     }
 }
 
+/**
+ * Tambah subscriber baru ke kontak list Mailketing (API v1 addsubtolist).
+ * Field wajib/lengkap: first_name, email, mobile, api_token, list_id.
+ */
+function maschan_add_subscriber_to_list($email, $name, $phone = '', $list_id = null) {
+    if (empty($email) || !is_email($email)) {
+        error_log("Mas Chan Digital: subscriber tidak ditambahkan, alamat email tidak valid ({$email})");
+        return;
+    }
+
+    $api_token = maschan_mailketing_api_token();
+    if (empty($list_id)) {
+        $list_id = maschan_mailketing_vendor_list_id();
+    }
+
+    $body = [
+        'first_name' => $name,
+        'email'      => $email,
+        'mobile'     => $phone,
+        'api_token'  => $api_token,
+        'list_id'    => $list_id,
+    ];
+
+    $result = wp_remote_post('https://api.mailketing.co.id/api/v1/addsubtolist', [
+        'headers'  => [
+            'Content-Type' => 'application/x-www-form-urlencoded',
+        ],
+        'body'     => $body,
+        'timeout'  => 5,
+        'blocking' => false,
+    ]);
+
+    if (is_wp_error($result)) {
+        error_log("Mas Chan Digital: gagal menambahkan subscriber {$email} ke list Mailketing — " . $result->get_error_message());
+    }
+}
 
 /**
  * Bungkus konten email dengan template HTML bermerek yang konsisten — SATU-
@@ -2357,17 +2406,66 @@ function maschan_email_button($text, $url) {
 // --- 1. Pendaftaran Vendor Baru --------------------------------------------
 
 function maschan_email_vendor_welcome($vendor) {
+    $recipient_name = !empty($vendor['owner_name']) ? $vendor['owner_name'] : $vendor['store_name'];
+    $store_name     = !empty($vendor['store_name']) ? $vendor['store_name'] : $recipient_name;
+    $salute_name    = !empty($vendor['owner_name'])
+        ? esc_html($vendor['owner_name']) . ' (Pemilik <strong>' . esc_html($store_name) . '</strong>)'
+        : esc_html($store_name);
+
     $body = '
-        <h2 style="margin:0 0 12px; color:#093c96;">Selamat Datang, ' . esc_html($vendor['store_name']) . '! 🎉</h2>
-        <p>Toko Anda sudah resmi aktif di Mas Chan Digital dengan <strong>Paket Starter UMKM (Gratis Selamanya)</strong> — bisa unggah hingga 3 produk tanpa batas waktu.</p>
-        <p>Langkah selanjutnya, silakan login ke dashboard vendor untuk melengkapi profil toko dan mulai tambah produk pertama Anda.</p>'
-        . maschan_email_button('Masuk ke Dashboard Vendor', 'https://maschandigital.id/vendor/login');
+        <h2 style="margin:0 0 16px; color:#093c96; font-size:20px; font-weight:bold; line-height:1.4;">Selamat Bergabung, Toko Anda Telah Terdaftar! 🎉</h2>
+        <p style="margin:0 0 12px; color:#334155; font-size:15px; line-height:1.6;">
+            Halo <strong>' . $salute_name . '</strong>,
+        </p>
+        <p style="margin:0 0 20px; color:#475569; font-size:14px; line-height:1.6;">
+            Terima kasih telah bergabung di Mas Chan Digital. Kini toko Anda telah resmi menjadi bagian dari ekosistem UMKM lokal terdepan di Kota Serang.
+        </p>
+
+        <div style="background-color:#f0f9ff; border-left:4px solid #0ea5e9; padding:16px 20px; border-radius:6px; margin:20px 0;">
+            <h3 style="color:#0369a1; margin:0 0 12px 0; font-size:15px; font-weight:bold;">Kenapa Jualan di Mas Chan Digital?</h3>
+            <ul style="margin:0; padding:0 0 0 18px; color:#334155; font-size:13px; line-height:1.6;">
+                <li style="margin-bottom:8px;"><strong>Transaksi 100% Langsung via WhatsApp</strong> tanpa potongan biaya gateway (0% fee).</li>
+                <li style="margin-bottom:8px;">Toko online aktif seketika dengan <strong>Paket Starter UMKM Gratis</strong> (maksimal 3 produk).</li>
+                <li>Terhubung dengan calon pembeli di <strong>6 kecamatan Kota Serang</strong> (Serang, Cipocok Jaya, Kasemen, Curug, Taktakan, Walantaka).</li>
+            </ul>
+        </div>
+
+        <div style="margin:24px 0 20px;">
+            <h3 style="color:#0f172a; margin:0 0 16px 0; font-size:16px; font-weight:bold; text-align:center;">3 Langkah Mudah Memulai Jualan</h3>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
+                <tr>
+                    <td width="28" valign="top" style="color:#093c96; font-size:16px; font-weight:bold; padding-top:2px;">1.</td>
+                    <td style="color:#475569; font-size:13px; line-height:1.5;"><strong>Masuk ke Dashboard Toko Saya</strong> untuk mengelola toko Anda.</td>
+                </tr>
+            </table>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
+                <tr>
+                    <td width="28" valign="top" style="color:#093c96; font-size:16px; font-weight:bold; padding-top:2px;">2.</td>
+                    <td style="color:#475569; font-size:13px; line-height:1.5;"><strong>Unggah Foto &amp; Deskripsi Produk Lokal Anda</strong> semenarik mungkin agar pembeli tertarik.</td>
+                </tr>
+            </table>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td width="28" valign="top" style="color:#093c96; font-size:16px; font-weight:bold; padding-top:2px;">3.</td>
+                    <td style="color:#475569; font-size:13px; line-height:1.5;"><strong>Pastikan Nomor WhatsApp Aktif</strong> untuk langsung menerima pesanan dari pembeli.</td>
+                </tr>
+            </table>
+        </div>'
+        . maschan_email_button('Masuk ke Dashboard Toko Saya', 'https://maschandigital.id/vendor/login') . '
+
+        <div style="border-top:1px solid #e2e8f0; padding-top:16px; margin-top:24px; text-align:center;">
+            <p style="color:#64748b; margin:0 0 6px 0; font-size:12px;">Butuh bantuan? Tim CS kami siap melayani Anda.</p>
+            <p style="color:#334155; margin:0; font-size:13px; font-weight:bold;">
+                WhatsApp CS: <a href="https://wa.me/6282298148474" style="color:#093c96; text-decoration:none;">0822-9814-8474</a> &bull; 
+                Email CS: <a href="mailto:admin@maschandigital.id" style="color:#093c96; text-decoration:none;">admin@maschandigital.id</a>
+            </p>
+        </div>';
 
     maschan_send_mailketing_email(
         $vendor['email'],
-        $vendor['store_name'],
-        'Selamat Datang di Mas Chan Digital, ' . $vendor['store_name'] . '!',
-        maschan_email_shell('Toko Anda sudah aktif di Paket Starter UMKM', $body)
+        $recipient_name,
+        'Selamat Datang di Mas Chan Digital, ' . $store_name . '!',
+        maschan_email_shell('Selamat Bergabung, Toko Anda Telah Terdaftar!', $body)
     );
 }
 
