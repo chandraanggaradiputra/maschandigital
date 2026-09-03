@@ -971,7 +971,7 @@ add_action('rest_api_init', function () {
                 maschan_email_vendor_welcome($full_vendor);
                 maschan_email_admin_new_vendor($full_vendor);
             }
-            maschan_add_subscriber_to_list($email, (!empty($owner_name) ? $owner_name : $store_name), $clean_phone);
+            maschan_add_subscriber_to_list($email, (!empty($owner_name) ? $owner_name : $store_name), $clean_phone, '', $store_name);
 
             return rest_ensure_response([
                 'success' => true,
@@ -1904,6 +1904,64 @@ add_action('rest_api_init', function () {
         },
         'permission_callback' => '__return_true',
     ]);
+
+    // DIAGNOSTIK / TEST MAILKETING
+    register_rest_route('maschan/v1', '/debug/test-mailketing', [
+        'methods'             => 'GET',
+        'callback'            => function ($request) {
+            $to_email = sanitize_email($request->get_param('email') ?: 'admin@maschandigital.id');
+            $action   = sanitize_text_field($request->get_param('action') ?: 'all'); // 'send', 'addsub', 'all'
+
+            $results = [
+                'success'        => true,
+                'timestamp'      => current_time('mysql'),
+                'api_token_set'  => !empty(maschan_mailketing_api_token()),
+                'vendor_list_id' => maschan_mailketing_vendor_list_id(),
+                'sender'         => maschan_mailketing_sender(),
+                'target_email'   => $to_email,
+                'tests'          => [],
+            ];
+
+            if ($action === 'send' || $action === 'all') {
+                $test_html = '<h3>Uji Coba Mailketing Mas Chan Digital</h3><p>Ini adalah email pengujian diagnostik integrasi Mailketing API v1.</p>';
+                $send_res = maschan_send_mailketing_email(
+                    $to_email,
+                    'Tester Mas Chan',
+                    '[Diagnostik] Uji Coba Mailketing Mas Chan Digital',
+                    maschan_email_shell('Uji coba diagnostik Mailketing API v1', $test_html)
+                );
+                $results['tests']['send_email'] = $send_res;
+            }
+
+            if ($action === 'addsub' || $action === 'all') {
+                $sub_res = maschan_add_subscriber_to_list(
+                    $to_email,
+                    'Tester Mas Chan',
+                    '082298148474',
+                    '082298148474',
+                    'Toko Uji Coba'
+                );
+                if (is_wp_error($sub_res)) {
+                    $results['tests']['add_subscriber'] = [
+                        'success' => false,
+                        'error'   => $sub_res->get_error_message(),
+                    ];
+                } elseif (is_array($sub_res)) {
+                    $code = wp_remote_retrieve_response_code($sub_res);
+                    $body = wp_remote_retrieve_body($sub_res);
+                    $results['tests']['add_subscriber'] = [
+                        'status_code' => $code,
+                        'response'    => json_decode($body, true) ?: $body,
+                    ];
+                } else {
+                    $results['tests']['add_subscriber'] = $sub_res;
+                }
+            }
+
+            return rest_ensure_response($results);
+        },
+        'permission_callback' => '__return_true',
+    ]);
 });
 
 // 9. CRON HARIAN: EVALUASI STATUS LANGGANAN VENDOR
@@ -2268,61 +2326,101 @@ function maschan_mailketing_vendor_list_id() {
 
 /**
  * SATU-SATUNYA tempat pemanggilan API Mailketing boleh berada. Kontrak API
- * v2 (dikonfirmasi dari dokumentasi resmi https://api.mailketing.co.id/docs/):
- * - Autentikasi lewat HEADER "X-Api-Token" (BUKAN field di body — beda dari
- *   pola v1 yang lama, jangan tertukar kalau lihat contoh kode v1 di internet)
- * - Body berupa JSON (Content-Type: application/json)
- * - Field wajib: from_name, from_email, subject, recipient, content
- *
- * 'blocking' => false membuat request bersifat fire-and-forget — WordPress
- * TIDAK menunggu respons Mailketing sebelum lanjut, sesuai permintaan supaya
- * tidak menghambat respons REST API endpoint yang memanggil fungsi ini.
- * Konsekuensinya: kita tidak pernah tahu dari sini apakah Mailketing benar-
- * benar berhasil mengirim (cuma tahu apakah request-nya berhasil DIKIRIM).
- * Kalau perlu audit pengiriman, cek dashboard Mailketing langsung.
+ * v1 (dikonfirmasi dari dokumentasi resmi https://api.mailketing.co.id/):
+ * - Endpoint: https://api.mailketing.co.id/api/v1/send
+ * - Content-Type: application/x-www-form-urlencoded
+ * - Body: api_token, from_name, from_email, recipient, subject, content
+ * - blocking: true, timeout: 15
+ * - Fallback ke wp_mail() jika Mailketing gagal.
  */
 function maschan_send_mailketing_email($to_email, $to_name, $subject, $html_content) {
     if (empty($to_email) || !is_email($to_email)) {
         error_log("Mas Chan Digital: email tidak dikirim, alamat tujuan tidak valid ({$to_email}) — subjek: {$subject}");
-        return;
+        return [
+            'success' => false,
+            'message' => 'Alamat email tujuan tidak valid: ' . $to_email,
+        ];
     }
 
-    $sender = maschan_mailketing_sender();
+    $sender    = maschan_mailketing_sender();
+    $api_token = maschan_mailketing_api_token();
 
-    $result = wp_remote_post('https://api.mailketing.co.id/api/v2/send', [
+    $body = [
+        'api_token'  => $api_token,
+        'from_name'  => $sender['name'],
+        'from_email' => $sender['email'],
+        'recipient'  => $to_email,
+        'subject'    => $subject,
+        'content'    => $html_content,
+    ];
+
+    $result = wp_remote_post('https://api.mailketing.co.id/api/v1/send', [
         'headers' => [
-            'Content-Type' => 'application/json',
-            'X-Api-Token'  => maschan_mailketing_api_token(),
+            'Content-Type' => 'application/x-www-form-urlencoded',
         ],
-        'body'     => wp_json_encode([
-            'from_name'  => $sender['name'],
-            'from_email' => $sender['email'],
-            'subject'    => $subject,
-            'recipient'  => $to_email,
-            'content'    => $html_content,
-        ]),
-        'timeout'  => 5,
-        'blocking' => false,
+        'body'     => $body,
+        'timeout'  => 15,
+        'blocking' => true,
     ]);
 
-    // 'blocking' => false membuat $result HAMPIR SELALU bukan WP_Error (request
-    // dianggap "terkirim" begitu proses dispatch dimulai) — tapi tetap dicek
-    // untuk menangkap kegagalan level jaringan yang terjadi SEBELUM dispatch
-    // (mis. DNS tidak resolve), supaya tidak diam-diam gagal tanpa jejak sama
-    // sekali di error log.
-    if (is_wp_error($result)) {
-        error_log("Mas Chan Digital: gagal mengirim email ke {$to_email} — " . $result->get_error_message());
+    $success       = false;
+    $status_code   = null;
+    $response_body = null;
+
+    if (!is_wp_error($result)) {
+        $status_code   = wp_remote_retrieve_response_code($result);
+        $response_body = wp_remote_retrieve_body($result);
+        $res_json      = json_decode($response_body, true);
+
+        if ($status_code >= 200 && $status_code < 300) {
+            if (is_array($res_json) && isset($res_json['status']) && in_array(strtolower((string)$res_json['status']), ['failed', 'error'])) {
+                $success = false;
+                error_log("Mas Chan Digital: Mailketing API v1 menolak pengiriman ke {$to_email} — " . ($res_json['message'] ?? $response_body));
+            } else {
+                $success = true;
+            }
+        } else {
+            error_log("Mas Chan Digital: Mailketing API v1 /send HTTP {$status_code} ke {$to_email} — {$response_body}");
+        }
+    } else {
+        error_log("Mas Chan Digital: gagal menghubungi Mailketing API v1 ({$to_email}) — " . $result->get_error_message());
     }
+
+    $fallback_sent = false;
+    if (!$success) {
+        // Fallback otomatis ke wp_mail() standar WordPress
+        $headers = [
+            'Content-Type: text/html; charset=UTF-8',
+            'From: ' . $sender['name'] . ' <' . $sender['email'] . '>',
+        ];
+        $fallback_sent = wp_mail($to_email, $subject, $html_content, $headers);
+        if ($fallback_sent) {
+            error_log("Mas Chan Digital: Fallback wp_mail() berhasil terkirim ke {$to_email}");
+        } else {
+            error_log("Mas Chan Digital: Fallback wp_mail() gagal terkirim ke {$to_email}");
+        }
+    }
+
+    return [
+        'success'       => $success || $fallback_sent,
+        'mailketing'    => [
+            'status_code' => $status_code,
+            'response'    => json_decode($response_body, true) ?: $response_body,
+            'is_error'    => is_wp_error($result) ? $result->get_error_message() : null,
+        ],
+        'fallback_used' => !$success,
+        'fallback_sent' => $fallback_sent,
+    ];
 }
 
 /**
  * Tambah subscriber baru ke kontak list Mailketing (API v1 addsubtolist).
- * Field wajib/lengkap: first_name, email, mobile, api_token, list_id.
+ * Field wajib/lengkap: api_token, list_id, email, first_name, mobile, phone, company.
  */
-function maschan_add_subscriber_to_list($email, $name, $phone = '', $list_id = null) {
+function maschan_add_subscriber_to_list($email, $name, $mobile = '', $phone = '', $company = '', $list_id = null) {
     if (empty($email) || !is_email($email)) {
         error_log("Mas Chan Digital: subscriber tidak ditambahkan, alamat email tidak valid ({$email})");
-        return;
+        return new WP_Error('invalid_email', 'Alamat email tidak valid');
     }
 
     $api_token = maschan_mailketing_api_token();
@@ -2330,12 +2428,17 @@ function maschan_add_subscriber_to_list($email, $name, $phone = '', $list_id = n
         $list_id = maschan_mailketing_vendor_list_id();
     }
 
+    $final_phone  = !empty($phone) ? $phone : $mobile;
+    $final_mobile = !empty($mobile) ? $mobile : $phone;
+
     $body = [
-        'first_name' => $name,
-        'email'      => $email,
-        'mobile'     => $phone,
         'api_token'  => $api_token,
         'list_id'    => $list_id,
+        'email'      => $email,
+        'first_name' => $name,
+        'mobile'     => $final_mobile,
+        'phone'      => $final_phone,
+        'company'    => $company,
     ];
 
     $result = wp_remote_post('https://api.mailketing.co.id/api/v1/addsubtolist', [
@@ -2343,13 +2446,15 @@ function maschan_add_subscriber_to_list($email, $name, $phone = '', $list_id = n
             'Content-Type' => 'application/x-www-form-urlencoded',
         ],
         'body'     => $body,
-        'timeout'  => 5,
-        'blocking' => false,
+        'timeout'  => 15,
+        'blocking' => true,
     ]);
 
     if (is_wp_error($result)) {
         error_log("Mas Chan Digital: gagal menambahkan subscriber {$email} ke list Mailketing — " . $result->get_error_message());
     }
+
+    return $result;
 }
 
 /**
