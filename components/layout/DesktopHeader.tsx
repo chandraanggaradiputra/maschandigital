@@ -76,7 +76,7 @@ export function DesktopHeader() {
         </div>
       </div>
 
-      {/* 2. LAPISAN UTAMA (LOGO, SEARCH, CTA SYIAR SALAF, & AUTH ACTIONS) */}
+      {/* 2. LAPISAN UTAMA (LOGO, SEARCH, CTA BANTEN MENGAJI, & AUTH ACTIONS) */}
       <div className="bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80">
         <div className="max-w-7xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 gap-4">
           {/* Logo Mas Chan Digital */}
@@ -116,17 +116,18 @@ export function DesktopHeader() {
             </button>
           </div>
 
-          {/* Right Actions: Jembatan Syiar Salaf, ThemeToggle, & Tombol Masuk/Daftar */}
+          {/* Right Actions: Jembatan Banten Mengaji, ThemeToggle, & Tombol Masuk/Daftar */}
           <div className="flex items-center gap-2.5 shrink-0">
-            {/* Jembatan Syiar Salaf Serang */}
+            {/* Jembatan Banten Mengaji Serang */}
             <a
               href="https://kajian-sunnah-serang.vercel.app"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:scale-105 hover:shadow-emerald-600/20 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-              title="Kunjungi Portal Syiar Salaf Kota Serang"
+              title="Kunjungi Portal Banten Mengaji"
+              aria-label="Kunjungi Portal Banten Mengaji"
             >
-              <span>🕌 Syiar Salaf</span>
+              <span>🕌 Banten Mengaji</span>
               <ExternalLink className="h-3 w-3 opacity-90" aria-hidden="true" />
             </a>
 

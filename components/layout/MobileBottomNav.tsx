@@ -293,19 +293,20 @@ export function MobileBottomNav() {
 
             {/* 2. AREA KONTEN YANG BISA DI-SCROLL DENGAN MULUS */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5 overscroll-contain">
-              {/* BANNER RINGKAS & MINIMALIS: SYIAR SALAF KOTA SERANG */}
+              {/* BANNER RINGKAS & MINIMALIS: BANTEN MENGAJI */}
               <div className="shrink-0 my-1">
                 <a
                   href="https://kajian-sunnah-serang.vercel.app"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-between rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-white shadow-md shadow-emerald-900/20 active:scale-[0.98] hover:opacity-95 transition-all"
-                  title="Buka Portal Syiar Salaf Kota Serang"
+                  title="Buka Portal Banten Mengaji"
+                  aria-label="Buka Portal Banten Mengaji"
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-base">🕌</span>
                     <span className="text-sm font-bold tracking-tight">
-                      Syiar Salaf Kota Serang
+                      Banten Mengaji
                     </span>
                   </div>
                   <ExternalLink className="h-4 w-4 opacity-80" />
