@@ -280,38 +280,53 @@ export const TUTORIAL_MODULES: TutorialModule[] = [
     ],
   },
   {
-    id: 'modul-6-integrasi-chat',
+    id: 'modul-6-transaksi-whatsapp-chat',
     moduleNumber: 6,
-    title: 'Integrasi Live Chat Toko (Tawk.to)',
-    description: 'Panduan opsional menghubungkan live chat gratis Tawk.to di etalase toko Anda.',
-    iconName: 'MessageSquare',
+    title: 'Fitur Direct WhatsApp Chat & Order',
+    description: 'Panduan lengkap interaksi instan pembeli dan penerimaan pesanan otomatis via WhatsApp toko Anda.',
+    iconName: 'MessageCircle',
     chapters: [
       {
-        slug: 'cara-integrasi-live-chat-tawkto',
-        title: 'Cara Memasang Widget Live Chat Tawk.to di Toko',
-        shortDescription: 'Terima pesan chat langsung dari calon pembeli di website Mas Chan Digital.',
-        estimatedMinutes: 4,
+        slug: 'fitur-direct-whatsapp-chat-order',
+        title: 'Panduan Fitur Direct WhatsApp Chat & Order',
+        shortDescription: 'Layani pertanyaan pembeli secara instan dan terima rincian pesanan rapi tanpa potongan komisi (0% fee).',
+        estimatedMinutes: 3,
         content: {
-          overview: 'Selain transaksi via WhatsApp, vendor yang ingin melayani pertanyaan instan pembeli langsung di dalam website dapat mengaktifkan integrasi gratis Tawk.to.',
+          overview: 'Pembeli kini dapat menghubungi toko Anda secara instan melalui fitur "Tanya Vendor via WhatsApp" langsung dari halaman profil toko atau katalog produk Mas Chan Digital.',
           steps: [
             {
-              title: '1. Buat Akun & Properti di Tawk.to',
-              description: 'Daftar akun gratis di tawk.to dan buat properti chat untuk toko Anda.',
+              title: '1. Pastikan Nomor WhatsApp Toko Aktif & Valid',
+              description: 'Buka Dashboard Vendor -> Pengaturan Profil Toko (/dashboard/profile) atau profil WCFM. Pastikan kolom nomor WhatsApp terisi dengan nomor aktif berawalan 08 atau 62.',
+              tips: 'Nomor WhatsApp ini adalah jalur komunikasi utama pembeli untuk bertanya ketersediaan stok, spesifikasi produk, hingga konfirmasi pesanan.',
             },
             {
-              title: '2. Salin Property ID & Widget ID',
-              description: 'Di dashboard Tawk.to, buka menu Administration -> Channels -> Chat Widget. Salin Property ID dan Widget ID akun Anda.',
+              title: '2. Pembeli Bertanya via Drawer Chat WhatsApp Mengambang',
+              description: 'Di pojok kanan bawah halaman produk dan profil toko, terdapat tombol mengambang interaktif "Tanya Penjual". Pembeli dapat memilih pertanyaan cepat seputar ketersediaan stok, varian warna/ukuran, atau mengetikkan pesan kustom secara langsung.',
             },
             {
-              title: '3. Masukkan ke Dashboard Profil Toko (Tab 7)',
-              description: 'Buka Dashboard Vendor -> Pengaturan Profil Toko -> Tab "7. Live Chat Tawk.to". Geser tombol "Aktifkan Live Chat di Toko Saya" ke posisi aktif, masukkan Property ID dan Widget ID, lalu klik "Simpan Semua Pengaturan".',
+              title: '3. Format Pesanan Otomatis Tersusun Rapi',
+              description: 'Saat pembeli menekan tombol "Pesan Langsung via WhatsApp Vendor" dan melengkapi formulir checkout (nama pemesan, jumlah, wilayah kecamatan Kota Serang, dan metode pengiriman), sistem secara otomatis menyusun rincian pesanan lengkap ke dalam chat WhatsApp toko Anda.',
             },
             {
-              title: '4. Chat Otomatis Aktif di Halaman Toko Anda',
-              description: 'Widget chat akan otomatis muncul khusus di halaman profil toko dan produk-produk Anda, dan pesan pembeli akan langsung masuk ke aplikasi HP Tawk.to Anda.',
+              title: '4. Transaksi Langsung Tanpa Potongan Komisi (0% Gateway Fee)',
+              description: 'Seluruh pembayaran disepakati dan dikirim langsung ke rekening/e-wallet toko Anda (transfer bank, COD, atau kurir lokal) tanpa ada pemotongan biaya transaksi ataupun biaya komisi per penjualan dari pihak marketplace.',
             },
           ],
-          proTip: 'Fitur Live Chat bersifat opsional. Jika Anda tidak mengaktifkannya, pembeli tetap dapat menghubungi Anda via WhatsApp seperti biasa.',
+          proTip: 'Respon chat WhatsApp dari calon pembeli secepat mungkin dan jaga keramahan komunikasi untuk meningkatkan kepercayaan dan angka pembelian di toko Anda.',
+          faq: [
+            {
+              question: 'Apakah pembeli bisa bertanya tanpa harus langsung memesan?',
+              answer: 'Tentu bisa. Melalui floating drawer "Tanya Penjual", pembeli dapat menanyakan ketersediaan stok, varian, atau jadwal pengiriman sebelum melakukan checkout.',
+            },
+            {
+              question: 'Apakah ada potongan komisi dari pesanan yang masuk via WhatsApp?',
+              answer: 'Sama sekali tidak ada (0% gateway fee). Mas Chan Digital 100% mendukung kemajuan UMKM lokal Kota Serang.',
+            },
+            {
+              question: 'Bagaimana jika nomor WhatsApp saya berganti?',
+              answer: 'Cukup perbarui nomor WhatsApp Anda di menu Profil Toko di dashboard (/dashboard/profile). Perubahan akan seketika tersinkronisasi ke seluruh etalase produk dan profil toko Anda.',
+            },
+          ],
         },
       },
     ],

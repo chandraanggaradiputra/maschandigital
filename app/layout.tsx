@@ -7,7 +7,6 @@ import { DesktopHeader } from "@/components/layout/DesktopHeader";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { Footer } from "@/components/layout/Footer";
 import { MarketplaceJsonLd } from "@/components/seo/MarketplaceJsonLd";
-import { TawkRouteGuard } from "@/components/chat/TawkRouteGuard";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import { GlobalSearchModal } from "@/components/ui/GlobalSearchModal";
@@ -136,7 +135,6 @@ export default function RootLayout({
         <MarketplaceJsonLd />
         <PwaInstallPrompt />
         <PwaRegister />
-        <TawkRouteGuard />
         <ThemeProvider>
           {/* Aksesibilitas: Skip Link */}
           <a

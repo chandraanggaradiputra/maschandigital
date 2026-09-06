@@ -29,7 +29,7 @@ import { getVendorBySlug, getVendorProducts } from "@/lib/api/wordpress";
 import { generateWhatsAppVendorUrl, formatIndonesianDate } from "@/lib/utils";
 import { checkStoreStatus } from "@/lib/storeStatus";
 import { StoreHours } from "@/types";
-import { VendorTawkChat } from "@/components/chat/VendorTawkChat";
+import { VendorWhatsAppChat } from "@/components/chat/VendorWhatsAppChat";
 import { VendorJsonLd } from "@/components/seo/VendorJsonLd";
 
 // Halaman ini menampilkan status buka/tutup toko yang berubah tiap menit —
@@ -178,20 +178,12 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
         ]}
       />
 
-      {/* Konten */}
-      {/* <VendorTawkChat
-        enabled={vendor?.chat_integration?.enabled ?? false}
-        propertyId={vendor?.chat_integration?.property_id ?? ""}
-        widgetId={vendor?.chat_integration?.widget_id ?? ""}
-      /> */}
-
-      {vendor.chat_integration && (
-        <VendorTawkChat
-          enabled={vendor.chat_integration.enabled}
-          propertyId={vendor.chat_integration.property_id}
-          widgetId={vendor.chat_integration.widget_id}
-        />
-      )}
+      {/* Layanan Direct WhatsApp Chat Drawer Toko */}
+      <VendorWhatsAppChat
+        whatsappNumber={vendor.whatsapp_number}
+        vendorName={vendor.store_name}
+        kecamatan={vendor.address?.city || vendor.location_district || "Kota Serang"}
+      />
 
       {/* 1. VENDOR HERO BANNER */}
       <header className="relative bg-slate-900 text-white">

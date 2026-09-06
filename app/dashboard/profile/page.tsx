@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import {
   Store,
   MessageCircle,
-  MessageSquare,
   Save,
   CheckCircle2,
   Loader2,
@@ -18,7 +17,6 @@ import {
   Download,
   Printer,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { MediaUploader } from "@/components/forms/MediaUploader";
 import { StoreQrModal } from "@/components/qr/StoreQrModal";
@@ -34,7 +32,6 @@ import {
 } from "@/lib/api/wordpress";
 import { getVendorSession } from "@/lib/api/auth";
 import {
-  Vendor,
   StoreHours,
   VacationMode,
   StoreSEO,
@@ -44,7 +41,7 @@ import {
 
 export default function VendorProfilePage() {
   const [activeTab, setActiveTab] = useState<
-    "profile" | "media" | "socials" | "hours" | "seo" | "qr" | "integrations"
+    "profile" | "media" | "socials" | "hours" | "seo" | "qr"
   >("profile");
   const [vendorId, setVendorId] = useState<number>(2);
   const [vendorSlug, setVendorSlug] = useState("");
@@ -103,7 +100,7 @@ export default function VendorProfilePage() {
     metaKeywords: "",
   });
 
-  // Tab 7: Integrasi Live Chat Tawk.to (opsional, per-vendor)
+  // Legacy Chat Integration state (tetap dijaga agar payload update kompatibel dengan backend)
   const [chatIntegration, setChatIntegration] = useState<ChatIntegration>({
     enabled: false,
     property_id: "",
@@ -411,19 +408,6 @@ export default function VendorProfilePage() {
         >
           <QrCode className="w-4 h-4" />
           <span>6. QR Code Standee</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("integrations")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all border shrink-0 ${
-            activeTab === "integrations"
-              ? "bg-brand-gradient text-white border-transparent shadow-subtle"
-              : "bg-white dark:bg-surface-darkCard text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50"
-          }`}
-        >
-          <MessageSquare className="w-4 h-4" />
-          <span>7. Live Chat Tawk.to</span>
         </button>
       </nav>
 
@@ -967,157 +951,6 @@ export default function VendorProfilePage() {
                 <span>Cetak</span>
               </Button>
             </div>
-          </div>
-        </section>
-      )}
-
-      {/* TAB 7: INTEGRASI LIVE CHAT TAWK.TO */}
-      {activeTab === "integrations" && (
-        <section
-          aria-labelledby="tawkto-integration-heading"
-          className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl"
-        >
-          <div>
-            <h3
-              id="tawkto-integration-heading"
-              className="flex items-center gap-2 pb-3 border-slate-100 dark:border-slate-800 border-b font-slab font-bold text-slate-900 dark:text-white text-base"
-            >
-              <MessageSquare className="w-5 h-5 text-brand-600" />
-              <span>Live Chat Tawk.to (Opsional)</span>
-            </h3>
-            <p className="mt-2 text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
-              Fitur ini{" "}
-              <strong className="text-slate-700 dark:text-slate-300">
-                tidak wajib
-              </strong>
-              . WhatsApp tetap jadi kanal utama pemesanan. Kalau Anda sudah
-              punya akun Tawk.to sendiri, tautkan di sini supaya pembeli bisa
-              chat langsung di halaman produk/toko Anda tanpa pindah aplikasi.
-            </p>
-          </div>
-
-          {/* SECTION PENGATURAN TAWK.TO LIVE CHAT */}
-          <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-            
-            {/* 1. Header & Toggle */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700">
-              <div className="pr-4">
-                <h4 className="text-sm font-bold text-slate-900 dark:text-white font-slab">
-                  Aktifkan Live Chat di Toko Saya
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Kalau Property ID / Widget ID belum diisi, widget tidak akan muncul walau tombol ini aktif.
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={chatIntegration.enabled}
-                onClick={() =>
-                  setChatIntegration((prev) => ({
-                    ...prev,
-                    enabled: !prev.enabled,
-                  }))
-                }
-                className={cn(
-                  "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-                  chatIntegration.enabled
-                    ? "bg-[#093c96]"
-                    : "bg-slate-300 dark:bg-slate-700"
-                )}
-              >
-                <span
-                  className={cn(
-                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                    chatIntegration.enabled
-                      ? "translate-x-5"
-                      : "translate-x-0"
-                  )}
-                />
-              </button>
-            </div>
-
-            {/* 2. KOLOM INPUT PROPERTY ID (WAJIB SELALU TERLIHAT) */}
-            <div className="space-y-1.5">
-              <label
-                htmlFor="tawk_property_id_input"
-                className="block text-xs font-bold text-slate-800 dark:text-slate-200 font-slab"
-              >
-                Property ID <span className="text-rose-500">*</span>
-              </label>
-              <input
-                id="tawk_property_id_input"
-                type="text"
-                value={chatIntegration.property_id || ""}
-                onChange={(e) =>
-                  setChatIntegration((prev) => ({
-                    ...prev,
-                    property_id: e.target.value.trim(),
-                  }))
-                }
-                placeholder="Contoh: 65a8b1c2d3e4f5a6b7c8d9e0"
-                className="w-full h-11 px-4 py-2.5 rounded-xl text-sm bg-white dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 focus:border-[#093c96] focus:ring-2 focus:ring-blue-500/20 text-slate-900 dark:text-white outline-none font-mono transition-all block shadow-sm"
-              />
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                ID Properti unik dari dashboard Tawk.to Anda (24 karakter hex).
-              </p>
-            </div>
-
-            {/* 3. KOLOM INPUT WIDGET ID (WAJIB SELALU TERLIHAT) */}
-            <div className="space-y-1.5">
-              <label
-                htmlFor="tawk_widget_id_input"
-                className="block text-xs font-bold text-slate-800 dark:text-slate-200 font-slab"
-              >
-                Widget ID <span className="text-rose-500">*</span>
-              </label>
-              <input
-                id="tawk_widget_id_input"
-                type="text"
-                value={chatIntegration.widget_id || ""}
-                onChange={(e) =>
-                  setChatIntegration((prev) => ({
-                    ...prev,
-                    widget_id: e.target.value.trim(),
-                  }))
-                }
-                placeholder="Contoh: 1h9k8m7n6 atau default"
-                className="w-full h-11 px-4 py-2.5 rounded-xl text-sm bg-white dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 focus:border-[#093c96] focus:ring-2 focus:ring-blue-500/20 text-slate-900 dark:text-white outline-none font-mono transition-all block shadow-sm"
-              />
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                ID Widget chat (biasanya berawalan &quot;1h...&quot; atau &quot;default&quot;).
-              </p>
-            </div>
-
-            {/* 4. Box Petunjuk */}
-            <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-xs text-slate-600 dark:text-slate-300 space-y-1.5">
-              <p className="font-bold text-[#093c96] dark:text-blue-400">
-                Cara mendapatkan Property ID &amp; Widget ID:
-              </p>
-              <ol className="list-decimal list-inside space-y-1 text-slate-500 dark:text-slate-400">
-                <li>
-                  Buat akun gratis di{" "}
-                  <a
-                    href="https://www.tawk.to"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#093c96] dark:text-blue-400 font-semibold underline"
-                  >
-                    tawk.to
-                  </a>{" "}
-                  (kalau belum punya)
-                </li>
-                <li>Buka Dashboard Tawk.to ➔ Administration ➔ Channels ➔ Chat Widget</li>
-                <li>
-                  Lihat kode embed yang muncul — formatnya:{" "}
-                  <code className="bg-white dark:bg-slate-800 px-1 py-0.5 rounded font-mono text-[10px]">
-                    embed.tawk.to/PROPERTY_ID/WIDGET_ID
-                  </code>
-                </li>
-                <li>Salin kedua bagian ID tersebut ke kolom di atas lalu klik tombol Simpan di bawah.</li>
-              </ol>
-            </div>
-
           </div>
         </section>
       )}

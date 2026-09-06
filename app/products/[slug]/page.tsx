@@ -5,14 +5,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { Store, ShieldCheck, MapPin, Tag, CheckCircle2 } from "lucide-react";
+import { Store, ShieldCheck, MapPin, CheckCircle2 } from "lucide-react";
 import { SectionContainer } from "@/components/layout/SectionContainer";
 import { ProductCard } from "@/components/cards/ProductCard";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { OrderSection } from "@/components/product/OrderSection";
-import { VendorTawkChat } from "@/components/chat/VendorTawkChat";
+import { VendorWhatsAppChat } from "@/components/chat/VendorWhatsAppChat";
 import { ProductJsonLd } from "@/components/seo/ProductJsonLd";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductViewTracker } from "@/components/product/ProductViewTracker";
@@ -325,19 +324,14 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
               vendorSlug={product.vendor?.slug}
             />
 
-            {/* <VendorTawkChat
-              enabled={vendor?.chat_integration?.enabled ?? false}
-              propertyId={vendor?.chat_integration?.property_id ?? ""}
-              widgetId={vendor?.chat_integration?.widget_id ?? ""}
-            /> */}
-
-            {vendor?.chat_integration && (
-              <VendorTawkChat
-                enabled={vendor.chat_integration.enabled}
-                propertyId={vendor.chat_integration.property_id}
-                widgetId={vendor.chat_integration.widget_id}
-              />
-            )}
+            {/* Layanan Direct WhatsApp Chat Drawer Toko */}
+            <VendorWhatsAppChat
+              whatsappNumber={vendor?.whatsapp_number || product.vendor?.whatsapp_number}
+              vendorName={vendor?.store_name || product.vendor?.store_name || "Penjual"}
+              productName={product.name}
+              productId={product.id}
+              kecamatan={vendor?.address?.city || vendor?.location_district || "Kota Serang"}
+            />
 
             <ul className="flex justify-between items-center m-0 p-0 px-1 pt-2 text-slate-500 dark:text-slate-400 text-xs list-none">
               <li className="flex items-center gap-1.5">
