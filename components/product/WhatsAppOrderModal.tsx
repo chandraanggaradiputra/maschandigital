@@ -152,7 +152,7 @@ export function WhatsAppOrderModal({
 
   return (
     <div
-      className="z-[70] fixed inset-0 flex justify-center items-end sm:items-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4"
+      className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -164,9 +164,10 @@ export function WhatsAppOrderModal({
         aria-labelledby={titleId}
         tabIndex={-1}
         onKeyDown={handleTrapKeyDown}
-        className="bg-white dark:bg-surface-darkCard shadow-card-hover border border-slate-200/80 dark:border-slate-800 sm:rounded-3xl rounded-t-3xl focus:outline-none w-full sm:max-w-md max-h-[88vh] overflow-y-auto pb-6 pb-safe"
+        onMouseDown={(e) => e.stopPropagation()}
+        className="relative w-full max-w-lg bg-white dark:bg-surface-darkCard rounded-2xl shadow-2xl overflow-hidden my-auto max-h-[90dvh] flex flex-col focus:outline-none"
       >
-        <header className="flex justify-between items-start gap-4 p-5 pb-3">
+        <header className="flex-shrink-0 border-b border-gray-100 dark:border-slate-800 p-4 sm:p-6 flex justify-between items-start gap-4">
           <div>
             <h2
               id={titleId}
@@ -182,13 +183,13 @@ export function WhatsAppOrderModal({
             type="button"
             onClick={onClose}
             aria-label="Tutup formulir pesanan"
-            className="flex justify-center items-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 w-8 h-8 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors shrink-0"
+            className="flex justify-center items-center hover:bg-slate-100 active:bg-slate-200 dark:hover:bg-slate-800 dark:active:bg-slate-700 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 min-w-[44px] min-h-[44px] w-[44px] h-[44px] text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors shrink-0"
           >
             <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </header>
 
-        <form onSubmit={handleSubmit} className="space-y-4 p-5 pt-2">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 pb-2">
           {/* Qty */}
           <div>
             <label
