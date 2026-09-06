@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import { getVendorBySlug, getVendorProducts } from "@/lib/api/wordpress";
-import { generateWhatsAppVendorUrl } from "@/lib/utils";
+import { generateWhatsAppVendorUrl, formatIndonesianDate } from "@/lib/utils";
 import { checkStoreStatus } from "@/lib/storeStatus";
 import { StoreHours } from "@/types";
 import { VendorTawkChat } from "@/components/chat/VendorTawkChat";
@@ -513,7 +513,7 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                     <span>
                       Bergabung Sejak:{" "}
                       <time dateTime={vendor.joined_date}>
-                        {vendor.joined_date}
+                        {formatIndonesianDate(vendor.joined_date)}
                       </time>
                     </span>
                   </div>

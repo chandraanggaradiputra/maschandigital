@@ -280,3 +280,41 @@ export function resolveVendorDistrict(
   return "Serang";
 }
 
+/**
+ * Format tanggal standar Indonesia (contoh: "14 Mei 2024")
+ */
+export function formatIndonesianDate(dateStr?: string | null): string {
+  if (!dateStr) return "-";
+  const months = [
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+  ];
+  const clean = dateStr.split("T")[0];
+  const parts = clean.split("-");
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    if (
+      !isNaN(year) &&
+      !isNaN(month) &&
+      !isNaN(day) &&
+      month >= 0 &&
+      month < 12
+    ) {
+      return `${day} ${months[month]} ${year}`;
+    }
+  }
+  return dateStr;
+}
+

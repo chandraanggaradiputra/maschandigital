@@ -152,7 +152,7 @@ export function WhatsAppOrderModal({
 
   return (
     <div
-      className="z-50 fixed inset-0 flex justify-center items-end sm:items-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4"
+      className="z-[70] fixed inset-0 flex justify-center items-end sm:items-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -164,7 +164,7 @@ export function WhatsAppOrderModal({
         aria-labelledby={titleId}
         tabIndex={-1}
         onKeyDown={handleTrapKeyDown}
-        className="bg-white dark:bg-surface-darkCard shadow-card-hover border border-slate-200/80 dark:border-slate-800 sm:rounded-3xl rounded-t-3xl focus:outline-none w-full sm:max-w-md max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-surface-darkCard shadow-card-hover border border-slate-200/80 dark:border-slate-800 sm:rounded-3xl rounded-t-3xl focus:outline-none w-full sm:max-w-md max-h-[88vh] overflow-y-auto pb-6 pb-safe"
       >
         <header className="flex justify-between items-start gap-4 p-5 pb-3">
           <div>

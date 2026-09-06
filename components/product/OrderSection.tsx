@@ -237,131 +237,133 @@ export function OrderSection({
       )}
 
       {/* STICKY MOBILE ORDER BAR */}
-      <div className="fixed bottom-0 inset-x-0 z-50 md:hidden bg-white/95 dark:bg-surface-darkCard/95 border-t border-slate-200/90 dark:border-slate-800/90 px-3 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] backdrop-blur-md pb-safe">
-        <div className="flex items-center gap-2 max-w-md mx-auto">
-          {/* Zona Navigasi Kiri (2 Tombol Cepat Statis) */}
-          <Link
-            href="/"
-            className="flex flex-col items-center justify-center min-w-[3.5rem] focus-visible:outline-none group"
-            aria-label="Beranda"
-          >
-            <div className="p-1.5 rounded-xl group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
-              <Home className="w-5 h-5 text-slate-600 dark:text-slate-400 group-hover:text-brand-600 dark:group-hover:text-brand-400" />
-            </div>
-            <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium mt-0.5 group-hover:text-brand-600 dark:group-hover:text-brand-400">
-              Beranda
-            </span>
-          </Link>
+      {!isModalOpen && (
+        <div className="fixed bottom-0 inset-x-0 z-50 md:hidden bg-white/95 dark:bg-surface-darkCard/95 border-t border-slate-200/90 dark:border-slate-800/90 px-3 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] backdrop-blur-md pb-safe">
+          <div className="flex items-center gap-2 max-w-md mx-auto">
+            {/* Zona Navigasi Kiri (2 Tombol Cepat Statis) */}
+            <Link
+              href="/"
+              className="flex flex-col items-center justify-center min-w-[3.5rem] focus-visible:outline-none group"
+              aria-label="Beranda"
+            >
+              <div className="p-1.5 rounded-xl group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
+                <Home className="w-5 h-5 text-slate-600 dark:text-slate-400 group-hover:text-brand-600 dark:group-hover:text-brand-400" />
+              </div>
+              <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium mt-0.5 group-hover:text-brand-600 dark:group-hover:text-brand-400">
+                Beranda
+              </span>
+            </Link>
 
-          <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-700 mx-0.5 shrink-0" />
+            <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-700 mx-0.5 shrink-0" />
 
-          <Link
-            href={`/vendors/${vendorSlug || "vendor-serang"}`}
-            className="flex flex-col items-center justify-center min-w-[3.5rem] focus-visible:outline-none group"
-            aria-label="Profil Toko"
-          >
-            <div className="p-1.5 rounded-xl group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
-              <Store className="w-5 h-5 text-slate-600 dark:text-slate-400 group-hover:text-brand-600 dark:group-hover:text-brand-400" />
-            </div>
-            <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium mt-0.5 group-hover:text-brand-600 dark:group-hover:text-brand-400">
-              Toko
-            </span>
-          </Link>
+            <Link
+              href={`/vendors/${vendorSlug || "vendor-serang"}`}
+              className="flex flex-col items-center justify-center min-w-[3.5rem] focus-visible:outline-none group"
+              aria-label="Profil Toko"
+            >
+              <div className="p-1.5 rounded-xl group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-colors">
+                <Store className="w-5 h-5 text-slate-600 dark:text-slate-400 group-hover:text-brand-600 dark:group-hover:text-brand-400" />
+              </div>
+              <span className="text-[10px] text-slate-600 dark:text-slate-400 font-medium mt-0.5 group-hover:text-brand-600 dark:group-hover:text-brand-400">
+                Toko
+              </span>
+            </Link>
 
-          {/* Zona Aksi Kanan (Tombol WhatsApp Utama) */}
-          <div className="flex-1 shrink-0 ml-1">
-            {storeStatus.isVacation ? (
-              <Button
-                variant="outline"
-                size="md"
-                fullWidth
-                disabled
-                className="bg-slate-100 dark:bg-slate-900 opacity-80 border-slate-300 dark:border-slate-800 font-bold text-slate-500 text-xs sm:text-sm py-2.5 h-auto cursor-not-allowed"
-              >
-                <XCircle className="mr-1.5 w-4 h-4 text-amber-500" aria-hidden="true" />
-                <span>Toko Sedang Libur</span>
-              </Button>
-            ) : !storeStatus.isOpen ? (
-              <Button
-                variant="outline"
-                size="md"
-                fullWidth
-                disabled
-                className="bg-slate-100 dark:bg-slate-900 opacity-80 border-slate-300 dark:border-slate-800 font-bold text-slate-500 text-xs sm:text-sm py-2.5 h-auto cursor-not-allowed"
-              >
-                <Lock className="mr-1.5 w-4 h-4 text-rose-500" aria-hidden="true" />
-                <span>Toko Sedang Tutup</span>
-              </Button>
-            ) : isAffiliate ? (
-              affiliateUrl ? (
-                <a
-                  href={affiliateUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-xl"
+            {/* Zona Aksi Kanan (Tombol WhatsApp Utama) */}
+            <div className="flex-1 shrink-0 ml-1">
+              {storeStatus.isVacation ? (
+                <Button
+                  variant="outline"
+                  size="md"
+                  fullWidth
+                  disabled
+                  className="bg-slate-100 dark:bg-slate-900 opacity-80 border-slate-300 dark:border-slate-800 font-bold text-slate-500 text-xs sm:text-sm py-2.5 h-auto cursor-not-allowed"
                 >
-                  <Button
-                    variant="primary"
-                    size="md"
-                    fullWidth
-                    className="font-bold text-xs sm:text-sm py-2.5 h-auto shadow-sm flex items-center justify-between px-3"
-                  >
-                    <div className="flex flex-col items-start leading-none text-left">
-                      <span className="text-[10px] opacity-90 block">Beli via Link</span>
-                      <span className="text-xs sm:text-sm font-bold block mt-0.5">{formatRupiah(unitPrice)}</span>
-                    </div>
-                    <ExternalLink className="w-5 h-5 ml-2" aria-hidden="true" />
-                  </Button>
-                </a>
-              ) : whatsappNumber ? (
-                <a
-                  href={directWaUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => {
-                    trackWhatsAppClick({
-                      vendorName,
-                      productId: productId ? String(productId) : undefined,
-                      productName,
-                      kecamatan: "Unknown",
-                    });
-                  }}
-                  className="block w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp-500 rounded-xl"
+                  <XCircle className="mr-1.5 w-4 h-4 text-amber-500" aria-hidden="true" />
+                  <span>Toko Sedang Libur</span>
+                </Button>
+              ) : !storeStatus.isOpen ? (
+                <Button
+                  variant="outline"
+                  size="md"
+                  fullWidth
+                  disabled
+                  className="bg-slate-100 dark:bg-slate-900 opacity-80 border-slate-300 dark:border-slate-800 font-bold text-slate-500 text-xs sm:text-sm py-2.5 h-auto cursor-not-allowed"
                 >
-                  <Button
-                    type="button"
-                    variant="whatsapp"
-                    size="md"
-                    fullWidth
-                    className="font-bold text-xs sm:text-sm py-2.5 h-auto shadow-sm flex items-center justify-between px-3"
+                  <Lock className="mr-1.5 w-4 h-4 text-rose-500" aria-hidden="true" />
+                  <span>Toko Sedang Tutup</span>
+                </Button>
+              ) : isAffiliate ? (
+                affiliateUrl ? (
+                  <a
+                    href={affiliateUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-xl"
                   >
-                    <div className="flex flex-col items-start leading-none text-left">
-                      <span className="text-[10px] opacity-90 block">Tanya WA</span>
-                      <span className="text-xs sm:text-sm font-bold block mt-0.5">{formatRupiah(unitPrice)}</span>
-                    </div>
-                    <MessageCircle className="w-5 h-5 ml-2 fill-white" aria-hidden="true" />
-                  </Button>
-                </a>
-              ) : null
-            ) : (
-              <Button
-                type="button"
-                variant="whatsapp"
-                size="md"
-                fullWidth
-                onClick={() => setIsModalOpen(true)}
-                className="font-bold text-xs sm:text-sm py-2.5 h-auto shadow-sm flex items-center justify-between px-3 w-full"
-              >
-                <div className="flex flex-col items-start leading-none text-left">
-                  <span className="text-[10px] opacity-90 block">Beli via WA</span>
-                  <span className="text-xs sm:text-sm font-bold block mt-0.5">{formatRupiah(unitPrice)}</span>
-                </div>
-                <MessageCircle className="fill-white w-5 h-5 ml-2" aria-hidden="true" />
-              </Button>
-            )}
+                    <Button
+                      variant="primary"
+                      size="md"
+                      fullWidth
+                      className="font-bold text-xs sm:text-sm py-2.5 h-auto shadow-sm flex items-center justify-between px-3"
+                    >
+                      <div className="flex flex-col items-start leading-none text-left">
+                        <span className="text-[10px] opacity-90 block">Beli via Link</span>
+                        <span className="text-xs sm:text-sm font-bold block mt-0.5">{formatRupiah(unitPrice)}</span>
+                      </div>
+                      <ExternalLink className="w-5 h-5 ml-2" aria-hidden="true" />
+                    </Button>
+                  </a>
+                ) : whatsappNumber ? (
+                  <a
+                    href={directWaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => {
+                      trackWhatsAppClick({
+                        vendorName,
+                        productId: productId ? String(productId) : undefined,
+                        productName,
+                        kecamatan: "Unknown",
+                      });
+                    }}
+                    className="block w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp-500 rounded-xl"
+                  >
+                    <Button
+                      type="button"
+                      variant="whatsapp"
+                      size="md"
+                      fullWidth
+                      className="font-bold text-xs sm:text-sm py-2.5 h-auto shadow-sm flex items-center justify-between px-3"
+                    >
+                      <div className="flex flex-col items-start leading-none text-left">
+                        <span className="text-[10px] opacity-90 block">Tanya WA</span>
+                        <span className="text-xs sm:text-sm font-bold block mt-0.5">{formatRupiah(unitPrice)}</span>
+                      </div>
+                      <MessageCircle className="w-5 h-5 ml-2 fill-white" aria-hidden="true" />
+                    </Button>
+                  </a>
+                ) : null
+              ) : (
+                <Button
+                  type="button"
+                  variant="whatsapp"
+                  size="md"
+                  fullWidth
+                  onClick={() => setIsModalOpen(true)}
+                  className="font-bold text-xs sm:text-sm py-2.5 h-auto shadow-sm flex items-center justify-between px-3 w-full"
+                >
+                  <div className="flex flex-col items-start leading-none text-left">
+                    <span className="text-[10px] opacity-90 block">Beli via WA</span>
+                    <span className="text-xs sm:text-sm font-bold block mt-0.5">{formatRupiah(unitPrice)}</span>
+                  </div>
+                  <MessageCircle className="fill-white w-5 h-5 ml-2" aria-hidden="true" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
