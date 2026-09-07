@@ -8,6 +8,7 @@ export interface VendorUser {
   district: string;
   location_subdistrict?: string;
   subdistrict?: string;
+  role?: string;
 }
 
 export interface AuthSession {

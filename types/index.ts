@@ -240,3 +240,22 @@ export interface ProductReviewsData {
   reviews: ProductReview[];
 }
 
+export interface AdminReviewItem {
+  id: number;
+  product_id: number;
+  product_name: string;
+  product_slug: string;
+  vendor_name: string;
+  author_name: string;
+  rating: number;
+  content: string;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+}
+
+export interface AdminReviewsResponse {
+  pending_count: number;
+  reviews: AdminReviewItem[];
+}
+
+

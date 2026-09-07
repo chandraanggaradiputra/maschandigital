@@ -1,4 +1,10 @@
-import { Product, Vendor, ProductCategory, ProductReviewsData } from "@/types";
+import {
+  Product,
+  Vendor,
+  ProductCategory,
+  ProductReviewsData,
+  AdminReviewsResponse,
+} from "@/types";
 import { getVendorSession } from "@/lib/api/auth";
 import { resolveVendorDistrict } from "@/lib/utils";
 
@@ -1127,4 +1133,94 @@ export async function submitProductReview(
     };
   }
 }
+
+/**
+ * Mengambil daftar ulasan untuk moderasi Super Admin
+ */
+export async function getAdminReviews(
+  token: string,
+  status: string = "pending",
+): Promise<AdminReviewsResponse> {
+  const fallback: AdminReviewsResponse = {
+    pending_count: 0,
+    reviews: [],
+  };
+
+  if (!token) return fallback;
+
+  try {
+    const res = await fetch(
+      `${WP_API_URL}/wp-json/maschan/v1/admin/reviews?status=${encodeURIComponent(status)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      },
+    );
+
+    if (!res.ok) return fallback;
+
+    const data = await res.json();
+    return {
+      pending_count:
+        typeof data.pending_count === "number" ? data.pending_count : 0,
+      reviews: Array.isArray(data.reviews) ? data.reviews : [],
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Melakukan aksi moderasi ulasan (approve atau reject)
+ */
+export async function performReviewAction(
+  token: string,
+  reviewId: number,
+  action: "approve" | "reject",
+  reason?: string,
+): Promise<{ success: boolean; message: string }> {
+  if (!token || !reviewId) {
+    return { success: false, message: "Token atau ID Ulasan tidak valid." };
+  }
+
+  try {
+    const res = await fetch(
+      `${WP_API_URL}/wp-json/maschan/v1/admin/reviews/${reviewId}/action`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action,
+          reason: reason || "",
+        }),
+      },
+    );
+
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      return {
+        success: true,
+        message: data.message || "Aksi moderasi berhasil diproses.",
+      };
+    }
+
+    return {
+      success: false,
+      message: data.message || "Gagal memproses aksi moderasi.",
+    };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      message: getErrorMessage(err, "Gagal menghubungi server."),
+    };
+  }
+}
+
 
