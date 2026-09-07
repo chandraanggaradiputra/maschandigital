@@ -1,12 +1,21 @@
-import { MetadataRoute } from "next";
+import type { MetadataRoute } from 'next';
 
 export default function robots(): MetadataRoute.Robots {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://maschandigital.id';
+
   return {
-    rules: {
-      userAgent: "*",
-      allow: "/",
-      disallow: ["/dashboard/", "/vendor/login", "/vendor/register"],
-    },
-    sitemap: "https://maschandigital.id/sitemap.xml",
+    rules: [
+      {
+        userAgent: '*',
+        allow: '/',
+        disallow: [
+          '/dashboard/',
+          '/api/',
+          '/login',
+          '/register',
+        ],
+      },
+    ],
+    sitemap: `${baseUrl}/sitemap.xml`,
   };
 }
