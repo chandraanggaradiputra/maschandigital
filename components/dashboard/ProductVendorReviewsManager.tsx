@@ -99,6 +99,17 @@ export function ProductVendorReviewsManager({
           "Testimoni berhasil diajukan! Menunggu verifikasi Super Admin sebelum tayang di website."
         );
 
+        fetch("/api/web-push/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            targetRole: "admin",
+            title: "🔔 Testimoni Baru Masuk!",
+            body: `${authorName.trim()} mengirimkan testimoni untuk produk "${productName}". Ketuk untuk meninjau.`,
+            url: "/admin/moderasi",
+          }),
+        }).catch(() => {});
+
         // Tambahkan ulasan secara optimistik dengan tanda pending
         const optimisticReview: ProductReview = {
           id: Date.now(),

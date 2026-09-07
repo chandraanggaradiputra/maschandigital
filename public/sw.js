@@ -93,3 +93,50 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
+// =======================================================================
+// PWA WEB PUSH NOTIFICATION LISTENERS
+// =======================================================================
+self.addEventListener('push', function (event) {
+  if (!event.data) return;
+
+  try {
+    const payload = event.data.json();
+    const title = payload.title || 'Mas Chan Digital';
+    const options = {
+      body: payload.body || 'Pemberitahuan baru dari Mas Chan Digital',
+      icon: payload.icon || '/icon-192.png',
+      badge: '/icon-192.png',
+      vibrate: [150, 50, 150],
+      data: {
+        url: payload.url || '/admin/moderasi',
+      },
+      tag: payload.tag || 'maschan-notification',
+      renotify: true,
+    };
+
+    event.waitUntil(self.registration.showNotification(title, options));
+  } catch (err) {
+    console.error('Error saat memproses payload push:', err);
+  }
+});
+
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || '/admin/moderasi';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+      for (let i = 0; i < clientList.length; i++) {
+        const client = clientList[i];
+        if (client.url.includes(targetUrl) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+

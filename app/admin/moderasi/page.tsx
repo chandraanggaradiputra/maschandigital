@@ -118,6 +118,18 @@ export default function AdminModerasiPage() {
       const res = await performReviewAction(token, review.id, "approve");
       if (res.success) {
         showToast("success", `Ulasan oleh ${review.author_name} telah disetujui!`);
+
+        fetch("/api/web-push/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            targetRole: "vendor",
+            title: "✅ Testimoni Telah Disetujui!",
+            body: `Testimoni untuk produk "${review.product_name}" telah diverifikasi dan resmi tayang di website.`,
+            url: `/products/${review.product_slug}`,
+          }),
+        }).catch(() => {});
+
         // Update optimistik
         setReviews((prev) => prev.filter((r) => r.id !== review.id));
         setPendingCount((prev) => Math.max(0, prev - 1));
@@ -154,6 +166,18 @@ export default function AdminModerasiPage() {
           "success",
           `Ulasan oleh ${rejectingReview.author_name} telah ditolak.`,
         );
+
+        fetch("/api/web-push/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            targetRole: "vendor",
+            title: "ℹ️ Status Moderasi Testimoni",
+            body: `Testimoni untuk "${rejectingReview.product_name}" belum dapat disetujui${rejectReason ? ": " + rejectReason.trim() : "."}`,
+            url: "/dashboard/products",
+          }),
+        }).catch(() => {});
+
         // Update optimistik
         setReviews((prev) => prev.filter((r) => r.id !== rejectingReview.id));
         if (rejectingReview.status === "pending") {

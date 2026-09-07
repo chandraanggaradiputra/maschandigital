@@ -9,6 +9,7 @@ import { Footer } from "@/components/layout/Footer";
 import { MarketplaceJsonLd } from "@/components/seo/MarketplaceJsonLd";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
+import { WebPushSubscriber } from "@/components/pwa/WebPushSubscriber";
 import { GlobalSearchModal } from "@/components/ui/GlobalSearchModal";
 import { Suspense } from "react";
 import { VendorPromoToast } from "@/components/social-proof/VendorPromoToast";
@@ -135,6 +136,7 @@ export default function RootLayout({
         <MarketplaceJsonLd />
         <PwaInstallPrompt />
         <PwaRegister />
+        <WebPushSubscriber />
         <ThemeProvider>
           {/* Aksesibilitas: Skip Link */}
           <a

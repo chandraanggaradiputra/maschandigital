@@ -258,4 +258,19 @@ export interface AdminReviewsResponse {
   reviews: AdminReviewItem[];
 }
 
+export interface StoredPushSubscription {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+  role: "admin" | "vendor" | "guest";
+  userId?: number;
+  updatedAt: string;
+}
+
+declare global {
+  var globalPushSubscriptions: StoredPushSubscription[] | undefined;
+}
+
 

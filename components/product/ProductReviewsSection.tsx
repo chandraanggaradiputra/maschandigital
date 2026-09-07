@@ -74,6 +74,18 @@ export function ProductReviewsSection({
 
       if (res.success) {
         setSubmitSuccess(true);
+
+        fetch("/api/web-push/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            targetRole: "admin",
+            title: "🔔 Testimoni Baru Masuk!",
+            body: `${authorName.trim()} mengirimkan testimoni untuk produk "${productName}". Ketuk untuk meninjau.`,
+            url: "/admin/moderasi",
+          }),
+        }).catch(() => {});
+
         // Tambahkan ulasan secara optimistik ke antarmuka lokal
         const newReview: ProductReview = {
           id: Date.now(),
