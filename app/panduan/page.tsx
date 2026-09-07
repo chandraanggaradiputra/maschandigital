@@ -14,6 +14,8 @@ import {
   MessageCircle,
   QrCode,
   CreditCard,
+  Smartphone,
+  MessageSquareQuote,
 } from "lucide-react";
 import { SectionContainer } from "@/components/layout/SectionContainer";
 import { TUTORIAL_MODULES, getAllTutorialChapters } from "@/lib/tutorialData";
@@ -53,6 +55,14 @@ export default function PanduanIndexPage() {
 
   const getModuleIcon = (iconName: string) => {
     switch (iconName) {
+      case "Smartphone":
+        return (
+          <Smartphone className="w-6 h-6 text-brand-700 dark:text-brand-300" />
+        );
+      case "MessageSquareQuote":
+        return (
+          <MessageSquareQuote className="w-6 h-6 text-brand-700 dark:text-brand-300" />
+        );
       case "Store":
         return <Store className="w-6 h-6 text-brand-700 dark:text-brand-300" />;
       case "Package":

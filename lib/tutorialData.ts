@@ -1,340 +1,340 @@
-import { TutorialModule, TutorialChapter } from '@/types/tutorial';
+import { TutorialModule, TutorialChapter } from "@/types/tutorial";
 
-export const TUTORIAL_MODULES: TutorialModule[] = [
+export interface TutorialStep {
+  title: string;
+  description: string;
+}
+
+export interface TutorialItem {
+  id: string;
+  title: string;
+  summary: string;
+  category: "PWA & Notifikasi" | "Katalog & Testimoni" | "Penjualan & WhatsApp" | "Akun & Langganan";
+  iconName: string;
+  badge?: string;
+  steps: TutorialStep[];
+}
+
+export const tutorialCategories = [
+  "Semua Panduan",
+  "PWA & Notifikasi",
+  "Katalog & Testimoni",
+  "Penjualan & WhatsApp",
+  "Akun & Langganan",
+] as const;
+
+export const tutorialData: TutorialItem[] = [
+  // -------------------------------------------------------------
+  // KATEGORI: PWA & NOTIFIKASI MOBILE
+  // -------------------------------------------------------------
   {
-    id: 'modul-1-buka-toko',
-    moduleNumber: 1,
-    title: 'Dasar & Registrasi Toko',
-    description: 'Panduan langkah awal mendaftarkan toko UMKM Anda secara gratis dan menerima email sambutan resmi di Kota Serang.',
-    iconName: 'Store',
-    chapters: [
+    id: "pwa-install-guide",
+    title: "Cara Memasang Aplikasi Mas Chan Digital di HP Android (PWA)",
+    summary:
+      "Pasang aplikasi Mas Chan Digital langsung ke layar utama ponsel Anda tanpa perlu membuka browser secara manual.",
+    category: "PWA & Notifikasi",
+    iconName: "Smartphone",
+    badge: "Fitur Baru",
+    steps: [
       {
-        slug: 'cara-daftar-toko-gratis',
-        title: 'Cara Mendaftar Toko Gratis & Menerima Email Selamat Datang',
-        shortDescription: 'Langkah mudah membuka etalase toko online gratis selamanya dan konfirmasi email selamat datang resmi.',
-        estimatedMinutes: 3,
-        content: {
-          overview: 'Mas Chan Digital menyediakan Paket Starter UMKM gratis selamanya untuk membantu seluruh pedagang dan pengrajin lokal di 6 kecamatan Kota Serang memiliki etalase digital resmi, lengkap dengan sistem notifikasi email otomatis.',
-          steps: [
-            {
-              title: '1. Akses Halaman Pendaftaran Vendor',
-              description: 'Buka maschandigital.id/vendor/register, klik tombol "Daftar Toko" di Header desktop, atau buka menu "Daftar Jadi Mitra Toko" di navigasi bawah ponsel Anda.',
-              tips: 'Pastikan memasukkan alamat email yang aktif dan sering Anda buka sehari-hari di ponsel Anda.',
-            },
-            {
-              title: '2. Masukkan Data Usaha & Nomor WhatsApp',
-              description: 'Isi nama pemilik, nama toko yang menarik (misal: "Sate Bandeng Bu Hj. Siti"), alamat email aktif, nomor WhatsApp (format 08xxx), dan pilih kecamatan domisili usaha Anda di Kota Serang.',
-            },
-            {
-              title: '3. Buat Kata Sandi Akun',
-              description: 'Tentukan password rahasia untuk login ke Dashboard Toko Anda. Pastikan Anda mencatat atau mengingat password ini.',
-            },
-            {
-              title: '4. Toko Langsung Aktif di Paket Starter UMKM',
-              description: 'Setelah klik tombol daftar, akun toko Anda langsung aktif dengan kuota 3 produk gratis selamanya. Anda bisa langsung masuk ke Dashboard Vendor.',
-            },
-            {
-              title: '5. Cek Email Selamat Datang dari Mas Chan Digital',
-              description: 'Buka kotak masuk (inbox) email Anda. Anda akan menerima email resmi berjudul "Selamat Datang di Mas Chan Digital, [Nama Toko]!" dari pengirim admin@maschandigital.id yang memuat rincian paket starter dan tombol pintas login ke dashboard.',
-              tips: 'Jika tidak ada di Kotak Masuk utama, periksa folder "Spam" atau "Promosi", lalu tandai sebagai "Bukan Spam" agar email notifikasi penting berikutnya selalu masuk lancar.',
-            },
-          ],
-          proTip: 'Simpan alamat pengirim admin@maschandigital.id ke kontak email Anda agar seluruh notifikasi sistem, tagihan, dan pembaruan toko selalu terkirim ke kotak masuk utama.',
-          faq: [
-            {
-              question: 'Apakah pendaftaran ini benar-benar gratis?',
-              answer: 'Ya, Paket Starter UMKM 100% gratis selamanya untuk maksimal 3 produk aktif tanpa dipungut biaya registrasi maupun biaya bulanan.',
-            },
-            {
-              question: 'Bagaimana jika email selamat datang belum masuk?',
-              answer: 'Email dikirim secara otomatis dalam hitungan detik. Silakan periksa folder Spam/Junk atau segarkan (refresh) aplikasi email Anda.',
-            },
-          ],
-        },
+        title: "1. Buka Website di Ponsel",
+        description:
+          "Buka situs resmi https://maschandigital.id menggunakan peramban Google Chrome atau Brave di ponsel Android Anda.",
       },
       {
-        slug: 'melengkapi-profil-dan-jam-operasional',
-        title: 'Mengatur Profil, Logo, dan Jam Buka Toko',
-        shortDescription: 'Lengkapi logo, alamat detail, tautan media sosial, dan jadwal jam buka toko Anda.',
-        estimatedMinutes: 4,
-        content: {
-          overview: 'Profil toko yang lengkap dengan logo berkualitas dan jadwal operasional yang jelas akan meningkatkan kepercayaan calon pembeli hingga 80%.',
-          steps: [
-            {
-              title: '1. Buka Menu Pengaturan Toko',
-              description: 'Masuk ke Dashboard, lalu klik menu "Pengaturan Profil Toko" (maschandigital.id/dashboard/profile).',
-            },
-            {
-              title: '2. Unggah Logo & Banner Toko',
-              description: 'Pada Tab "2. Branding & Foto", unggah foto logo toko (rasio kotak 1:1) dan foto banner toko (rasio lebar 16:9).',
-              tips: 'Gunakan foto asli tempat usaha, spanduk warung, atau kemasan produk Anda.',
-            },
-            {
-              title: '3. Atur Jam Operasional Harian',
-              description: 'Pada Tab "4. Jam Buka & Libur", centang hari-hari buka Anda dan atur jam operasional (misal: 08:00 - 17:00 WIB).',
-            },
-            {
-              title: '4. Fitur Mode Libur (Vacation Mode)',
-              description: 'Jika toko Anda tutup karena cuti, hari raya, atau renovasi, cukup aktifkan tombol "Mode Libur" dan tulis pesan pemberitahuan untuk pelanggan.',
-            },
-          ],
-          proTip: 'Sistem Mas Chan Digital otomatis menyesuaikan jam operasional toko dengan Waktu Indonesia Barat (WIB).',
-        },
+        title: "2. Ketuk Banner 'Pasang Mas Chan Digital'",
+        description:
+          "Tunggu sejenak hingga muncul banner mengambang di layar ponsel Anda bertuliskan 'Pasang Mas Chan Digital', lalu ketuk tombol biru 'Pasang'.",
       },
       {
-        slug: 'lupa-dan-reset-kata-sandi',
-        title: 'Cara Mengatur Ulang Kata Sandi via Email',
-        shortDescription: 'Panduan memulihkan akses login dashboard vendor melalui tautan reset yang dikirim ke email.',
-        estimatedMinutes: 3,
-        content: {
-          overview: 'Jika Anda lupa kata sandi akun toko, Mas Chan Digital menyediakan fitur pemulihan mandiri yang aman dan cepat langsung melalui email terdaftar Anda.',
-          steps: [
-            {
-              title: '1. Buka Halaman Login Vendor',
-              description: 'Buka halaman maschandigital.id/vendor/login, lalu klik tautan "Lupa Password?" di samping kolom kata sandi.',
-            },
-            {
-              title: '2. Masukkan Alamat Email Terdaftar',
-              description: 'Ketikkan alamat email yang Anda gunakan saat mendaftar toko, kemudian klik tombol "Kirim Tautan Reset Password".',
-              tips: 'Pastikan email yang dimasukkan sama persis dengan email saat registrasi toko.',
-            },
-            {
-              title: '3. Buka Email Reset Password dari admin@maschandigital.id',
-              description: 'Buka inbox email Anda dan cari email berjudul "Atur Ulang Kata Sandi Akun Mas Chan Digital" dari admin@maschandigital.id.',
-            },
-            {
-              title: '4. Klik Tombol Atur Ulang Kata Sandi',
-              description: 'Klik tombol biru "Atur Ulang Kata Sandi" di dalam email untuk membuka formulir pembuatan kata sandi baru.',
-            },
-            {
-              title: '5. Buat Kata Sandi Baru & Terima Email Konfirmasi Keamanan',
-              description: 'Masukkan kata sandi baru (minimal 6 karakter), ulangi di kolom konfirmasi, dan klik "Simpan Kata Sandi Baru". Sistem akan memperbarui password Anda dan mengirimkan email konfirmasi bahwa kata sandi telah berhasil diubah.',
-            },
-          ],
-          proTip: 'Tautan reset kata sandi memiliki batas waktu berlaku demi keamanan akun toko Anda. Segera klik tautan begitu email diterima.',
-        },
+        title: "3. Alternatif Menu Peramban",
+        description:
+          "Jika banner tidak muncul, ketuk tanda titik tiga (⋮) di pojok kanan atas browser Anda, lalu pilih opsi 'Tambahkan ke Layar Utama' atau 'Instal Aplikasi'.",
+      },
+      {
+        title: "4. Akses Instan dari Layar Utama",
+        description:
+          "Ikon aplikasi Mas Chan Digital akan otomatis muncul di layar beranda ponsel Anda dan siap digunakan layaknya aplikasi Android resmi tanpa bilah browser.",
       },
     ],
   },
   {
-    id: 'modul-2-kelola-produk',
-    moduleNumber: 2,
-    title: 'Manajemen Produk & Etalase',
-    description: 'Cara mengunggah foto produk yang menarik, memilih kategori berjenjang, dan menentukan harga.',
-    iconName: 'Package',
-    chapters: [
+    id: "web-push-activation-guide",
+    title: "Cara Mengaktifkan Notifikasi Web Push di Smartphone",
+    summary:
+      "Dapatkan notifikasi bergetar dan bersuara seketika saat ada pemberitahuan penting, info ulasan disetujui, atau pembaruan toko.",
+    category: "PWA & Notifikasi",
+    iconName: "Bell",
+    badge: "Penting",
+    steps: [
       {
-        slug: 'cara-upload-produk-pertama',
-        title: 'Panduan Upload Produk Baru & Foto Berkualitas',
-        shortDescription: 'Cara menambahkan barang dagangan baru ke etalase online Anda.',
-        estimatedMinutes: 4,
-        content: {
-          overview: 'Setiap produk yang Anda unggah akan otomatis tampil di Halaman Beranda, Halaman Katalog Semua Produk, Kategori yang relevan, dan Profil Toko Anda.',
-          steps: [
-            {
-              title: '1. Buka Form Tambah Produk',
-              description: 'Di ponsel, tekan tombol bulat biru "+ Jual" di tengah navigasi bawah. Di komputer, klik menu "Tambah Produk" di sidebar Dashboard Toko Anda.',
-            },
-            {
-              title: '2. Masukkan Nama & Deskripsi Produk',
-              description: 'Tuliskan nama produk secara spesifik (misal: "Sate Bandeng Tanpa Duri Rasa Pedas Khas Serang"). Jelaskan berat bersih, komposisi, atau cara penyajian.',
-            },
-            {
-              title: '3. Tentukan Harga & Harga Promo',
-              description: 'Masukkan harga resmi produk dalam Rupiah. Jika sedang ada diskon, masukkan harga promo di kolom "Harga Diskon" untuk memunculkan badge hemat.',
-            },
-            {
-              title: '4. Pilih Kategori & Unggah Foto',
-              description: 'Centang kategori yang sesuai pada daftar kategori berjenjang (Produk Fisik, Produk Digital, atau Layanan Jasa) dan unggah foto produk yang jernih langsung ke Media WordPress.',
-            },
-          ],
-          proTip: 'Ambil foto produk dengan pencahayaan alami di siang hari agar warna asli produk terlihat menarik bagi calon pembeli.',
-        },
+        title: "1. Buka Aplikasi di Ponsel",
+        description:
+          "Buka Mas Chan Digital dari ikon layar utama ponsel Anda atau peramban smartphone.",
+      },
+      {
+        title: "2. Setujui Izin Notifikasi",
+        description:
+          "Saat muncul kotak dialog kecil 'Aktifkan Notifikasi Mas Chan Digital' di bagian atas layar, ketuk tombol 'Ya' dan pilih 'Izinkan' (Allow) pada peramban.",
+      },
+      {
+        title: "3. Notifikasi Aktif Secara Otomatis",
+        description:
+          "Ponsel Anda kini telah terdaftar. Anda akan menerima notifikasi langsung di bilah status Android setiap kali testimoni produk Anda disetujui atau saat ada pesan penting dari Admin.",
+      },
+    ],
+  },
+
+  // -------------------------------------------------------------
+  // KATEGORI: KATALOG & TESTIMONI PELANGGAN
+  // -------------------------------------------------------------
+  {
+    id: "submit-customer-testimonials",
+    title: "Cara Memasukkan Testimoni Pelanggan Setia ke Halaman Produk",
+    summary:
+      "Bawa ulasan nyata pelanggan dari chat WhatsApp atau transaksi offline Anda ke halaman produk untuk meningkatkan kepercayaan pembeli baru.",
+    category: "Katalog & Testimoni",
+    iconName: "MessageSquareQuote",
+    badge: "Unggulan",
+    steps: [
+      {
+        title: "1. Masuk ke Dasbor Produk Toko",
+        description:
+          "Login ke akun vendor Anda, buka menu Dasbor, lalu pilih 'Kelola Produk' (/dashboard/products).",
+      },
+      {
+        title: "2. Pilih Produk & Klik Edit",
+        description:
+          "Pilih produk yang ingin ditambahkan ulasannya, lalu klik tombol 'Edit' untuk membuka formulir produk.",
+      },
+      {
+        title: "3. Buka Bagian 'Testimoni & Kepuasan Pelanggan'",
+        description:
+          "Gulir ke bagian bawah halaman di bawah formulir produk utama, lalu ketuk tombol '+ Ajukan Testimoni Baru'.",
+      },
+      {
+        title: "4. Isi Data Ulasan Pelanggan",
+        description:
+          "Pilih bintang kepuasan (1–5 bintang), masukkan Nama Pelanggan beserta asal daerahnya (misal: Ibu Hj. Maryam - Kasemen, Serang), dan ketik kutipan testimoni asli dari pelanggan setia Anda.",
+      },
+      {
+        title: "5. Moderasi Super Admin & Terbit Resmi",
+        description:
+          "Klik 'Ajukan Testimoni'. Ulasan akan berstatus Pending dan langsung diperiksa oleh Super Admin. Setelah disetujui, testimoni langsung tayang di halaman produk lengkap dengan bintang emas ulasan Google!",
       },
     ],
   },
   {
-    id: 'modul-3-transaksi-whatsapp',
-    moduleNumber: 3,
-    title: 'Transaksi & Pengiriman Serang',
-    description: 'Cara menangani pesanan WhatsApp otomatis dan opsi kurir lokal Kota Serang.',
-    iconName: 'MessageCircle',
-    chapters: [
+    id: "upload-products-guide",
+    title: "Panduan Mengunggah Produk Fisik & Digital",
+    summary:
+      "Tata cara menambahkan katalog dagangan UMKM, foto produk berkualitas, deskripsi menarik, dan penetapan harga resmi.",
+    category: "Katalog & Testimoni",
+    iconName: "PackagePlus",
+    steps: [
       {
-        slug: 'menangani-pesanan-smart-whatsapp-form',
-        title: 'Cara Menerima Pesanan dari Smart WhatsApp Form',
-        shortDescription: 'Memahami format pesanan terstruktur otomatis yang dikirimkan oleh pembeli.',
-        estimatedMinutes: 3,
-        content: {
-          overview: 'Mas Chan Digital menggunakan fitur Smart WhatsApp Order Form yang otomatis merinci kuantitas, nama pemesan, dan kecamatan pengiriman di Kota Serang saat pembeli mengklik tombol pesan.',
-          steps: [
-            {
-              title: '1. Membaca Rincian Pesanan Masuk',
-              description: 'Pesan yang masuk ke WhatsApp Anda sudah terformat rapi memuat: Nama Barang, Jumlah (Qty), Total Harga, Nama Pemesan, Kecamatan (misal: Cipocok Jaya), dan Pilihan Antar.',
-            },
-            {
-              title: '2. Mengonfirmasi Ketersediaan Stok',
-              description: 'Balas pesan pembeli dengan ramah untuk mengonfirmasi ketersediaan stok barang dan nomor rekening pembayaran atau E-Wallet pribadi Anda (BCA, Mandiri, BRI, DANA/OVO, atau QRIS pribadi).',
-            },
-            {
-              title: '3. Kesepakatan Pengiriman atau COD',
-              description: 'Sepakati metode antar: menggunakan kurir lokal Serang, ojek online, atau bertemu di titik COD populer (seperti Alun-alun Serang, Stadion Maulana Yusuf, atau Ciceri).',
-            },
-          ],
-          proTip: 'Seluruh keuntungan penjualan 100% milik Anda tanpa ada potongan biaya aplikasi atau komisi perantara.',
-        },
+        title: "1. Buka Menu Tambah Produk",
+        description:
+          "Masuk ke Dasbor Vendor dan klik tombol '+ Tambah Produk Baru' (/dashboard/products/new).",
+      },
+      {
+        title: "2. Unggah Foto Produk Berkualitas",
+        description:
+          "Unggah foto produk yang jelas dan terang (format JPG, PNG, atau JFIF). Foto yang menarik terbukti melipatgandakan minat klik pembeli.",
+      },
+      {
+        title: "3. Tentukan Judul, Kategori & Harga Resmi",
+        description:
+          "Gunakan judul produk yang mudah dicari (misal: Madu Akasia Murni 500gr), pilih kategori yang cocok, dan cantumkan harga asli tanpa manipulasi.",
+      },
+      {
+        title: "4. Tulis Deskripsi Sesuai Kaidah Syariat",
+        description:
+          "Jelaskan spesifikasi, keunggulan, dan kondisi barang secara jujur dan transparan untuk menjauhi unsur ketidakjelasan (tadlis) dalam perniagaan.",
+      },
+    ],
+  },
+
+  // -------------------------------------------------------------
+  // KATEGORI: PENJUALAN & WHATSAPP
+  // -------------------------------------------------------------
+  {
+    id: "direct-whatsapp-orders",
+    title: "Cara Melayani Pesanan & Chat Pembeli via WhatsApp (0% Fee)",
+    summary:
+      "Pahami bagaimana calon pembeli menghubungi toko Anda langsung via drawer chat dan mengirimkan rincian pesanan otomatis ke WhatsApp Anda.",
+    category: "Penjualan & WhatsApp",
+    iconName: "MessageCircle",
+    badge: "0% Potongan",
+    steps: [
+      {
+        title: "1. Pastikan Nomor WhatsApp Profil Toko Aktif",
+        description:
+          "Pastikan nomor WhatsApp yang Anda daftarkan di Profil Toko (/dashboard/profile) selalu aktif dan menggunakan format resmi Indonesia (contoh: 082298148474).",
+      },
+      {
+        title: "2. Fitur 'Tanya Penjual' Mengambang",
+        description:
+          "Di halaman produk dan profil toko Anda, calon pembeli dapat mengetuk tombol hijau mengambang untuk memilih pertanyaan cepat atau mengetik pesan langsung yang otomatis terhubung ke WhatsApp Anda.",
+      },
+      {
+        title: "3. Menerima Rincian Pesanan Instan",
+        description:
+          "Ketika pembeli menekan tombol 'Lengkapi Pesanan', mereka akan mengisi nama, pilihan kurir lokal/COD, dan kecamatan di Kota Serang. Rincian ini otomatis tersusun menjadi format pesan rapi di WhatsApp Anda.",
+      },
+      {
+        title: "4. Transaksi 100% Keuntungan Toko",
+        description:
+          "Seluruh pembayaran dari pembeli langsung ditransfer ke rekening toko Anda atau dibayar tunai saat COD. Mas Chan Digital tidak memotong komisi transaksi sepeser pun (0% gateway fee).",
+      },
+    ],
+  },
+
+  // -------------------------------------------------------------
+  // KATEGORI: AKUN & LANGGANAN
+  // -------------------------------------------------------------
+  {
+    id: "vendor-registration-setup",
+    title: "Cara Mendaftar & Mengatur Identitas Toko UMKM",
+    summary:
+      "Langkah awal bergabung menjadi mitra resmi Mas Chan Digital untuk menjangkau ribuan konsumen di 6 kecamatan Kota Serang.",
+    category: "Akun & Langganan",
+    iconName: "Store",
+    steps: [
+      {
+        title: "1. Buka Halaman Daftar Toko",
+        description:
+          "Akses menu 'Daftar Toko' (/register) dan lengkapi nama toko, email aktif, nama pemilik, dan nomor WhatsApp bisnis Anda.",
+      },
+      {
+        title: "2. Paket Starter UMKM Gratis Selamanya",
+        description:
+          "Setiap mitra baru langsung mendapatkan Paket Starter UMKM (kuota 3 produk) secara Gratis Selamanya tanpa syarat biaya bulanan.",
+      },
+      {
+        title: "3. Lengkapi Alamat & Titik Temu di Kota Serang",
+        description:
+          "Di menu profil toko, cantumkan kelurahan dan kecamatan (Serang, Cipocok Jaya, Kasemen, Taktakan, Curug, atau Walantaka) agar pembeli mudah memilih opsi pengiriman lokal.",
       },
     ],
   },
   {
-    id: 'modul-4-pemasaran-qr',
-    moduleNumber: 4,
-    title: 'Promosi & Standee QR Code Toko',
-    description: 'Memanfaatkan Standee QR Code untuk mempromosikan katalog online di warung fisik.',
-    iconName: 'QrCode',
-    chapters: [
+    id: "subscription-billing-guide",
+    title: "Cara Upgrade Paket Langganan & Konfirmasi 4 E-Wallet",
+    summary:
+      "Panduan menambah kuota produk toko hingga tak terbatas (Unlimited) melalui pembayaran transfer E-Wallet resmi.",
+    category: "Akun & Langganan",
+    iconName: "CreditCard",
+    steps: [
       {
-        slug: 'cara-cetak-standee-qr-toko',
-        title: 'Cara Unduh & Cetak Standee QR Code Meja Kasir',
-        shortDescription: 'Hubungkan pembeli di warung fisik Anda ke katalog online dengan memajang QR Standee.',
-        estimatedMinutes: 3,
-        content: {
-          overview: 'Setiap vendor Mas Chan Digital mendapatkan kartu Standee QR Code siap cetak beresolusi tinggi dengan bingkai resmi dan nama toko Anda.',
-          steps: [
-            {
-              title: '1. Buka Tab QR Code Standee di Profil',
-              description: 'Masuk ke menu Profil Toko di Dashboard, lalu klik Tab "6. QR Code Standee" atau klik tombol "Lihat QR Code Toko" di bagian atas.',
-            },
-            {
-              title: '2. Unduh Gambar PNG atau Cetak Langsung',
-              description: 'Klik tombol "Unduh Gambar PNG" untuk menyimpan file gambar berkualitas tinggi ke HP/laptop Anda, atau klik "Cetak Standee" untuk mencetak langsung di kertas A5/A6.',
-            },
-            {
-              title: '3. Pajang di Meja Kasir atau Etalase',
-              description: 'Letakkan standee di meja kasir, etalase warung, atau tempelkan sebagai stiker kemasan produk Anda.',
-            },
-          ],
-          proTip: 'Ajak pelanggan di warung fisik untuk memindai QR Code tersebut agar mereka bisa memesan ulang dari rumah via WhatsApp di kemudian hari.',
-        },
+        title: "1. Buka Menu Tagihan & Paket",
+        description:
+          "Masuk ke menu Dasbor Toko dan pilih halaman 'Langganan & Tagihan' (/dashboard/billing).",
       },
-    ],
-  },
-  {
-    id: 'modul-5-langganan-paket',
-    moduleNumber: 5,
-    title: 'Paket Langganan & Notifikasi Pembayaran',
-    description: 'Penjelasan opsi upgrade paket, alur notifikasi email tagihan, dan verifikasi pembayaran.',
-    iconName: 'CreditCard',
-    chapters: [
       {
-        slug: 'pilihan-paket-dan-perpanjangan',
-        title: 'Panduan Memilih Paket, Konfirmasi Transfer & Notifikasi Email',
-        shortDescription: 'Tingkatkan kuota produk toko Anda dengan panduan lengkap alur pembayaran dan notifikasi email resmi.',
-        estimatedMinutes: 4,
-        content: {
-          overview: 'Toko baru otomatis berstatus aktif selamanya di Paket Starter UMKM (Gratis, kuota 3 produk). Jika Anda ingin menambah lebih banyak produk, Mas Chan Digital menyediakan pilihan paket langganan dengan alur notifikasi email otomatis di setiap tahapannya.',
-          steps: [
-            {
-              title: '1. Buka Menu Langganan & Tagihan',
-              description: 'Di Dashboard toko, klik menu "Langganan & Tagihan" (maschandigital.id/dashboard/billing) untuk melihat status masa aktif dan kuota produk Anda.',
-            },
-            {
-              title: '2. Pilih Paket & Terima Email Tagihan Resmi',
-              description: 'Pilih paket yang diinginkan: Paket 1 Bulan (Rp 30.000 / 10 Produk), Paket 3 Bulan (Rp 90.000 / 10 Produk), Paket 6 Bulan (Rp 160.000 Unlimited), atau Paket 1 Tahun (Rp 280.000 Unlimited). Begitu paket dipilih, sistem otomatis membuatkan nomor invoice resmi (misal: INV-000123) dan mengirimkan rincian tagihan langsung ke email Anda.',
-              tips: 'Email tagihan memuat nomor invoice, nominal transfer pas, dan tombol langsung ke halaman pembayaran.',
-            },
-            {
-              title: '3. Transfer E-Wallet Manual & Unggah Bukti Bayar',
-              description: 'Lakukan transfer ke E-Wallet resmi (DANA, OVO, GoPay, atau ShopeePay) bernomor 0822-9814-8474 a.n. Chandra Anggara Diputra. Setelah transfer berhasil, unggah foto bukti struk dan isi nama pemilik rekening/akun pengirim di dashboard.',
-            },
-            {
-              title: '4. Terima Email "Bukti Pembayaran Diterima" & Jaminan Grace Protection',
-              description: 'Setelah bukti bayar diunggah, Anda akan menerima email notifikasi bahwa bukti transfer telah diterima. Selama menunggu verifikasi admin (status Pending Approval), toko Anda dijamin TETAP BUKA normal di halaman publik.',
-            },
-            {
-              title: '5. Terima Email "Pembayaran Terverifikasi" & Kuota Baru Aktif',
-              description: 'Ketika Admin menyetujui pembayaran di sistem, Anda akan otomatis menerima email "Pembayaran Terverifikasi ✓", masa aktif paket langsung bertambah, dan kuota produk toko Anda langsung diperbarui.',
-            },
-            {
-              title: '6. Notifikasi Pengingat Masa Aktif (H-7)',
-              description: 'Sebelum paket berbayar Anda berakhir, sistem akan otomatis mengirimkan email pengingat pada H-7 dan memberikan masa tenggang toleransi 3 hari jika Anda belum sempat memperpanjang.',
-            },
-          ],
-          proTip: 'Jika paket berbayar berakhir, produk lama Anda tetap aman dan tidak akan pernah dihapus. Akun Anda otomatis kembali ke Paket Starter UMKM (Gratis Selamanya).',
-          faq: [
-            {
-              question: 'Apakah ada notifikasi email saat saya memilih paket atau membayar?',
-              answer: 'Ya! Setiap tahapan (pembuatan invoice, penerimaan bukti transfer, dan persetujuan verifikasi) memiliki notifikasi email resmi dari admin@maschandigital.id.',
-            },
-            {
-              question: 'Bagaimana jika saya salah klik memilih paket berbayar?',
-              answer: 'Selama tagihan belum dibayar (status Unpaid), Anda cukup klik tombol "Batal Pilih Paket" di dashboard billing untuk membatalkan tagihan lama dan memilih paket lain.',
-            },
-            {
-              question: 'Apakah saya wajib berlangganan berbayar?',
-              answer: 'Tidak wajib. Anda bebas tetap menggunakan Paket Starter UMKM gratis selamanya untuk 3 produk aktif.',
-            },
-          ],
-        },
+        title: "2. Pilih Paket yang Dibutuhkan",
+        description:
+          "Pilih paket sesuai kebutuhan kuota Anda (Bulanan, 3 Bulan, 6 Bulan Unlimited, atau 1 Tahun VIP Unlimited).",
       },
-    ],
-  },
-  {
-    id: 'modul-6-transaksi-whatsapp-chat',
-    moduleNumber: 6,
-    title: 'Fitur Direct WhatsApp Chat & Order',
-    description: 'Panduan lengkap interaksi instan pembeli dan penerimaan pesanan otomatis via WhatsApp toko Anda.',
-    iconName: 'MessageCircle',
-    chapters: [
       {
-        slug: 'fitur-direct-whatsapp-chat-order',
-        title: 'Panduan Fitur Direct WhatsApp Chat & Order',
-        shortDescription: 'Layani pertanyaan pembeli secara instan dan terima rincian pesanan rapi tanpa potongan komisi (0% fee).',
-        estimatedMinutes: 3,
-        content: {
-          overview: 'Pembeli kini dapat menghubungi toko Anda secara instan melalui fitur "Tanya Vendor via WhatsApp" langsung dari halaman profil toko atau katalog produk Mas Chan Digital.',
-          steps: [
-            {
-              title: '1. Pastikan Nomor WhatsApp Toko Aktif & Valid',
-              description: 'Buka Dashboard Vendor -> Pengaturan Profil Toko (/dashboard/profile) atau profil WCFM. Pastikan kolom nomor WhatsApp terisi dengan nomor aktif berawalan 08 atau 62.',
-              tips: 'Nomor WhatsApp ini adalah jalur komunikasi utama pembeli untuk bertanya ketersediaan stok, spesifikasi produk, hingga konfirmasi pesanan.',
-            },
-            {
-              title: '2. Pembeli Bertanya via Drawer Chat WhatsApp Mengambang',
-              description: 'Di pojok kanan bawah halaman produk dan profil toko, terdapat tombol mengambang interaktif "Tanya Penjual". Pembeli dapat memilih pertanyaan cepat seputar ketersediaan stok, varian warna/ukuran, atau mengetikkan pesan kustom secara langsung.',
-            },
-            {
-              title: '3. Format Pesanan Otomatis Tersusun Rapi',
-              description: 'Saat pembeli menekan tombol "Pesan Langsung via WhatsApp Vendor" dan melengkapi formulir checkout (nama pemesan, jumlah, wilayah kecamatan Kota Serang, dan metode pengiriman), sistem secara otomatis menyusun rincian pesanan lengkap ke dalam chat WhatsApp toko Anda.',
-            },
-            {
-              title: '4. Transaksi Langsung Tanpa Potongan Komisi (0% Gateway Fee)',
-              description: 'Seluruh pembayaran disepakati dan dikirim langsung ke rekening/e-wallet toko Anda (transfer bank, COD, atau kurir lokal) tanpa ada pemotongan biaya transaksi ataupun biaya komisi per penjualan dari pihak marketplace.',
-            },
-          ],
-          proTip: 'Respon chat WhatsApp dari calon pembeli secepat mungkin dan jaga keramahan komunikasi untuk meningkatkan kepercayaan dan angka pembelian di toko Anda.',
-          faq: [
-            {
-              question: 'Apakah pembeli bisa bertanya tanpa harus langsung memesan?',
-              answer: 'Tentu bisa. Melalui floating drawer "Tanya Penjual", pembeli dapat menanyakan ketersediaan stok, varian, atau jadwal pengiriman sebelum melakukan checkout.',
-            },
-            {
-              question: 'Apakah ada potongan komisi dari pesanan yang masuk via WhatsApp?',
-              answer: 'Sama sekali tidak ada (0% gateway fee). Mas Chan Digital 100% mendukung kemajuan UMKM lokal Kota Serang.',
-            },
-            {
-              question: 'Bagaimana jika nomor WhatsApp saya berganti?',
-              answer: 'Cukup perbarui nomor WhatsApp Anda di menu Profil Toko di dashboard (/dashboard/profile). Perubahan akan seketika tersinkronisasi ke seluruh etalase produk dan profil toko Anda.',
-            },
-          ],
-        },
+        title: "3. Transfer ke 4 E-Wallet Resmi",
+        description:
+          "Lakukan transfer nominal sesuai invoice ke nomor resmi 0822-9814-8474 a.n. Chandra Anggara Diputra (tersedia DANA, OVO, GoPay, dan ShopeePay).",
+      },
+      {
+        title: "4. Unggah Bukti Struk & Konfirmasi",
+        description:
+          "Unggah foto struk transfer di halaman billing dan klik konfirmasi. Admin akan segera memverifikasi dan masa aktif toko Anda otomatis bertambah.",
       },
     ],
   },
 ];
 
-export function getAllTutorialChapters(): (TutorialChapter & { moduleTitle: string; moduleId: string; moduleNumber: number })[] {
-  const list: (TutorialChapter & { moduleTitle: string; moduleId: string; moduleNumber: number })[] = [];
+// -------------------------------------------------------------
+// ADAPTER MODUL UNTUK LMS /PANDUAN & /PANDUAN/[SLUG]
+// -------------------------------------------------------------
+const categoryConfig: Record<
+  TutorialItem["category"],
+  { moduleNumber: number; title: string; description: string; iconName: string }
+> = {
+  "PWA & Notifikasi": {
+    moduleNumber: 1,
+    title: "PWA & Notifikasi Mobile",
+    description:
+      "Panduan memasang aplikasi Mas Chan Digital di ponsel Android dan mengaktifkan notifikasi Web Push bergetar seketika.",
+    iconName: "Smartphone",
+  },
+  "Katalog & Testimoni": {
+    moduleNumber: 2,
+    title: "Katalog & Testimoni Pelanggan",
+    description:
+      "Tata cara mengunggah foto produk berkualitas dan memasukkan testimoni asli pembeli setia ke etalase online Anda.",
+    iconName: "MessageSquareQuote",
+  },
+  "Penjualan & WhatsApp": {
+    moduleNumber: 3,
+    title: "Penjualan & Direct WhatsApp (0% Fee)",
+    description:
+      "Panduan melayani pembeli langsung via drawer chat WhatsApp dan menerima rincian pesanan otomatis tanpa komisi.",
+    iconName: "MessageCircle",
+  },
+  "Akun & Langganan": {
+    moduleNumber: 4,
+    title: "Akun, Profil & Langganan Toko",
+    description:
+      "Langkah registrasi toko, pengaturan profil UMKM di Kota Serang, dan panduan upgrade paket langganan via E-Wallet.",
+    iconName: "Store",
+  },
+};
+
+export const TUTORIAL_MODULES: TutorialModule[] = (
+  [
+    "PWA & Notifikasi",
+    "Katalog & Testimoni",
+    "Penjualan & WhatsApp",
+    "Akun & Langganan",
+  ] as const
+).map((category) => {
+  const config = categoryConfig[category];
+  const items = tutorialData.filter((item) => item.category === category);
+
+  return {
+    id: `modul-${config.moduleNumber}-${category.toLowerCase().replace(/[^a-z0-9]/g, "-")}`,
+    moduleNumber: config.moduleNumber,
+    title: config.title,
+    description: config.description,
+    iconName: config.iconName,
+    chapters: items.map((item) => ({
+      slug: item.id,
+      title: item.title,
+      shortDescription: item.summary,
+      estimatedMinutes: 3,
+      content: {
+        overview: item.summary,
+        steps: item.steps.map((s) => ({
+          title: s.title,
+          description: s.description,
+        })),
+        proTip:
+          item.badge === "0% Potongan"
+            ? "Seluruh transaksi dari WhatsApp langsung masuk ke rekening atau e-wallet toko Anda tanpa potongan komisi sepeser pun."
+            : undefined,
+      },
+    })),
+  };
+});
+
+export function getAllTutorialChapters(): (TutorialChapter & {
+  moduleTitle: string;
+  moduleId: string;
+  moduleNumber: number;
+})[] {
+  const list: (TutorialChapter & {
+    moduleTitle: string;
+    moduleId: string;
+    moduleNumber: number;
+  })[] = [];
+
   for (const mod of TUTORIAL_MODULES) {
     for (const ch of mod.chapters) {
       list.push({
@@ -350,7 +350,7 @@ export function getAllTutorialChapters(): (TutorialChapter & { moduleTitle: stri
 
 export function getTutorialBySlug(slug: string) {
   const all = getAllTutorialChapters();
-  const index = all.findIndex(c => c.slug === slug);
+  const index = all.findIndex((c) => c.slug === slug);
   if (index === -1) return null;
 
   return {
@@ -359,4 +359,3 @@ export function getTutorialBySlug(slug: string) {
     next: index < all.length - 1 ? all[index + 1] : null,
   };
 }
-

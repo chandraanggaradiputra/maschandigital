@@ -12,6 +12,8 @@ import {
   CreditCard,
   ChevronRight,
   Sparkles,
+  Smartphone,
+  MessageSquareQuote,
 } from "lucide-react";
 import { TUTORIAL_MODULES } from "@/lib/tutorialData";
 import { cn } from "@/lib/utils";
@@ -21,6 +23,10 @@ export function TutorialSidebar() {
 
   const getModuleIcon = (iconName: string) => {
     switch (iconName) {
+      case "Smartphone":
+        return <Smartphone className="w-4 h-4" />;
+      case "MessageSquareQuote":
+        return <MessageSquareQuote className="w-4 h-4" />;
       case "Store":
         return <Store className="w-4 h-4" />;
       case "Package":
