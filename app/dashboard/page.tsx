@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Package,
   PlusCircle,
@@ -26,6 +27,7 @@ import { getVendorSession } from "@/lib/api/auth";
 import { Product, Vendor, VendorSubscription } from "@/types";
 
 export default function DashboardSummaryPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [vendorData, setVendorData] = useState<Partial<Vendor> | null>(null);
   const [subscription, setSubscription] = useState<VendorSubscription | null>(
@@ -39,6 +41,10 @@ export default function DashboardSummaryPage() {
       try {
         const session = getVendorSession();
         if (session && session.user) {
+          if (session.user.role === "admin" || session.user.role === "administrator") {
+            router.replace("/admin/moderasi");
+            return;
+          }
           // 1. Ambil data produk khusus vendor yang sedang login
           const myProducts = await getMyVendorProducts();
           setProducts(myProducts);
@@ -72,7 +78,7 @@ export default function DashboardSummaryPage() {
       }
     }
     loadDashboardData();
-  }, []);
+  }, [router]);
 
   if (isLoading) {
     return (

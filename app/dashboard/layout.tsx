@@ -39,6 +39,10 @@ export default function DashboardLayout({
   useEffect(() => {
     const session = getVendorSession();
     if (session && session.user && session.token) {
+      if (session.user.role === "admin" || session.user.role === "administrator") {
+        router.replace("/admin/moderasi");
+        return;
+      }
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsAuth(true);
       setVendorSlug(session.user.slug || "chanstore");

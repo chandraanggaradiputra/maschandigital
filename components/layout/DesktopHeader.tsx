@@ -52,6 +52,10 @@ export function DesktopHeader() {
   }, []);
 
   const isVendor = Boolean(session && session.user);
+  const isAdmin = Boolean(
+    session?.user &&
+      (session.user.role === "admin" || session.user.role === "administrator"),
+  );
 
   return (
     <header className="hidden md:block sticky top-0 z-50 w-full shadow-sm transition-colors">
@@ -134,15 +138,29 @@ export function DesktopHeader() {
             {/* Dark Mode Toggle */}
             <ThemeToggle />
 
-            {/* Tombol Vendor / Profil */}
+            {/* Tombol Vendor / Admin / Profil */}
             {isVendor && session?.user ? (
               <div className="flex items-center gap-2 pl-1 border-l border-slate-200 dark:border-slate-800">
                 <Link
-                  href="/dashboard"
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-blue-50 px-3.5 py-2 text-xs font-semibold text-[#093c96] hover:bg-blue-100 dark:bg-blue-950/60 dark:text-blue-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  href={isAdmin ? "/admin/moderasi" : "/dashboard"}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2",
+                    isAdmin
+                      ? "bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/60 dark:text-rose-300 focus-visible:ring-rose-500"
+                      : "bg-blue-50 text-[#093c96] hover:bg-blue-100 dark:bg-blue-950/60 dark:text-blue-300 focus-visible:ring-blue-500"
+                  )}
                 >
-                  <Store className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span className="truncate max-w-[100px]">{session.user.store_name || session.user.name || 'Dasbor Toko'}</span>
+                  {isAdmin ? (
+                    <>
+                      <ShieldCheck className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" aria-hidden="true" />
+                      <span className="truncate max-w-[120px]">Pusat Moderasi</span>
+                    </>
+                  ) : (
+                    <>
+                      <Store className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span className="truncate max-w-[100px]">{session.user.store_name || session.user.name || 'Dasbor Toko'}</span>
+                    </>
+                  )}
                 </Link>
                 <button
                   type="button"

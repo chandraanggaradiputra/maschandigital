@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,7 +13,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { loginVendor } from "@/lib/api/auth";
+import { loginVendor, getVendorSession } from "@/lib/api/auth";
 
 export default function VendorLoginPage() {
   const [email, setEmail] = useState("");
@@ -24,6 +24,18 @@ export default function VendorLoginPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const router = useRouter();
 
+  // Auto redirect if session already exists
+  useEffect(() => {
+    const session = getVendorSession();
+    if (session?.token && session.user) {
+      if (session.user.role === "admin" || session.user.role === "administrator") {
+        router.replace("/admin/moderasi");
+      } else {
+        router.replace("/dashboard");
+      }
+    }
+  }, [router]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -33,9 +45,15 @@ export default function VendorLoginPage() {
     const result = await loginVendor(email.trim(), password);
 
     if (result.success && result.session) {
+      const user = result.session.user;
+      const isAdmin = user?.role === "admin" || user?.role === "administrator";
       setIsSuccess(true);
       setTimeout(() => {
-        router.push("/dashboard");
+        if (isAdmin) {
+          router.push("/admin/moderasi");
+        } else {
+          router.push("/dashboard");
+        }
         router.refresh();
       }, 1000);
     } else {
@@ -74,7 +92,7 @@ export default function VendorLoginPage() {
               aria-hidden="true"
             />
             <span className="font-semibold">
-              Login berhasil! Membuka Dashboard Vendor...
+              Login berhasil! Mengalihkan ke halaman akun...
             </span>
           </aside>
         )}

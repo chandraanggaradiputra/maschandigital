@@ -22,6 +22,7 @@ import {
   Phone,
   Search,
   ChevronRight,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getVendorSession, logoutVendor, AuthSession } from "@/lib/api/auth";
@@ -50,6 +51,10 @@ export function MobileBottomNav() {
   };
 
   const isVendor = Boolean(session && session.user);
+  const isAdmin = Boolean(
+    session?.user &&
+      (session.user.role === "admin" || session.user.role === "administrator"),
+  );
 
   const [prevPathname, setPrevPathname] = useState(pathname);
   if (prevPathname !== pathname) {
@@ -139,7 +144,20 @@ export function MobileBottomNav() {
 
           {/* Tab 3: Center (Role Adaptive) */}
           <div className="flex flex-col items-center justify-center w-full h-full relative -top-3">
-            {isVendor ? (
+            {isAdmin ? (
+              <Link
+                href="/admin/moderasi"
+                className="flex flex-col items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded-full group"
+                aria-label="Pusat Kendali Moderasi"
+              >
+                <div className="w-12 h-12 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-lg shadow-rose-900/30 group-hover:bg-rose-700 transition-all group-hover:scale-105 active:scale-95">
+                  <ShieldCheck className="w-6 h-6" aria-hidden="true" />
+                </div>
+                <span className="text-[10px] mt-1 font-bold text-rose-600 dark:text-rose-400">
+                  Moderasi
+                </span>
+              </Link>
+            ) : isVendor ? (
               <Link
                 href="/dashboard/products/new"
                 className="flex flex-col items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-full group"
@@ -168,8 +186,8 @@ export function MobileBottomNav() {
             )}
           </div>
 
-          {/* Tab 4: Kategori (or Pesanan for vendor) */}
-          {isVendor ? (
+          {/* Tab 4: Kategori (or Katalog for vendor) */}
+          {isVendor && !isAdmin ? (
             <Link
               href="/dashboard/products"
               className="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400 focus-visible:outline-none focus-visible:text-brand-600 group"
@@ -388,27 +406,44 @@ export function MobileBottomNav() {
                 </div>
               </div>
 
-              {/* GRUP 2: AKUN MITRA TOKO */}
+              {/* GRUP 2: AKUN MITRA TOKO / SUPER ADMIN */}
               <div className="shrink-0 space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Akun Mitra Toko
+                  {isAdmin ? "Akun Super Admin" : "Akun Mitra Toko"}
                 </p>
                 <div className="space-y-1">
                   {isVendor && session?.user ? (
                     <>
-                      <Link
-                        href="/dashboard"
-                        onClick={() => setIsDrawerOpen(false)}
-                        className="flex items-center justify-between rounded-xl p-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
-                      >
-                        <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300 font-medium">
-                          <LayoutDashboard className="h-5 w-5 text-[#093c96] dark:text-blue-400" />
-                          <span>
-                            {session.user.store_name || session.user.name || "Dasbor Toko Saya"}
-                          </span>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-slate-400" />
-                      </Link>
+                      {isAdmin ? (
+                        <Link
+                          href="/admin/moderasi"
+                          onClick={() => setIsDrawerOpen(false)}
+                          className="flex items-center justify-between rounded-xl p-3 hover:bg-rose-50/50 dark:hover:bg-rose-950/30 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300 font-medium">
+                            <ShieldCheck className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+                            <div className="flex flex-col">
+                              <span>Pusat Kendali Moderasi</span>
+                              <span className="text-[10px] text-slate-400">Super Admin Mas Chan Digital</span>
+                            </div>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-slate-400" />
+                        </Link>
+                      ) : (
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setIsDrawerOpen(false)}
+                          className="flex items-center justify-between rounded-xl p-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300 font-medium">
+                            <LayoutDashboard className="h-5 w-5 text-[#093c96] dark:text-blue-400" />
+                            <span>
+                              {session.user.store_name || session.user.name || "Dasbor Toko Saya"}
+                            </span>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-slate-400" />
+                        </Link>
+                      )}
 
                       <button
                         type="button"
