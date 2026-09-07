@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { ProductForm } from "@/components/forms/ProductForm";
+import { ProductVendorReviewsManager } from "@/components/dashboard/ProductVendorReviewsManager";
 import { getProductBySlug } from "@/lib/api/wordpress";
 
 type EditProductPageProps = {
@@ -44,6 +45,10 @@ export default async function EditProductPage({
       </header>
 
       <ProductForm initialData={product} isEditing={true} />
+      <ProductVendorReviewsManager
+        productId={product.id}
+        productName={product.name}
+      />
     </div>
   );
 }
