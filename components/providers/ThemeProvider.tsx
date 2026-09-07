@@ -4,8 +4,8 @@ import * as React from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 
 // React 19 / Next.js 16: Guard against dev-mode false positives and Turbopack measurement crashes
-if (typeof window !== "undefined") {
-  // 1. Suppress known script-tag warning from next-themes inline detection
+if (typeof console !== "undefined" && typeof console.error === "function") {
+  // 1. Suppress known script-tag warning from next-themes inline detection (SSR + Client)
   const originalError = console.error;
   console.error = (...args: unknown[]) => {
     if (
@@ -16,22 +16,27 @@ if (typeof window !== "undefined") {
     }
     originalError.apply(console, args);
   };
+}
+
+if (typeof window !== "undefined") {
+  // Workaround for Turbopack Next.js 16.3.1 bug:
+  // react-server-dom crashes with `TypeError: frame.join is not a function` when console.createTask is defined
+  if (typeof console !== "undefined" && "createTask" in console) {
+    try {
+      delete (console as unknown as { createTask?: unknown }).createTask;
+    } catch {
+      (console as unknown as { createTask?: unknown }).createTask = undefined;
+    }
+  }
 
   // 2. Guard window.performance.measure against Next.js 16 / Turbopack negative timestamp bug
   if (window.performance && typeof window.performance.measure === "function") {
     const originalMeasure = window.performance.measure.bind(window.performance);
     window.performance.measure = function (
-      measureName: string,
-      startOrMeasureOptions?: string | PerformanceMeasureOptions,
-      endMark?: string,
+      ...args: Parameters<Performance["measure"]>
     ): PerformanceMeasure {
       try {
-        if (typeof startOrMeasureOptions === "string") {
-          return originalMeasure(measureName, startOrMeasureOptions, endMark);
-        } else if (startOrMeasureOptions) {
-          return originalMeasure(measureName, startOrMeasureOptions);
-        }
-        return originalMeasure(measureName);
+        return originalMeasure(...args);
       } catch {
         // Next.js 16 Turbopack bug: Flight Server Component profiling
         // can emit negative duration/timestamps, which throws uncaught TypeError in browser
@@ -53,6 +58,7 @@ if (typeof window !== "undefined") {
     if (
       msg.includes("frame.join is not a function") ||
       msg.includes("cannot have a negative time stamp") ||
+      msg.includes("negative time stamp") ||
       msg.includes("enqueueModel")
     ) {
       event.preventDefault();
@@ -65,6 +71,7 @@ if (typeof window !== "undefined") {
     const msg = event.message || "";
     if (
       msg.includes("cannot have a negative time stamp") ||
+      msg.includes("negative time stamp") ||
       msg.includes("frame.join is not a function") ||
       msg.includes("enqueueModel")
     ) {

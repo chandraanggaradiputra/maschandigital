@@ -32,7 +32,6 @@ export function ProductJsonLd({
   const hasReviews = effectiveReviews && effectiveReviews.total_reviews > 0;
 
   const productSchema = {
-    "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
     image: allImages,
@@ -85,7 +84,6 @@ export function ProductJsonLd({
   };
 
   const breadcrumbSchema = {
-    "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
       {
@@ -109,16 +107,18 @@ export function ProductJsonLd({
     ],
   };
 
+  const graphSchema = {
+    "@context": "https://schema.org",
+    "@graph": [productSchema, breadcrumbSchema],
+  };
+
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
-      />
-    </>
+    <script
+      id="product-jsonld"
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify(graphSchema).replace(/</g, "\\u003c"),
+      }}
+    />
   );
 }

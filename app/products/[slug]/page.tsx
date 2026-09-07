@@ -16,7 +16,6 @@ import { ProductReviewsSection } from "@/components/product/ProductReviewsSectio
 import { ProductJsonLd } from "@/components/seo/ProductJsonLd";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductViewTracker } from "@/components/product/ProductViewTracker";
-import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import {
   getProductBySlug,
   getProducts,
@@ -141,23 +140,18 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
   const productUrl = `https://maschandigital.id/products/${product.slug}`;
 
   return (
-    <article
-      aria-labelledby="product-main-title"
-      className="space-y-8 sm:space-y-12 py-6 sm:py-10 pb-28 md:pb-12"
-    >
-      {/* Pelacak Tayangan Produk Otomatis */}
-      <ProductViewTracker product={product} />
-      {/* Product Json LD dengan Schema.org Rich Snippets */}
+    <>
+      {/* Product Json LD dengan Schema.org Rich Snippets & Breadcrumb Graph */}
       <ProductJsonLd product={product} reviewsData={reviewsData} />
-      <BreadcrumbJsonLd
-        items={[
-          { name: "Beranda", url: "/" },
-          { name: "Produk", url: "/products" },
-          { name: product.name, url: `/products/${product.slug}` },
-        ]}
-      />
 
-      {/* Breadcrumb */}
+      <article
+        aria-labelledby="product-main-title"
+        className="space-y-8 sm:space-y-12 py-6 sm:py-10 pb-28 md:pb-12"
+      >
+        {/* Pelacak Tayangan Produk Otomatis */}
+        <ProductViewTracker product={product} />
+
+        {/* Breadcrumb */}
       <SectionContainer className="py-0">
         <nav aria-label="Navigasi Breadcrumb">
           <ol className="flex items-center gap-2 m-0 p-0 text-slate-500 dark:text-slate-400 text-xs sm:text-sm list-none">
@@ -413,5 +407,6 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
         </div>
       </SectionContainer>
     </article>
+    </>
   );
 }

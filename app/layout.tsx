@@ -114,7 +114,7 @@ export default function RootLayout({
         <script
           id="perf-measure-guard"
           dangerouslySetInnerHTML={{
-            __html: `(function(){if(typeof window!=='undefined'&&window.performance&&typeof window.performance.measure==='function'){var _orig=window.performance.measure.bind(window.performance);window.performance.measure=function(n,s,e){try{return _orig(n,s,e);}catch(_){return undefined;}};}})();`,
+            __html: `(function(){if(typeof window==='undefined')return;if(typeof console!=='undefined'&&console.createTask){try{delete console.createTask;}catch(_){console.createTask=undefined;}}if(window.performance&&typeof window.performance.measure==='function'){var _orig=window.performance.measure.bind(window.performance);window.performance.measure=function(){try{return _orig.apply(window.performance,arguments);}catch(_){return undefined;}};}window.addEventListener('unhandledrejection',function(e){var r=e.reason;var m=(r&&(r.message||r))?String(r.message||r):'';if(m.indexOf('frame.join')!==-1||m.indexOf('negative time stamp')!==-1||m.indexOf('enqueueModel')!==-1){e.preventDefault();e.stopImmediatePropagation();}});window.addEventListener('error',function(e){var m=e.message?String(e.message):'';if(m.indexOf('frame.join')!==-1||m.indexOf('negative time stamp')!==-1||m.indexOf('enqueueModel')!==-1){e.preventDefault();e.stopImmediatePropagation();}});})();`,
           }}
         />
         <Script id="google-tag-manager" strategy="afterInteractive">
