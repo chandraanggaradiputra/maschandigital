@@ -299,31 +299,29 @@ export default async function HomePage() {
         aria-labelledby="products-heading"
         className="py-6 sm:py-10"
       >
-        <header className="flex sm:flex-row flex-col justify-between sm:items-end gap-3 mb-6 sm:mb-8">
+        <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
           <div>
-            <div className="inline-flex items-center gap-1.5 bg-rose-100 dark:bg-rose-950/80 mb-2 px-2.5 py-0.5 rounded-full font-semibold text-rose-700 dark:text-rose-300 text-xs">
-              <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+            <span className="text-xs font-bold uppercase tracking-wider text-brand-700 dark:text-blue-400">
               Rekomendasi Terbaik
-            </div>
+            </span>
             <h2
               id="products-heading"
-              className="font-slab font-bold text-slate-900 dark:text-white text-xl sm:text-2xl"
+              className="font-slab font-bold text-2xl sm:text-3xl text-slate-900 dark:text-white mt-1"
             >
               Produk & Layanan Populer
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
               Pilihan produk lokal favorit dengan kontak langsung ke penjual
             </p>
           </div>
-          <Link href="/products">
-            <Button
-              variant="outline"
-              size="sm"
-              className="hidden sm:inline-flex"
-            >
-              <span>Lihat Semua Produk</span>
-              <ArrowRight className="w-4 h-4" aria-hidden="true" />
-            </Button>
+
+          {/* Tautan Desktop */}
+          <Link
+            href="/products"
+            className="hidden sm:inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#093c96] hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"
+          >
+            <span>Lihat Semua Produk</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
           </Link>
         </header>
 
@@ -354,16 +352,16 @@ export default async function HomePage() {
           </div>
         )}
 
-        {popularProducts.length > 0 && (
-          <div className="mt-8 text-center sm:hidden">
-            <Link href="/products">
-              <Button variant="outline" size="sm" fullWidth>
-                <span>Lihat Semua Produk</span>
-                <ArrowRight className="w-4 h-4" aria-hidden="true" />
-              </Button>
-            </Link>
-          </div>
-        )}
+        {/* Tombol CTA di Bawah Grid Produk (Responsif Mobile & Desktop) */}
+        <div className="mt-8 sm:mt-10 text-center">
+          <Link
+            href="/products"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#093c96] hover:bg-blue-800 active:scale-95 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-sm hover:shadow-md transition-all"
+          >
+            <span>Lihat Semua Produk UMKM</span>
+            <ArrowRight className="w-4 h-4" aria-hidden="true" />
+          </Link>
+        </div>
       </SectionContainer>
 
       {/* 5. CALL TO ACTION: DAFTAR VENDOR */}
