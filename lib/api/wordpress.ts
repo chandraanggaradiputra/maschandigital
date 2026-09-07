@@ -1,4 +1,4 @@
-import { Product, Vendor, ProductCategory } from "@/types";
+import { Product, Vendor, ProductCategory, ProductReviewsData } from "@/types";
 import { getVendorSession } from "@/lib/api/auth";
 import { resolveVendorDistrict } from "@/lib/utils";
 
@@ -1041,3 +1041,90 @@ export async function trackWhatsAppClick(productId?: number): Promise<void> {
     // Background telemetry non-blocking
   }
 }
+
+/**
+ * Mengambil data ulasan produk (reviews & rating) dari REST API WordPress
+ */
+export async function getProductReviews(
+  productId: number,
+): Promise<ProductReviewsData> {
+  const fallback: ProductReviewsData = {
+    average_rating: 0,
+    total_reviews: 0,
+    reviews: [],
+  };
+
+  if (!productId) return fallback;
+
+  try {
+    const res = await fetch(
+      `${WP_API_URL}/wp-json/maschan/v1/products/${productId}/reviews`,
+      {
+        next: { revalidate: 60 },
+      },
+    );
+
+    if (!res.ok) return fallback;
+
+    const data = await res.json();
+    return {
+      average_rating:
+        typeof data.average_rating === "number" ? data.average_rating : 0,
+      total_reviews:
+        typeof data.total_reviews === "number" ? data.total_reviews : 0,
+      reviews: Array.isArray(data.reviews) ? data.reviews : [],
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Mengirim ulasan produk baru ke REST API WordPress
+ */
+export async function submitProductReview(
+  productId: number,
+  data: {
+    author_name: string;
+    rating: number;
+    content: string;
+    author_email?: string;
+  },
+): Promise<{ success: boolean; message: string }> {
+  if (!productId) {
+    return { success: false, message: "ID Produk tidak valid." };
+  }
+
+  try {
+    const res = await fetch(
+      `${WP_API_URL}/wp-json/maschan/v1/products/${productId}/reviews`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      },
+    );
+
+    const json = await res.json();
+
+    if (res.ok && (json.success || json.review)) {
+      return {
+        success: true,
+        message: json.message || "Ulasan berhasil dikirim dan ditampilkan.",
+      };
+    }
+
+    return {
+      success: false,
+      message: json.message || "Gagal mengirim ulasan.",
+    };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      message: getErrorMessage(err, "Gagal menghubungi server."),
+    };
+  }
+}
+

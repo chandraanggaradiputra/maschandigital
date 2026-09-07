@@ -64,6 +64,7 @@ export interface Product {
   seo?: RankMathSEO;
   created_at?: string;
   total_sales?: number;
+  reviews_data?: ProductReviewsData;
 }
 
 export interface StoreHoursDay {
@@ -224,3 +225,18 @@ export interface BillingInvoice {
   approved_by?: number | null;
   created_at: string;
 }
+
+export interface ProductReview {
+  id: number;
+  author_name: string;
+  rating: number;
+  content: string;
+  date: string;
+}
+
+export interface ProductReviewsData {
+  average_rating: number;
+  total_reviews: number;
+  reviews: ProductReview[];
+}
+

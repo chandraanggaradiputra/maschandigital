@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { OrderSection } from "@/components/product/OrderSection";
 import { VendorWhatsAppChat } from "@/components/chat/VendorWhatsAppChat";
+import { ProductReviewsSection } from "@/components/product/ProductReviewsSection";
 import { ProductJsonLd } from "@/components/seo/ProductJsonLd";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductViewTracker } from "@/components/product/ProductViewTracker";
@@ -20,6 +21,7 @@ import {
   getProductBySlug,
   getProducts,
   getVendorBySlug,
+  getProductReviews,
 } from "@/lib/api/wordpress";
 import { formatRupiah } from "@/lib/utils";
 import { checkStoreStatus } from "@/lib/storeStatus";
@@ -101,13 +103,17 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
     notFound();
   }
 
-  const allProducts = await getProducts();
+  const [allProducts, vendor, reviewsData] = await Promise.all([
+    getProducts(),
+    product.vendor?.slug
+      ? getVendorBySlug(product.vendor.slug)
+      : Promise.resolve(null),
+    getProductReviews(product.id),
+  ]);
+
   const relatedProducts = allProducts
     .filter((p) => p.id !== product.id)
     .slice(0, 4);
-  const vendor = product.vendor?.slug
-    ? await getVendorBySlug(product.vendor.slug)
-    : null;
 
   // Cek Status Jam Buka & Libur Toko Vendor
   const storeStatus = checkStoreStatus(
@@ -141,8 +147,8 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
     >
       {/* Pelacak Tayangan Produk Otomatis */}
       <ProductViewTracker product={product} />
-      {/* Product Json LTD */}
-      <ProductJsonLd product={product} />
+      {/* Product Json LD dengan Schema.org Rich Snippets */}
+      <ProductJsonLd product={product} reviewsData={reviewsData} />
       <BreadcrumbJsonLd
         items={[
           { name: "Beranda", url: "/" },
@@ -365,6 +371,13 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
                 <p>{product.description}</p>
               </div>
             </section>
+
+            {/* Testimoni & Ulasan Pembeli Otentik */}
+            <ProductReviewsSection
+              productId={product.id}
+              productName={product.name}
+              initialReviewsData={reviewsData}
+            />
           </div>
         </div>
       </SectionContainer>

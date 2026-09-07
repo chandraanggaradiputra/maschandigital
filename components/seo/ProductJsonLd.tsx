@@ -1,12 +1,17 @@
 import React from "react";
-import { Product } from "@/types";
+import { Product, ProductReviewsData } from "@/types";
 
 interface ProductJsonLdProps {
   product: Product;
   productUrl?: string;
+  reviewsData?: ProductReviewsData;
 }
 
-export function ProductJsonLd({ product, productUrl }: ProductJsonLdProps) {
+export function ProductJsonLd({
+  product,
+  productUrl,
+  reviewsData,
+}: ProductJsonLdProps) {
   const currentUrl =
     productUrl || `https://maschandigital.id/products/${product.slug}`;
   const currentPrice =
@@ -22,6 +27,9 @@ export function ProductJsonLd({ product, productUrl }: ProductJsonLdProps) {
       : [mainImage];
 
   const primaryCategory = product.categories?.[0]?.name || "Produk Lokal";
+
+  const effectiveReviews = reviewsData || product.reviews_data;
+  const hasReviews = effectiveReviews && effectiveReviews.total_reviews > 0;
 
   const productSchema = {
     "@context": "https://schema.org",
@@ -42,11 +50,11 @@ export function ProductJsonLd({ product, productUrl }: ProductJsonLdProps) {
     offers: {
       "@type": "Offer",
       url: currentUrl,
-      priceCurrency: "IDR",
       price: numericPrice,
+      priceCurrency: "IDR",
+      availability: "https://schema.org/InStock",
       priceValidUntil: "2027-12-31",
       itemCondition: "https://schema.org/NewCondition",
-      availability: "https://schema.org/InStock",
       seller: {
         "@type": "Store",
         name: product.vendor?.store_name || "Vendor Mas Chan Digital",
@@ -63,6 +71,17 @@ export function ProductJsonLd({ product, productUrl }: ProductJsonLdProps) {
         },
       },
     },
+    ...(hasReviews && effectiveReviews
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: effectiveReviews.average_rating.toFixed(1),
+            reviewCount: effectiveReviews.total_reviews.toString(),
+            bestRating: "5",
+            worstRating: "1",
+          },
+        }
+      : {}),
   };
 
   const breadcrumbSchema = {
