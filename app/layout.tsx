@@ -111,6 +111,12 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning className={robotoSlab.variable}>
       <head>
+        <script
+          id="perf-measure-guard"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){if(typeof window!=='undefined'&&window.performance&&typeof window.performance.measure==='function'){var _orig=window.performance.measure.bind(window.performance);window.performance.measure=function(n,s,e){try{return _orig(n,s,e);}catch(_){return undefined;}};}})();`,
+          }}
+        />
         <Script id="google-tag-manager" strategy="afterInteractive">
           {`
             (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
