@@ -4,10 +4,8 @@ export const revalidate = 60; // Refresh data produk/toko beranda setiap 60 deti
 import React from "react";
 import Link from "next/link";
 import {
-  Search,
   Store,
   ShoppingBag,
-  MapPin,
   ShieldCheck,
   MessageCircle,
   ArrowRight,
@@ -29,7 +27,6 @@ import { SectionContainer } from "@/components/layout/SectionContainer";
 import { ProductCard } from "@/components/cards/ProductCard";
 import { VendorCard } from "@/components/cards/VendorCard";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { HeroSearch } from "@/components/home/HeroSearch";
 import { getProducts, getVendors, getCategories } from "@/lib/api/wordpress";
 import { checkStoreStatus } from "@/lib/storeStatus";
@@ -111,7 +108,18 @@ export default async function HomePage() {
   const vendors = await getVendors();
   const categories = await getCategories();
 
-  const featuredProducts = products.slice(0, 4);
+  // Urutkan produk berdasarkan jumlah tayangan terbanyak (views descending)
+  const popularProducts = Array.isArray(products)
+    ? [...products]
+        .sort((a, b) => {
+          const viewsA =
+            a.views ?? a.view_count ?? a.total_views ?? a.views_count ?? 0;
+          const viewsB =
+            b.views ?? b.view_count ?? b.total_views ?? b.views_count ?? 0;
+          return viewsB - viewsA;
+        })
+        .slice(0, 8) // Tampilkan 8 produk paling populer di beranda
+    : [];
 
   return (
     <div className="space-y-6 sm:space-y-10">
@@ -291,7 +299,7 @@ export default async function HomePage() {
         aria-labelledby="products-heading"
         className="py-6 sm:py-10"
       >
-        <header className="flex justify-between items-center mb-6 sm:mb-8">
+        <header className="flex sm:flex-row flex-col justify-between sm:items-end gap-3 mb-6 sm:mb-8">
           <div>
             <div className="inline-flex items-center gap-1.5 bg-rose-100 dark:bg-rose-950/80 mb-2 px-2.5 py-0.5 rounded-full font-semibold text-rose-700 dark:text-rose-300 text-xs">
               <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
@@ -307,28 +315,55 @@ export default async function HomePage() {
               Pilihan produk lokal favorit dengan kontak langsung ke penjual
             </p>
           </div>
+          <Link href="/products">
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden sm:inline-flex"
+            >
+              <span>Lihat Semua Produk</span>
+              <ArrowRight className="w-4 h-4" aria-hidden="true" />
+            </Button>
+          </Link>
         </header>
 
-        <div className="gap-4 sm:gap-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          {featuredProducts.map((product, index) => {
-            const initialStoreStatus = checkStoreStatus(
-              product.vendor?.store_hours,
-              product.vendor?.vacation_mode,
-            );
+        {popularProducts.length > 0 ? (
+          <div className="gap-4 sm:gap-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            {popularProducts.map((product, index) => {
+              const initialStoreStatus = checkStoreStatus(
+                product.vendor?.store_hours,
+                product.vendor?.vacation_mode,
+              );
 
-            return (
-              <ProductCard
-                key={
-                  product.id
-                    ? `prod-${product.id}-${product.slug}`
-                    : `prod-idx-${index}`
-                }
-                product={product}
-                initialStoreStatus={initialStoreStatus}
-              />
-            );
-          })}
-        </div>
+              return (
+                <ProductCard
+                  key={
+                    product.id
+                      ? `prod-${product.id}-${product.slug}`
+                      : `prod-idx-${index}`
+                  }
+                  product={product}
+                  initialStoreStatus={initialStoreStatus}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-surface-darkCard p-8 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-400 text-xs text-center">
+            Sedang memuat produk populer...
+          </div>
+        )}
+
+        {popularProducts.length > 0 && (
+          <div className="mt-8 text-center sm:hidden">
+            <Link href="/products">
+              <Button variant="outline" size="sm" fullWidth>
+                <span>Lihat Semua Produk</span>
+                <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              </Button>
+            </Link>
+          </div>
+        )}
       </SectionContainer>
 
       {/* 5. CALL TO ACTION: DAFTAR VENDOR */}

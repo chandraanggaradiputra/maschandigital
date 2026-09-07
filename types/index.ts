@@ -47,6 +47,9 @@ export interface Product {
   type: ProductType;
   status: "publish" | "draft" | "pending";
   featured?: boolean;
+  views?: number;
+  view_count?: number;
+  total_views?: number;
   views_count?: number;
   wa_clicks_count?: number;
   description: string;

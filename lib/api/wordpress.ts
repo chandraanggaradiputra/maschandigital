@@ -197,6 +197,9 @@ function formatGraphQLProduct(
     external_url: node.externalUrl || node.external_url || "",
     button_text: node.buttonText || node.button_text || "Beli via Link",
     views_count: viewsCount,
+    views: viewsCount,
+    view_count: viewsCount,
+    total_views: viewsCount,
     vendor: {
       id: vendorId,
       store_name: vendorName,
