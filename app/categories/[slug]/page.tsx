@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import { getCategories, getProducts } from "@/lib/api/wordpress";
+import { checkStoreStatus } from "@/lib/storeStatus";
 
 type CategoryPageProps = {
   params: Promise<{ slug: string }>;
@@ -257,16 +258,23 @@ export default async function CategoryProductPage({
       >
         {products.length > 0 ? (
           <div className="gap-4 sm:gap-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            {products.map((product, idx) => (
-              <ProductCard
-                key={
-                  product.id
-                    ? `cat-prod-${product.id}-${product.slug}-${idx}`
-                    : `cat-prod-idx-${idx}`
-                }
-                product={product}
-              />
-            ))}
+            {products.map((product, idx) => {
+              const initialStoreStatus = checkStoreStatus(
+                product.vendor?.store_hours,
+                product.vendor?.vacation_mode,
+              );
+              return (
+                <ProductCard
+                  key={
+                    product.id
+                      ? `cat-prod-${product.id}-${product.slug}-${idx}`
+                      : `cat-prod-idx-${idx}`
+                  }
+                  product={product}
+                  initialStoreStatus={initialStoreStatus}
+                />
+              );
+            })}
           </div>
         ) : (
           <div className="space-y-4 bg-white dark:bg-surface-darkCard shadow-subtle mx-auto p-12 border border-slate-200/80 dark:border-slate-800 rounded-3xl max-w-md text-center">

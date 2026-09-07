@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { HeroSearch } from "@/components/home/HeroSearch";
 import { getProducts, getVendors, getCategories } from "@/lib/api/wordpress";
+import { checkStoreStatus } from "@/lib/storeStatus";
 import { TrackedVendorRegisterLink } from "@/components/analytics/TrackedVendorRegisterLink";
 import { SocialProofStats } from "@/components/social-proof/SocialProofStats";
 
@@ -309,16 +310,24 @@ export default async function HomePage() {
         </header>
 
         <div className="gap-4 sm:gap-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          {featuredProducts.map((product, index) => (
-            <ProductCard
-              key={
-                product.id
-                  ? `prod-${product.id}-${product.slug}`
-                  : `prod-idx-${index}`
-              }
-              product={product}
-            />
-          ))}
+          {featuredProducts.map((product, index) => {
+            const initialStoreStatus = checkStoreStatus(
+              product.vendor?.store_hours,
+              product.vendor?.vacation_mode,
+            );
+
+            return (
+              <ProductCard
+                key={
+                  product.id
+                    ? `prod-${product.id}-${product.slug}`
+                    : `prod-idx-${index}`
+                }
+                product={product}
+                initialStoreStatus={initialStoreStatus}
+              />
+            );
+          })}
         </div>
       </SectionContainer>
 

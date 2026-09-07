@@ -24,6 +24,7 @@ interface ProductCardProps {
   product: Product;
   className?: string;
   vendorStoreStatus?: StoreStatus;
+  initialStoreStatus?: StoreStatus;
 }
 
 const CANONICAL_SITE_URL = "https://maschandigital.id";
@@ -32,6 +33,7 @@ export function ProductCard({
   product,
   className,
   vendorStoreStatus,
+  initialStoreStatus,
 }: ProductCardProps) {
   const primaryCategory = product.categories?.[0]?.name || "Umum";
   const mainImage =
@@ -47,13 +49,50 @@ export function ProductCard({
     product.regular_price || product.price,
   );
 
-  // Evaluasi Status Jam Buka & Libur Toko Vendor
-  const storeStatus =
+  // Evaluasi Status Jam Buka & Libur Toko Vendor (Hydration-Safe Time Pattern)
+  const initialStatus =
     vendorStoreStatus ||
+    initialStoreStatus ||
     checkStoreStatus(
       product.vendor?.store_hours,
       product.vendor?.vacation_mode,
     );
+
+  const [storeStatus, setStoreStatus] = React.useState<StoreStatus>(initialStatus);
+
+  // Revalidasi real-time pasca-mount di sisi klien (Anti-Cascading-Render compliant)
+  React.useEffect(() => {
+    const updateStatus = () => {
+      const live =
+        vendorStoreStatus ||
+        checkStoreStatus(
+          product.vendor?.store_hours,
+          product.vendor?.vacation_mode,
+        );
+      setStoreStatus((prev) => {
+        if (
+          prev.isOpen === live.isOpen &&
+          prev.isVacation === live.isVacation &&
+          prev.statusText === live.statusText
+        ) {
+          return prev;
+        }
+        return live;
+      });
+    };
+
+    const timer = setTimeout(updateStatus, 100);
+    const interval = setInterval(updateStatus, 60000);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, [
+    vendorStoreStatus,
+    product.vendor?.store_hours,
+    product.vendor?.vacation_mode,
+  ]);
 
   // Gunakan URL deterministik konsisten antara Server dan Client (Anti-Hydration Mismatch)
   const productUrl = `${CANONICAL_SITE_URL}/products/${product.slug}`;
@@ -104,11 +143,15 @@ export function ProductCard({
         </figcaption>
 
         {/* Status Promo / Libur / Tutup Badge */}
-        <div className="top-3 right-3 z-10 absolute flex flex-col items-end gap-1">
+        <div
+          className="top-3 right-3 z-10 absolute flex flex-col items-end gap-1"
+          suppressHydrationWarning
+        >
           {storeStatus.isVacation ? (
             <Badge
               variant="danger"
               className="bg-rose-600/90 shadow-sm font-bold text-white"
+              suppressHydrationWarning
             >
               <XCircle className="mr-1 w-3 h-3" />
               <span>LIBUR</span>
@@ -117,12 +160,17 @@ export function ProductCard({
             <Badge
               variant="neutral"
               className="bg-slate-800/90 shadow-sm font-bold text-white"
+              suppressHydrationWarning
             >
               <Lock className="mr-1 w-3 h-3" />
               <span>TUTUP</span>
             </Badge>
           ) : hasSale ? (
-            <Badge variant="danger" className="shadow-sm font-bold">
+            <Badge
+              variant="danger"
+              className="shadow-sm font-bold"
+              suppressHydrationWarning
+            >
               <span>PROMO</span>
             </Badge>
           ) : null}
@@ -155,6 +203,7 @@ export function ProductCard({
 
             {/* Indikator Status Toko Real-Time */}
             <span
+              suppressHydrationWarning
               className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
                 storeStatus.isVacation
                   ? "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
@@ -236,7 +285,10 @@ export function ProductCard({
         </div>
 
         {/* Action Buttons */}
-        <footer className="flex @[280px]:flex-row flex-col gap-2 pt-1 border-slate-100 dark:border-slate-800/80 border-t">
+        <footer
+          suppressHydrationWarning
+          className="flex @[280px]:flex-row flex-col gap-2 pt-1 border-slate-100 dark:border-slate-800/80 border-t"
+        >
           {storeStatus.isVacation ? (
             <Button
               variant="outline"
