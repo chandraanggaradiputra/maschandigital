@@ -10,7 +10,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Vendor } from "@/types";
-import { generateWhatsAppVendorUrl, resolveVendorDistrict } from "@/lib/utils";
+import { cn, generateWhatsAppVendorUrl, resolveVendorDistrict } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { trackWhatsAppClick } from "@/lib/analytics";
@@ -39,7 +39,10 @@ export function VendorCard({ vendor, className }: VendorCardProps) {
   return (
     <article
       aria-labelledby={`vendor-title-${vendor.id}`}
-      className={`@container group flex flex-col bg-white dark:bg-surface-darkCard rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-subtle hover:shadow-card-hover transition-all duration-300 overflow-hidden ${className || ""}`}
+      className={cn(
+        "group relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 overflow-hidden shadow-2xs hover:shadow-md transition-all duration-300 h-full flex flex-col justify-between",
+        className
+      )}
     >
       {/* Banner Cover & Badges */}
       <figure className="relative bg-slate-100 dark:bg-slate-800 m-0 h-28 @[350px]:h-36 overflow-hidden">
@@ -85,54 +88,56 @@ export function VendorCard({ vendor, className }: VendorCardProps) {
       </figure>
 
       {/* Profile Avatar & Info */}
-      <div className="flex flex-col flex-1 p-4 sm:p-5 pt-0">
-        <header className="z-10 relative flex justify-between items-end -mt-8 @[350px]:-mt-10 mb-3">
-          <div className="bg-white dark:bg-slate-800 shadow-md border-4 border-white dark:border-surface-darkCard rounded-2xl w-16 @[350px]:w-20 h-16 @[350px]:h-20 overflow-hidden">
-            <img
-              src={avatarImg}
-              alt={`Logo toko ${vendor.store_name}`}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-          </div>
-
-          <div className="flex items-center gap-1.5 font-medium text-slate-500 dark:text-slate-400 text-xs">
-            <Package
-              className="w-3.5 h-3.5 text-brand-700 dark:text-brand-400"
-              aria-hidden="true"
-            />
-            <span>{vendor.products_count || 0} Produk</span>
-          </div>
-        </header>
-
-        {/* Vendor Store Name & Address */}
-        <div className="mb-2">
-          <h3
-            id={`vendor-title-${vendor.id}`}
-            className="flex items-center gap-1.5 font-slab font-bold text-slate-900 dark:group-hover:text-brand-400 dark:text-white group-hover:text-brand-800 text-base @[350px]:text-lg line-clamp-1 transition-colors"
-          >
-            <Link
-              href={`/vendors/${vendor.slug}`}
-              className="focus-visible:outline-none hover:underline focus-visible:underline"
-            >
-              {vendor.store_name}
-            </Link>
-            {vendor.is_verified && (
-              <ShieldCheck
-                className="w-4 h-4 text-emerald-500 shrink-0"
-                aria-label="Vendor Terverifikasi Kota Serang"
+      <div className="p-4 sm:p-5 pt-0 flex-1 flex flex-col justify-between space-y-3">
+        <div className="flex-1 space-y-2">
+          <header className="z-10 relative flex justify-between items-end -mt-8 @[350px]:-mt-10 mb-3">
+            <div className="bg-white dark:bg-slate-800 shadow-md border-4 border-white dark:border-surface-darkCard rounded-2xl w-16 @[350px]:w-20 h-16 @[350px]:h-20 overflow-hidden">
+              <img
+                src={avatarImg}
+                alt={`Logo toko ${vendor.store_name}`}
+                className="w-full h-full object-cover"
+                loading="lazy"
               />
-            )}
-          </h3>
+            </div>
 
-          <p className="mt-1 text-slate-500 dark:text-slate-400 text-xs line-clamp-2 leading-relaxed">
-            {vendor.description ||
-              "Penyedia produk dan jasa lokal berkualitas di Kota Serang."}
-          </p>
+            <div className="flex items-center gap-1.5 font-medium text-slate-500 dark:text-slate-400 text-xs">
+              <Package
+                className="w-3.5 h-3.5 text-brand-700 dark:text-brand-400"
+                aria-hidden="true"
+              />
+              <span>{vendor.products_count || 0} Produk</span>
+            </div>
+          </header>
+
+          {/* Vendor Store Name & Address */}
+          <div>
+            <h3
+              id={`vendor-title-${vendor.id}`}
+              className="flex items-center gap-1.5 font-slab font-bold text-slate-900 dark:group-hover:text-brand-400 dark:text-white group-hover:text-brand-800 text-base @[350px]:text-lg line-clamp-1 transition-colors"
+            >
+              <Link
+                href={`/vendors/${vendor.slug}`}
+                className="focus-visible:outline-none hover:underline focus-visible:underline"
+              >
+                {vendor.store_name}
+              </Link>
+              {vendor.is_verified && (
+                <ShieldCheck
+                  className="w-4 h-4 text-emerald-500 shrink-0"
+                  aria-label="Vendor Terverifikasi Kota Serang"
+                />
+              )}
+            </h3>
+
+            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed flex-grow">
+              {vendor.description ||
+                "Toko resmi mitra UMKM Kota Serang di Mas Chan Digital."}
+            </p>
+          </div>
         </div>
 
         {/* Action Buttons */}
-        <footer className="flex @[280px]:flex-row flex-col gap-2 mt-auto pt-4 border-slate-100 dark:border-slate-800/80 border-t">
+        <footer className="pt-3 border-t border-slate-100 dark:border-slate-800/80 mt-auto flex @[280px]:flex-row flex-col gap-2">
           <Link
             href={`/vendors/${vendor.slug}`}
             className="flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
@@ -180,3 +185,4 @@ export function VendorCard({ vendor, className }: VendorCardProps) {
     </article>
   );
 }
+

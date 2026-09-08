@@ -25,7 +25,7 @@ import {
 export const dynamic = "force-dynamic";
 import { SectionContainer } from "@/components/layout/SectionContainer";
 import { ProductCard } from "@/components/cards/ProductCard";
-import { VendorCard } from "@/components/cards/VendorCard";
+import { VendorSlider } from "@/components/home/VendorSlider";
 import { Button } from "@/components/ui/Button";
 import { HeroSearch } from "@/components/home/HeroSearch";
 import { getProducts, getVendors, getCategories } from "@/lib/api/wordpress";
@@ -277,20 +277,8 @@ export default async function HomePage() {
           </Link>
         </header>
 
-        {/* Container Slider Vendor Responsif */}
-        <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
-          <div className="flex gap-4 sm:gap-5 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory scrollbar-none scroll-smooth">
-            {vendors.map((vendor) => (
-              <div
-                key={vendor.id}
-                className="w-[280px] sm:w-[320px] md:w-[340px] shrink-0 snap-start"
-              >
-                {/* Render Kartu Vendor dengan Desain yang Sekarang (dengan Badge Buka/Tutup) */}
-                <VendorCard vendor={vendor} />
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Slider Vendor Unggulan Autoplay & Navigasi Panah */}
+        <VendorSlider vendors={vendors} />
       </SectionContainer>
 
       {/* 4. PRODUK PILIHAN & PROMO */}
