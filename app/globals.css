@@ -102,3 +102,13 @@
     padding-right: 2rem;
   }
 }
+
+/* Utility untuk menyembunyikan scrollbar pada elemen scroll horizontal */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+

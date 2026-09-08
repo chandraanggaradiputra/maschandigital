@@ -29,7 +29,6 @@ import { VendorCard } from "@/components/cards/VendorCard";
 import { Button } from "@/components/ui/Button";
 import { HeroSearch } from "@/components/home/HeroSearch";
 import { getProducts, getVendors, getCategories } from "@/lib/api/wordpress";
-import { checkStoreStatus } from "@/lib/storeStatus";
 import { TrackedVendorRegisterLink } from "@/components/analytics/TrackedVendorRegisterLink";
 import { SocialProofStats } from "@/components/social-proof/SocialProofStats";
 
@@ -278,17 +277,19 @@ export default async function HomePage() {
           </Link>
         </header>
 
-        <div className="gap-4 sm:gap-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          {vendors.slice(0, 4).map((vendor, idx) => (
-            <VendorCard
-              key={
-                vendor.id
-                  ? `vendor-item-${vendor.id}-${vendor.slug}`
-                  : `vendor-idx-${idx}`
-              }
-              vendor={vendor}
-            />
-          ))}
+        {/* Container Slider Vendor Responsif */}
+        <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex gap-4 sm:gap-5 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory scrollbar-none scroll-smooth">
+            {vendors.map((vendor) => (
+              <div
+                key={vendor.id}
+                className="w-[280px] sm:w-[320px] md:w-[340px] shrink-0 snap-start"
+              >
+                {/* Render Kartu Vendor dengan Desain yang Sekarang (dengan Badge Buka/Tutup) */}
+                <VendorCard vendor={vendor} />
+              </div>
+            ))}
+          </div>
         </div>
       </SectionContainer>
 

@@ -6,7 +6,6 @@ import {
   Store,
   MapPin,
   MessageCircle,
-  Star,
   Package,
   ShieldCheck,
 } from "lucide-react";
@@ -15,6 +14,7 @@ import { generateWhatsAppVendorUrl, resolveVendorDistrict } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { trackWhatsAppClick } from "@/lib/analytics";
+import { checkStoreStatus } from "@/lib/storeStatus";
 
 interface VendorCardProps {
   vendor: Vendor;
@@ -22,6 +22,8 @@ interface VendorCardProps {
 }
 
 export function VendorCard({ vendor, className }: VendorCardProps) {
+  const storeStatus = checkStoreStatus(vendor.store_hours, vendor.vacation_mode);
+
   const waUrl = generateWhatsAppVendorUrl({
     whatsappNumber: vendor.whatsapp_number,
     vendorName: vendor.store_name,
@@ -66,19 +68,20 @@ export function VendorCard({ vendor, className }: VendorCardProps) {
           </Badge>
         </div>
 
-        {/* Rating Badge */}
-        {vendor.rating && (
-          <div className="top-3 right-3 z-10 absolute">
-            <Badge
-              variant="warning"
-              className="bg-amber-500 shadow-sm border-amber-400 font-bold text-white"
-            >
-              <Star className="fill-white mr-1 w-3 h-3" aria-hidden="true" />
-              <span className="sr-only">Rating: </span>
-              <span>{vendor.rating.toFixed(1)}</span>
-            </Badge>
-          </div>
-        )}
+        {/* Store Status Badge (Buka/Tutup) */}
+        <div className="top-3 right-3 z-10 absolute">
+          {storeStatus.isOpen ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Buka Sekarang</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 border border-rose-200 dark:border-rose-800 shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+              <span>Toko Tutup</span>
+            </span>
+          )}
+        </div>
       </figure>
 
       {/* Profile Avatar & Info */}
