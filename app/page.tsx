@@ -112,13 +112,11 @@ export default async function HomePage() {
   const popularProducts = Array.isArray(products)
     ? [...products]
         .sort((a, b) => {
-          const viewsA =
-            a.views ?? a.view_count ?? a.total_views ?? a.views_count ?? 0;
-          const viewsB =
-            b.views ?? b.view_count ?? b.total_views ?? b.views_count ?? 0;
+          const viewsA = a.views ?? a.view_count ?? a.total_views ?? 0;
+          const viewsB = b.views ?? b.view_count ?? b.total_views ?? 0;
           return viewsB - viewsA;
         })
-        .slice(0, 8) // Tampilkan 8 produk paling populer di beranda
+        .slice(0, 8) // Ambil 8 produk paling populer untuk halaman utama
     : [];
 
   return (
@@ -304,10 +302,7 @@ export default async function HomePage() {
             <span className="text-xs font-bold uppercase tracking-wider text-brand-700 dark:text-blue-400">
               Rekomendasi Terbaik
             </span>
-            <h2
-              id="products-heading"
-              className="font-slab font-bold text-2xl sm:text-3xl text-slate-900 dark:text-white mt-1"
-            >
+            <h2 className="font-slab font-bold text-2xl sm:text-3xl text-slate-900 dark:text-white mt-1">
               Produk & Layanan Populer
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
@@ -315,42 +310,21 @@ export default async function HomePage() {
             </p>
           </div>
 
-          {/* Tautan Desktop */}
+          {/* Tautan Desktop ke Katalog Lengkap */}
           <Link
             href="/products"
             className="hidden sm:inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#093c96] hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"
           >
             <span>Lihat Semua Produk</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </header>
 
-        {popularProducts.length > 0 ? (
-          <div className="gap-4 sm:gap-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            {popularProducts.map((product, index) => {
-              const initialStoreStatus = checkStoreStatus(
-                product.vendor?.store_hours,
-                product.vendor?.vacation_mode,
-              );
-
-              return (
-                <ProductCard
-                  key={
-                    product.id
-                      ? `prod-${product.id}-${product.slug}`
-                      : `prod-idx-${index}`
-                  }
-                  product={product}
-                  initialStoreStatus={initialStoreStatus}
-                />
-              );
-            })}
-          </div>
-        ) : (
-          <div className="bg-white dark:bg-surface-darkCard p-8 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-400 text-xs text-center">
-            Sedang memuat produk populer...
-          </div>
-        )}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+          {popularProducts.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
 
         {/* Tombol CTA di Bawah Grid Produk (Responsif Mobile & Desktop) */}
         <div className="mt-8 sm:mt-10 text-center">
@@ -359,7 +333,7 @@ export default async function HomePage() {
             className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#093c96] hover:bg-blue-800 active:scale-95 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-sm hover:shadow-md transition-all"
           >
             <span>Lihat Semua Produk UMKM</span>
-            <ArrowRight className="w-4 h-4" aria-hidden="true" />
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </SectionContainer>
