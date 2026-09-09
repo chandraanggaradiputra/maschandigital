@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useId } from "react";
-import { Star, MessageSquareQuote, X, CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import { Star, MessageSquareQuote, X, CheckCircle2, Loader2, Sparkles, Play } from "lucide-react";
 import { ProductReviewsData, ProductReview } from "@/types";
 import { submitProductReview } from "@/lib/api/wordpress";
-import { formatIndonesianDate } from "@/lib/utils";
+import { cn, formatIndonesianDate } from "@/lib/utils";
 
 interface ProductReviewsSectionProps {
   productId: number;
@@ -257,6 +257,39 @@ export function ProductReviewsSection({
                   <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed break-words">
                     {review.content}
                   </p>
+
+                  {/* Foto Bukti Ulasan */}
+                  {review.images && review.images.length > 0 && (
+                    <div className={cn('flex', 'flex-wrap', 'gap-2', 'pt-2')}>
+                      {review.images.map((img, i) => (
+                        <a
+                          key={i}
+                          href={img}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={cn('block', 'w-14', 'h-14', 'rounded-xl', 'overflow-hidden', 'border', 'border-slate-200', 'dark:border-slate-800', 'hover:opacity-90', 'transition-opacity')}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={img} alt={`Foto ulasan ${review.author_name}`} className={cn('w-full', 'h-full', 'object-cover')} />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Sematan Video Review */}
+                  {review.video_url && (
+                    <div className="pt-2">
+                      <a
+                        href={review.video_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn('inline-flex', 'items-center', 'gap-1.5', 'px-3', 'py-1.5', 'rounded-xl', 'text-xs', 'font-semibold', 'bg-emerald-50', 'text-emerald-700', 'dark:bg-emerald-950/40', 'dark:text-emerald-300', 'border', 'border-emerald-200', 'dark:border-emerald-800', 'hover:bg-emerald-100', 'transition-colors')}
+                      >
+                        <Play className={cn('w-3.5', 'h-3.5', 'fill-emerald-600', 'text-emerald-600')} />
+                        <span>Tonton Video Testimoni</span>
+                      </a>
+                    </div>
+                  )}
                 </div>
               </article>
             ))}

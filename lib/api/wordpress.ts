@@ -1098,6 +1098,8 @@ export async function submitProductReview(
     rating: number;
     content: string;
     author_email?: string;
+    images?: string[];
+    video_url?: string;
   },
 ): Promise<{ success: boolean; message: string }> {
   if (!productId) {

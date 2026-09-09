@@ -19,6 +19,7 @@ import {
   MessageSquareQuote,
   Check,
   Trash2,
+  Play,
 } from "lucide-react";
 import { getVendorSession } from "@/lib/api/auth";
 import { getAdminReviews, performReviewAction } from "@/lib/api/wordpress";
@@ -486,6 +487,44 @@ export default function AdminModerasiPage() {
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 leading-relaxed break-words">
                   &ldquo;{review.content}&rdquo;
                 </div>
+
+                {/* Pratinjau Foto Bukti Ulasan */}
+                {review.images && review.images.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block">
+                      Foto Bukti ({review.images.length}/5):
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {review.images.map((img, i) => (
+                        <a
+                          key={i}
+                          href={img}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-14 h-14 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 hover:opacity-90 transition-opacity"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={img} alt={`Bukti ulasan ${i + 1}`} className="w-full h-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sematan Video Review */}
+                {review.video_url && (
+                  <div className="pt-1">
+                    <a
+                      href={review.video_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition-colors"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-emerald-600 text-emerald-600" />
+                      <span>Buka Video Testimoni</span>
+                    </a>
+                  </div>
+                )}
 
                 {/* Blok Tombol Aksi Kartu Ulasan (Pending & Approved) */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">

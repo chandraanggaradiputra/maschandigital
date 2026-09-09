@@ -235,6 +235,8 @@ export interface ProductReview {
   rating: number;
   content: string;
   date: string;
+  images?: string[]; // Array URL foto bukti ulasan (maksimal 5 foto)
+  video_url?: string; // URL Video YouTube Shorts / TikTok / Instagram Reels
 }
 
 export interface ProductReviewsData {
@@ -254,6 +256,8 @@ export interface AdminReviewItem {
   content: string;
   status: "pending" | "approved" | "rejected";
   created_at: string;
+  images?: string[]; // Foto bukti yang diverifikasi admin
+  video_url?: string; // Video review pembeli
 }
 
 export interface AdminReviewsResponse {
