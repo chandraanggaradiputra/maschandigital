@@ -1,7 +1,7 @@
-# 📋 Laporan Hasil Eksekusi AI Agent: Integrasi Media Testimoni (Maksimal 5 Foto Bukti & Sematan Video YouTube/TikTok/Reels)
+# 📋 Laporan Hasil Eksekusi AI Agent: Penyelarasan Backend Media Ulasan, Komponen Video Embed Iframe, & Modal Zoom Foto Testimoni
 
 **Proyek**: Mas Chan Digital (Marketplace & Direktori UMKM Kota Serang, Banten)  
-**Cabang Fitur**: `feature/review-media-photos-and-video-embed`  
+**Cabang Fitur**: `feature/review-media-embed-and-backend-sync`  
 **Target Cabang**: `main`  
 **Status**: ✅ Sukses Terverifikasi (TypeScript 0 Error, Linting 0 Error, Build Sukses)
 
@@ -9,51 +9,35 @@
 
 ## 🚀 Ringkasan Implementasi
 
-Sesuai instruksi Admin Chan di `AGENTS_INSTRUCTION.md`, seluruh pekerjaan penambahan media ulasan (foto bukti verifikasi & video embed) telah selesai diimplementasikan mengikuti Standar Rekayasa Kode Mutlak (SOP Penuh):
+Sesuai instruksi Admin Chan di `AGENTS_INSTRUCTION.md`, seluruh pekerjaan integrasi video embed interaktif dan modal zoom foto testimoni telah selesai diimplementasikan mengikuti Standar Rekayasa Kode Baku (SOP Penuh):
 
-### 1. Definisi Tipe Data (`types/index.ts`)
-- Memperluas interface `ProductReview`:
-  - `images?: string[]` — Menampung daftar URL foto bukti chat/produk (maksimal 5 foto).
-  - `video_url?: string` — Menampung tautan video testimoni (YouTube Shorts, TikTok, Instagram Reels).
-- Memperluas interface `AdminReviewItem`:
-  - `images?: string[]` — Menampung foto bukti ulasan untuk verifikasi tim Super Admin.
-  - `video_url?: string` — Menampung tautan video ulasan untuk peninjauan moderasi.
+### 1. Sinkronisasi Backend WordPress (`maschan-headless.php`)
+- **Penyimpanan Ulasan (`POST /wp-json/maschan/v1/products/<id>/reviews`)**:
+  - Menyimpan meta `review_images` berupa JSON array URL foto ter-sanitize (`esc_url_raw`) maksimal 5 item.
+  - Menyimpan meta `review_video_url` dengan casting string eksplisit `esc_url_raw(trim((string)$params['video_url']))`.
+- **Pengambilan Ulasan (`GET /products/<id>/reviews` & `GET /admin/reviews`)**:
+  - Membaca meta `review_images` dan menyertakannya sebagai array ulasan `images`.
+  - Membaca meta `review_video_url` dan menyertakannya sebagai string `video_url`.
 
-### 2. Backend WordPress Engine (`maschan-headless.php`)
-- **Penyimpanan Ulasan Baru (`POST /wp-json/maschan/v1/products/<id>/reviews`)**:
-  - Menyimpan array URL foto bukti ke dalam comment meta `review_images` menggunakan sanitasi aman `esc_url_raw` dengan batasan ketat maksimal 5 foto.
-  - Menyimpan tautan video ke dalam comment meta `review_video_url` dengan sanitasi `esc_url_raw`.
-- **Pengambilan Ulasan Publik & Moderasi (`GET /wp-json/maschan/v1/products/<id>/reviews` & `GET /wp-json/maschan/v1/admin/reviews`)**:
-  - Mendekode JSON comment meta `review_images` dan menyertakannya sebagai array `images`.
-  - Mengambil comment meta `review_video_url` dan menyertakannya sebagai string `video_url`.
+### 2. Komponen Pemutar Video Sematan (`components/ui/ReviewVideoEmbed.tsx`)
+- Komponen client-side (`"use client"`) baru yang cerdas mengonversi tautan video pendek dan standar menjadi frame pemutar video responsif:
+  - **YouTube & YouTube Shorts**: Mendeteksi pola URL (`youtube.com/shorts/...`, `youtu.be/...`, `youtube.com/watch?v=...`) dan merender pemutar `iframe` privacy-enhanced `https://www.youtube-nocookie.com/embed/${videoId}?rel=0`.
+  - **TikTok**: Mendeteksi URL video TikTok (`tiktok.com/@.../video/...`) dan merender pemutar resmi `https://www.tiktok.com/embed/v2/${videoId}`.
+  - **Instagram Reels & Platform Lainnya**: Fallback tombol interaktif elegan yang mengarahkan pengguna langsung ke tautan video dengan ikon `Play` dan `ExternalLink`.
 
-### 3. API Client Frontend (`lib/api/wordpress.ts`)
-- Memperbarui fungsi `submitProductReview` agar menerima parameter opsional:
-  - `images?: string[]`
-  - `video_url?: string`
-- Payload dikirimkan secara terstruktur dalam format JSON ke endpoint REST WordPress.
+### 3. Tampilan Halaman Publik Produk (`components/product/ProductReviewsSection.tsx`)
+- **Galeri Foto Bukti Interaktif**:
+  - Menampilkan thumbnail bukti foto dengan overlay ikon `ZoomIn` saat dihover dan kursor `cursor-zoom-in`.
+- **Pemutar Sematan Video**:
+  - Menyematkan `<ReviewVideoEmbed>` untuk ulasan yang menyertakan tautan video YouTube/TikTok/Reels.
+- **Modal Zoom Foto (Lightbox)**:
+  - Menyematkan modal dialog `aria-modal="true"` dengan latar belakang backdrop blur gelap (`bg-black/80 backdrop-blur-sm`).
+  - Fitur tutup fleksibel melalui tombol `X`, klik di area luar backdrop, dan perlindungan `stopPropagation()` pada kontainer foto.
 
-### 4. Form Pengajuan Ulasan Vendor (`components/dashboard/ProductVendorReviewsManager.tsx`)
-- **State & Upload Media**:
-  - Menambahkan state `reviewImages`, `videoUrl`, `isUploadingPhoto`, dan `uploadError`.
-  - Mengintegrasikan handler `handleUploadPhoto` langsung ke endpoint `/wp-json/maschan/v1/media/upload` menggunakan autentikasi Bearer JWT Vendor (`getVendorSession`).
-  - Membatasi maksimal 5 foto dan ukuran file maksimal 5MB per file.
-  - Menyediakan handler `handleRemovePhoto` untuk menghapus foto dari daftar unggahan.
-- **Antarmuka Pengguna (UI/UX)**:
-  - Pratinjau thumbnail foto bukti dengan tombol hapus (`X`) beranimasi responsif.
-  - Slot input unggah foto interaktif dengan indikator loading (`Loader2`).
-  - Input tautan video testimoni sosial media (YouTube Shorts, TikTok, Instagram Reels) dengan zero-storage server impact.
-  - Reset form menyeluruh (`reviewImages`, `videoUrl`) saat dialog ditutup atau submit berhasil.
-  - Pratinjau foto bukti dan tombol tonton video pada daftar review yang sudah ada di halaman dashboard vendor.
-
-### 5. Tampilan Halaman Publik Produk (`components/product/ProductReviewsSection.tsx`)
-- Di setiap kartu ulasan pembeli:
-  - Deretan grid foto bukti ulasan (`review.images`) yang dapat diklik untuk melihat gambar ukuran penuh di tab baru.
-  - Tombol tautan video testimoni yang elegan dengan ikon `Play` warna emerald untuk ulasan yang menyertakan `review.video_url`.
-
-### 6. Halaman Moderasi Super Admin (`app/admin/moderasi/page.tsx`)
-- Menyertakan galeri mini thumbnail foto bukti dan tombol video testimoni langsung pada setiap kartu ulasan di dasbor moderasi admin.
-- Memungkinkan Super Admin memeriksa keaslian bukti chat WhatsApp atau produk sebelum menyetujui ulasan.
+### 4. Pusat Moderasi Super Admin (`app/admin/moderasi/page.tsx`)
+- Mengintegrasikan galeri thumbnail foto bukti yang dapat diperbesar (zoom) langsung di kartu moderasi sehingga Super Admin dapat membaca detail teks chat WhatsApp atau resi transfer.
+- Menyematkan `<ReviewVideoEmbed>` di kartu moderasi untuk memudahkan Super Admin meninjau video ulasan sebelum melakukan persetujuan (*Approve*).
+- Menyematkan modal zoom lightbox yang sama pada halaman admin moderasi.
 
 ---
 
@@ -67,9 +51,9 @@ Sesuai instruksi Admin Chan di `AGENTS_INSTRUCTION.md`, seluruh pekerjaan penamb
    - Hasil: **0 Error** (23 peringatan non-blocking bawaan sistem).
 3. **Next.js Production Build**:
    - Perintah: `npm run build`
-   - Hasil: **Kompilasi Sukses (Turbopack Next.js 16.3.3 - Exit Code 0, 32 halaman statis & dinamis berhasil dibuild)**.
+   - Hasil: **Kompilasi Sukses (Turbopack Next.js 16.3.3 - Exit Code 0, 32/32 halaman statis & dinamis berhasil dibuild)**.
 
 ---
 
 ## 📦 Status Git
-- Seluruh berkas telah di-commit ke cabang `feature/review-media-photos-and-video-embed`, di-merge ke cabang `main`, dan di-push ke repositori GitHub `origin/main`.
+- Seluruh berkas telah di-commit ke cabang `feature/review-media-embed-and-backend-sync`, di-merge ke cabang `main`, dan di-push ke repositori GitHub `origin/main`.

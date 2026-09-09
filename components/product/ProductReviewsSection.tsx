@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useId } from "react";
-import { Star, MessageSquareQuote, X, CheckCircle2, Loader2, Sparkles, Play } from "lucide-react";
+import { Star, MessageSquareQuote, X, CheckCircle2, Loader2, Sparkles, ZoomIn } from "lucide-react";
 import { ProductReviewsData, ProductReview } from "@/types";
 import { submitProductReview } from "@/lib/api/wordpress";
 import { cn, formatIndonesianDate } from "@/lib/utils";
+import { ReviewVideoEmbed } from "@/components/ui/ReviewVideoEmbed";
 
 interface ProductReviewsSectionProps {
   productId: number;
@@ -26,6 +27,7 @@ export function ProductReviewsSection({
     },
   );
 
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [authorName, setAuthorName] = useState("");
   const [rating, setRating] = useState(5);
@@ -258,37 +260,34 @@ export function ProductReviewsSection({
                     {review.content}
                   </p>
 
-                  {/* Foto Bukti Ulasan */}
+                  {/* Foto-Foto Bukti Ulasan */}
                   {review.images && review.images.length > 0 && (
-                    <div className={cn('flex', 'flex-wrap', 'gap-2', 'pt-2')}>
-                      {review.images.map((img, i) => (
-                        <a
-                          key={i}
-                          href={img}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={cn('block', 'w-14', 'h-14', 'rounded-xl', 'overflow-hidden', 'border', 'border-slate-200', 'dark:border-slate-800', 'hover:opacity-90', 'transition-opacity')}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={img} alt={`Foto ulasan ${review.author_name}`} className={cn('w-full', 'h-full', 'object-cover')} />
-                        </a>
-                      ))}
+                    <div className="pt-2">
+                      <p className={cn('text-[11px]', 'font-semibold', 'text-slate-500', 'dark:text-slate-400', 'mb-1.5')}>
+                        Bukti Foto Pembeli ({review.images.length}):
+                      </p>
+                      <div className={cn('flex', 'flex-wrap', 'gap-2')}>
+                        {review.images.map((imgUrl, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setZoomedImage(imgUrl)}
+                            className={cn('relative', 'w-16', 'h-16', 'sm:w-20', 'sm:h-20', 'rounded-xl', 'overflow-hidden', 'border', 'border-slate-200', 'dark:border-slate-800', 'hover:border-[#093c96]', 'group', 'cursor-zoom-in', 'transition-all', 'shadow-2xs')}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={imgUrl} alt={`Bukti ulasan ${i + 1}`} className={cn('w-full', 'h-full', 'object-cover', 'group-hover:scale-105', 'transition-transform')} />
+                            <div className={cn('absolute', 'inset-0', 'bg-black/20', 'opacity-0', 'group-hover:opacity-100', 'flex', 'items-center', 'justify-center', 'transition-opacity', 'text-white')}>
+                              <ZoomIn className={cn('w-4', 'h-4')} />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
 
-                  {/* Sematan Video Review */}
+                  {/* Pemutar Video Embed */}
                   {review.video_url && (
-                    <div className="pt-2">
-                      <a
-                        href={review.video_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={cn('inline-flex', 'items-center', 'gap-1.5', 'px-3', 'py-1.5', 'rounded-xl', 'text-xs', 'font-semibold', 'bg-emerald-50', 'text-emerald-700', 'dark:bg-emerald-950/40', 'dark:text-emerald-300', 'border', 'border-emerald-200', 'dark:border-emerald-800', 'hover:bg-emerald-100', 'transition-colors')}
-                      >
-                        <Play className={cn('w-3.5', 'h-3.5', 'fill-emerald-600', 'text-emerald-600')} />
-                        <span>Tonton Video Testimoni</span>
-                      </a>
-                    </div>
+                    <ReviewVideoEmbed url={review.video_url} authorName={review.author_name} />
                   )}
                 </div>
               </article>
@@ -453,6 +452,33 @@ export function ProductReviewsSection({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Zoom Foto Ulasan (Lightbox) */}
+      {zoomedImage && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setZoomedImage(null)}
+          className={cn('fixed', 'inset-0', 'z-50', 'flex', 'items-center', 'justify-center', 'p-4', 'bg-black/80', 'backdrop-blur-sm', 'animate-in', 'fade-in', 'duration-200')}
+        >
+          <div className={cn('relative', 'max-w-2xl', 'max-h-[85vh]', 'w-full', 'flex', 'items-center', 'justify-center')} onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setZoomedImage(null)}
+              aria-label="Tutup pratinjau foto"
+              className={cn('absolute', '-top-10', 'right-0', 'p-2', 'text-white/80', 'hover:text-white', 'rounded-full', 'transition-colors')}
+            >
+              <X className={cn('w-6', 'h-6')} />
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={zoomedImage}
+              alt="Foto bukti ulasan resolusi penuh"
+              className={cn('max-w-full', 'max-h-[80vh]', 'object-contain', 'rounded-2xl', 'shadow-2xl', 'border', 'border-slate-700')}
+            />
           </div>
         </div>
       )}

@@ -19,12 +19,13 @@ import {
   MessageSquareQuote,
   Check,
   Trash2,
-  Play,
+  ZoomIn,
 } from "lucide-react";
 import { getVendorSession } from "@/lib/api/auth";
 import { getAdminReviews, performReviewAction } from "@/lib/api/wordpress";
 import { AdminReviewItem } from "@/types";
 import { formatIndonesianDate } from "@/lib/utils";
+import { ReviewVideoEmbed } from "@/components/ui/ReviewVideoEmbed";
 
 export default function AdminModerasiPage() {
   const router = useRouter();
@@ -51,6 +52,9 @@ export default function AdminModerasiPage() {
   // State Modal Hapus Permanen
   const [deletingReview, setDeletingReview] = useState<AdminReviewItem | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  // State Modal Zoom Foto Testimoni (Lightbox)
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   const showToast = (type: "success" | "error", text: string) => {
     setToastMessage({ type, text });
@@ -496,34 +500,27 @@ export default function AdminModerasiPage() {
                     </span>
                     <div className="flex flex-wrap gap-2">
                       {review.images.map((img, i) => (
-                        <a
+                        <button
                           key={i}
-                          href={img}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block w-14 h-14 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 hover:opacity-90 transition-opacity"
+                          type="button"
+                          onClick={() => setZoomedImage(img)}
+                          className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-brand-800 group cursor-zoom-in transition-all shadow-2xs"
+                          title="Klik untuk memperbesar bukti foto"
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={img} alt={`Bukti ulasan ${i + 1}`} className="w-full h-full object-cover" />
-                        </a>
+                          <img src={img} alt={`Bukti ulasan ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                          <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                            <ZoomIn className="w-4 h-4" />
+                          </div>
+                        </button>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Sematan Video Review */}
+                {/* Pemutar Video Sematan Review */}
                 {review.video_url && (
-                  <div className="pt-1">
-                    <a
-                      href={review.video_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition-colors"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-emerald-600 text-emerald-600" />
-                      <span>Buka Video Testimoni</span>
-                    </a>
-                  </div>
+                  <ReviewVideoEmbed url={review.video_url} authorName={review.author_name} />
                 )}
 
                 {/* Blok Tombol Aksi Kartu Ulasan (Pending & Approved) */}
@@ -713,6 +710,33 @@ export default function AdminModerasiPage() {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Zoom Foto Ulasan (Lightbox) */}
+      {zoomedImage && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setZoomedImage(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+        >
+          <div className="relative max-w-2xl max-h-[85vh] w-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setZoomedImage(null)}
+              aria-label="Tutup pratinjau foto"
+              className="absolute -top-10 right-0 p-2 text-white/80 hover:text-white rounded-full transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={zoomedImage}
+              alt="Foto bukti ulasan resolusi penuh"
+              className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl border border-slate-700"
+            />
           </div>
         </div>
       )}
