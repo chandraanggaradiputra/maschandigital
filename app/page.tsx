@@ -31,6 +31,7 @@ import { HeroSearch } from "@/components/home/HeroSearch";
 import { getProducts, getVendors, getCategories } from "@/lib/api/wordpress";
 import { TrackedVendorRegisterLink } from "@/components/analytics/TrackedVendorRegisterLink";
 import { SocialProofStats } from "@/components/social-proof/SocialProofStats";
+import { cn } from "../lib/utils";
 
 function getCategoryIcon(slug: string, className: string = "w-6 h-6") {
   const s = slug.toLowerCase();
@@ -103,48 +104,107 @@ function getCategoryIcon(slug: string, className: string = "w-6 h-6") {
 }
 
 export default async function HomePage() {
-  const products = await getProducts();
-  const vendors = await getVendors();
-  const categories = await getCategories();
+  const [products, vendors, categories] = await Promise.all([
+    getProducts(),
+    getVendors(),
+    getCategories(),
+  ]);
 
-  // Urutkan produk berdasarkan jumlah tayangan terbanyak (views descending)
+  // 1. Logika Prioritas Vendor Beranda (Strategi 2: Exposure Tiering)
+  // Vendor berlangganan aktif diposisikan di urutan terdepan slider
+  const sortedVendors = Array.isArray(vendors)
+    ? [...vendors].sort((a, b) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const aSub = (a as any).subscription;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const bSub = (b as any).subscription;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const aPlan = (a as any).plan_id || aSub?.plan_id;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const bPlan = (b as any).plan_id || bSub?.plan_id;
+
+        const isAPaid = Boolean(
+          (aSub && aSub.status === "active" && aSub.plan_id !== "free_forever") ||
+          (aPlan && aPlan !== "free_forever") ||
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (a as any).is_vip
+        );
+        const isBPaid = Boolean(
+          (bSub && bSub.status === "active" && bSub.plan_id !== "free_forever") ||
+          (bPlan && bPlan !== "free_forever") ||
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (b as any).is_vip
+        );
+
+        // Jika A aktif berbayar dan B tidak, A tampil lebih dulu
+        if (isAPaid && !isBPaid) return -1;
+        if (!isAPaid && isBPaid) return 1;
+
+        // Jika sama, urutkan berdasarkan jumlah produk aktif terbanyak
+        return (b.products_count || 0) - (a.products_count || 0);
+      })
+    : [];
+
+  // 2. Logika Produk Populer Beranda (Prioritas Vendor Aktif + View Terbanyak)
   const popularProducts = Array.isArray(products)
     ? [...products]
         .sort((a, b) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const aSub = (a.vendor as any)?.subscription;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const bSub = (b.vendor as any)?.subscription;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const aPlan = (a.vendor as any)?.plan_id || aSub?.plan_id;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const bPlan = (b.vendor as any)?.plan_id || bSub?.plan_id;
+
+          const isAPaid = Boolean(
+            (aSub && aSub.status === "active" && aSub.plan_id !== "free_forever") ||
+            (aPlan && aPlan !== "free_forever")
+          );
+          const isBPaid = Boolean(
+            (bSub && bSub.status === "active" && bSub.plan_id !== "free_forever") ||
+            (bPlan && bPlan !== "free_forever")
+          );
+
+          if (isAPaid && !isBPaid) return -1;
+          if (!isAPaid && isBPaid) return 1;
+
+          // Kemudian urutkan berdasarkan views terbanyak
           const viewsA = a.views ?? a.view_count ?? a.total_views ?? 0;
           const viewsB = b.views ?? b.view_count ?? b.total_views ?? 0;
           return viewsB - viewsA;
         })
-        .slice(0, 8) // Ambil 8 produk paling populer untuk halaman utama
+        .slice(0, 8) // Ambil 8 produk terpopuler
     : [];
 
   return (
-    <div className="space-y-6 sm:space-y-10">
+    <div className={cn('space-y-6', 'sm:space-y-10')}>
       {/* 1. HERO SECTION */}
       <section
         aria-labelledby="hero-title"
-        className="relative bg-brand-gradient py-12 sm:py-20 lg:py-24 overflow-hidden text-white"
+        className={cn('relative', 'bg-brand-gradient', 'py-12', 'sm:py-20', 'lg:py-24', 'overflow-hidden', 'text-white')}
       >
         <div
-          className="absolute inset-0 bg-[radial-gradient(#fff_1px,transparent_1px)] opacity-10 pointer-events-none [background-size:16px_16px]"
+          className={cn('absolute', 'inset-0', 'bg-[radial-gradient(#fff_1px,transparent_1px)]', 'opacity-10', 'pointer-events-none', '[background-size:16px_16px]')}
           aria-hidden="true"
         />
 
-        <div className="relative mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-          <div className="space-y-6 mx-auto max-w-3xl text-center">
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3.5 py-1.5 border border-white/20 rounded-full font-semibold text-xs tracking-wide">
-              <Sparkles className="w-4 h-4 text-amber-300" aria-hidden="true" />
+        <div className={cn('relative', 'mx-auto', 'px-4', 'sm:px-6', 'lg:px-8', 'max-w-7xl')}>
+          <div className={cn('space-y-6', 'mx-auto', 'max-w-3xl', 'text-center')}>
+            <div className={cn('inline-flex', 'items-center', 'gap-2', 'bg-white/10', 'backdrop-blur-md', 'px-3.5', 'py-1.5', 'border', 'border-white/20', 'rounded-full', 'font-semibold', 'text-xs', 'tracking-wide')}>
+              <Sparkles className={cn('w-4', 'h-4', 'text-amber-300')} aria-hidden="true" />
               <span>Platform Direktori & Marketplace UMKM Kota Serang</span>
             </div>
 
             <h1
               id="hero-title"
-              className="font-slab font-black text-2xl sm:text-4xl lg:text-5xl leading-tight tracking-tight"
+              className={cn('font-slab', 'font-black', 'text-2xl', 'sm:text-4xl', 'lg:text-5xl', 'leading-tight', 'tracking-tight')}
             >
               Dukung Produk Lokal, Transaksi Langsung ke WhatsApp Vendor
             </h1>
 
-            <p className="font-normal text-slate-200 text-sm sm:text-base leading-relaxed">
+            <p className={cn('font-normal', 'text-slate-200', 'text-sm', 'sm:text-base', 'leading-relaxed')}>
               Temukan oleh-oleh khas Banten, madu akasia asli, kuliner
               legendaris, fashion batik, hingga jasa digital terbaik di Kota
               Serang tanpa biaya perantara.
@@ -154,24 +214,24 @@ export default async function HomePage() {
             <HeroSearch />
 
             {/* Value Proportions Badges */}
-            <ul className="flex flex-wrap justify-center items-center gap-6 sm:gap-10 m-0 p-0 pt-4 font-medium text-slate-200 text-xs list-none">
-              <li className="flex items-center gap-1.5">
+            <ul className={cn('flex', 'flex-wrap', 'justify-center', 'items-center', 'gap-6', 'sm:gap-10', 'm-0', 'p-0', 'pt-4', 'font-medium', 'text-slate-200', 'text-xs', 'list-none')}>
+              <li className={cn('flex', 'items-center', 'gap-1.5')}>
                 <ShieldCheck
-                  className="w-4 h-4 text-emerald-400"
+                  className={cn('w-4', 'h-4', 'text-emerald-400')}
                   aria-hidden="true"
                 />
                 <span>Vendor Terverifikasi</span>
               </li>
-              <li className="flex items-center gap-1.5">
+              <li className={cn('flex', 'items-center', 'gap-1.5')}>
                 <MessageCircle
-                  className="w-4 h-4 text-emerald-400"
+                  className={cn('w-4', 'h-4', 'text-emerald-400')}
                   aria-hidden="true"
                 />
                 <span>Direct Chat WhatsApp</span>
               </li>
-              <li className="flex items-center gap-1.5">
+              <li className={cn('flex', 'items-center', 'gap-1.5')}>
                 <ShoppingBag
-                  className="w-4 h-4 text-amber-300"
+                  className={cn('w-4', 'h-4', 'text-amber-300')}
                   aria-hidden="true"
                 />
                 <span>Bebas Biaya Gateway</span>
@@ -186,31 +246,31 @@ export default async function HomePage() {
       {/* 2. KATEGORI PILIHAN */}
       <SectionContainer
         aria-labelledby="kategori-heading"
-        className="py-6 sm:py-10"
+        className={cn('py-6', 'sm:py-10')}
       >
-        <header className="flex justify-between items-center mb-6 sm:mb-8">
+        <header className={cn('flex', 'justify-between', 'items-center', 'mb-6', 'sm:mb-8')}>
           <div>
             <h2
               id="kategori-heading"
-              className="font-slab font-bold text-slate-900 dark:text-white text-xl sm:text-2xl"
+              className={cn('font-slab', 'font-bold', 'text-slate-900', 'dark:text-white', 'text-xl', 'sm:text-2xl')}
             >
               Kategori Produk Serang
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
+            <p className={cn('text-slate-500', 'dark:text-slate-400', 'text-xs', 'sm:text-sm')}>
               Jelajahi berbagai sektor usaha unggulan di Kota Serang
             </p>
           </div>
           <Link
             href="/categories"
-            className="inline-flex items-center gap-1 focus-visible:outline-none font-semibold text-brand-800 dark:text-brand-400 text-xs sm:text-sm hover:underline focus-visible:underline"
+            className={cn('inline-flex', 'items-center', 'gap-1', 'focus-visible:outline-none', 'font-semibold', 'text-brand-800', 'dark:text-brand-400', 'text-xs', 'sm:text-sm', 'hover:underline', 'focus-visible:underline')}
           >
             <span>Lihat Semua</span>
-            <ArrowRight className="w-4 h-4" aria-hidden="true" />
+            <ArrowRight className={cn('w-4', 'h-4')} aria-hidden="true" />
           </Link>
         </header>
 
         {categories.length > 0 ? (
-          <ul className="gap-3 sm:gap-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 m-0 p-0 list-none">
+          <ul className={cn('gap-3', 'sm:gap-5', 'grid', 'grid-cols-2', 'sm:grid-cols-3', 'lg:grid-cols-4', 'm-0', 'p-0', 'list-none')}>
             {categories.map((cat, idx) => (
               <li
                 key={
@@ -221,16 +281,16 @@ export default async function HomePage() {
               >
                 <Link
                   href={`/categories/${cat.slug}`}
-                  className="group flex flex-col items-center bg-white dark:bg-surface-darkCard shadow-subtle hover:shadow-card-hover p-5 border border-slate-200/80 dark:border-slate-800 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 text-center transition-all duration-200"
+                  className={cn('group', 'flex', 'flex-col', 'items-center', 'bg-white', 'dark:bg-surface-darkCard', 'shadow-subtle', 'hover:shadow-card-hover', 'p-5', 'border', 'border-slate-200/80', 'dark:border-slate-800', 'rounded-2xl', 'focus-visible:outline-none', 'focus-visible:ring-2', 'focus-visible:ring-brand-500', 'text-center', 'transition-all', 'duration-200')}
                   aria-label={`Kategori ${cat.name}, total ${cat.count || 0} produk`}
                 >
-                  <div className="flex justify-center items-center bg-slate-50 dark:bg-slate-800 shadow-xs mb-3 rounded-2xl w-14 h-14 group-hover:scale-110 transition-transform">
+                  <div className={cn('flex', 'justify-center', 'items-center', 'bg-slate-50', 'dark:bg-slate-800', 'shadow-xs', 'mb-3', 'rounded-2xl', 'w-14', 'h-14', 'group-hover:scale-110', 'transition-transform')}>
                     {getCategoryIcon(cat.slug, "w-7 h-7")}
                   </div>
-                  <span className="font-slab font-bold text-slate-900 dark:group-hover:text-brand-400 dark:text-slate-100 group-hover:text-brand-800 text-xs sm:text-sm line-clamp-1">
+                  <span className={cn('font-slab', 'font-bold', 'text-slate-900', 'dark:group-hover:text-brand-400', 'dark:text-slate-100', 'group-hover:text-brand-800', 'text-xs', 'sm:text-sm', 'line-clamp-1')}>
                     {cat.name}
                   </span>
-                  <span className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+                  <span className={cn('mt-1', 'text-[11px]', 'text-slate-400', 'dark:text-slate-500')}>
                     {cat.count ? `${cat.count} Produk` : "Lihat Produk"}
                   </span>
                 </Link>
@@ -238,7 +298,7 @@ export default async function HomePage() {
             ))}
           </ul>
         ) : (
-          <div className="bg-white dark:bg-surface-darkCard p-8 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-400 text-xs text-center">
+          <div className={cn('bg-white', 'dark:bg-surface-darkCard', 'p-8', 'border', 'border-slate-200', 'dark:border-slate-800', 'rounded-2xl', 'text-slate-400', 'text-xs', 'text-center')}>
             Sedang memuat kategori produk...
           </div>
         )}
@@ -247,21 +307,21 @@ export default async function HomePage() {
       {/* 3. VENDOR UNGGULAN KOTA SERANG */}
       <SectionContainer
         aria-labelledby="vendor-heading"
-        className="bg-slate-100/50 dark:bg-slate-900/40 py-6 sm:py-10 rounded-3xl"
+        className={cn('bg-slate-100/50', 'dark:bg-slate-900/40', 'py-6', 'sm:py-10', 'rounded-3xl')}
       >
-        <header className="flex sm:flex-row flex-col justify-between sm:items-end gap-3 mb-6 sm:mb-8">
+        <header className={cn('flex', 'sm:flex-row', 'flex-col', 'justify-between', 'sm:items-end', 'gap-3', 'mb-6', 'sm:mb-8')}>
           <div>
-            <div className="inline-flex items-center gap-1.5 bg-brand-100 dark:bg-brand-950/80 mb-2 px-2.5 py-0.5 rounded-full font-semibold text-brand-800 dark:text-brand-300 text-xs">
-              <Store className="w-3.5 h-3.5" aria-hidden="true" />
+            <div className={cn('inline-flex', 'items-center', 'gap-1.5', 'bg-brand-100', 'dark:bg-brand-950/80', 'mb-2', 'px-2.5', 'py-0.5', 'rounded-full', 'font-semibold', 'text-brand-800', 'dark:text-brand-300', 'text-xs')}>
+              <Store className={cn('w-3.5', 'h-3.5')} aria-hidden="true" />
               Direktori Terpercaya
             </div>
             <h2
               id="vendor-heading"
-              className="font-slab font-bold text-slate-900 dark:text-white text-xl sm:text-2xl"
+              className={cn('font-slab', 'font-bold', 'text-slate-900', 'dark:text-white', 'text-xl', 'sm:text-2xl')}
             >
               Vendor Unggulan Kota Serang
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
+            <p className={cn('text-slate-500', 'dark:text-slate-400', 'text-xs', 'sm:text-sm')}>
               Pelaku usaha dan toko lokal yang siap melayani pesanan Anda
             </p>
           </div>
@@ -269,32 +329,32 @@ export default async function HomePage() {
             <Button
               variant="outline"
               size="sm"
-              className="hidden sm:inline-flex"
+              className={cn('hidden', 'sm:inline-flex')}
             >
               <span>Lihat Semua Toko</span>
-              <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              <ArrowRight className={cn('w-4', 'h-4')} aria-hidden="true" />
             </Button>
           </Link>
         </header>
 
         {/* Slider Vendor Unggulan Autoplay & Navigasi Panah */}
-        <VendorSlider vendors={vendors} />
+        <VendorSlider vendors={sortedVendors} />
       </SectionContainer>
 
       {/* 4. PRODUK PILIHAN & PROMO */}
       <SectionContainer
         aria-labelledby="products-heading"
-        className="py-6 sm:py-10"
+        className={cn('py-6', 'sm:py-10')}
       >
-        <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+        <header className={cn('flex', 'sm:flex-row', 'flex-col', 'justify-between', 'sm:items-end', 'gap-4', 'mb-6')}>
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-brand-700 dark:text-blue-400">
+            <span className={cn('font-bold', 'text-brand-700', 'dark:text-blue-400', 'text-xs', 'uppercase', 'tracking-wider')}>
               Rekomendasi Terbaik
             </span>
-            <h2 className="font-slab font-bold text-2xl sm:text-3xl text-slate-900 dark:text-white mt-1">
+            <h2 className={cn('mt-1', 'font-slab', 'font-bold', 'text-slate-900', 'dark:text-white', 'text-2xl', 'sm:text-3xl')}>
               Produk & Layanan Populer
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
+            <p className={cn('mt-1', 'text-slate-600', 'dark:text-slate-400', 'text-xs', 'sm:text-sm')}>
               Pilihan produk lokal favorit dengan kontak langsung ke penjual
             </p>
           </div>
@@ -302,74 +362,74 @@ export default async function HomePage() {
           {/* Tautan Desktop ke Katalog Lengkap */}
           <Link
             href="/products"
-            className="hidden sm:inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#093c96] hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"
+            className={cn('group', 'hidden', 'sm:inline-flex', 'items-center', 'gap-1.5', 'font-semibold', 'text-[#093c96]', 'hover:text-blue-800', 'dark:hover:text-blue-300', 'dark:text-blue-400', 'text-xs', 'sm:text-sm', 'transition-colors')}
           >
             <span>Lihat Semua Produk</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className={cn('w-4', 'h-4', 'transition-transform', 'group-hover:translate-x-1')} />
           </Link>
         </header>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className={cn('gap-3', 'sm:gap-4', 'grid', 'grid-cols-2', 'sm:grid-cols-3', 'lg:grid-cols-4')}>
           {popularProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
 
         {/* Tombol CTA di Bawah Grid Produk (Responsif Mobile & Desktop) */}
-        <div className="mt-8 sm:mt-10 text-center">
+        <div className={cn('mt-8', 'sm:mt-10', 'text-center')}>
           <Link
             href="/products"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#093c96] hover:bg-blue-800 active:scale-95 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-sm hover:shadow-md transition-all"
+            className={cn('inline-flex', 'justify-center', 'items-center', 'gap-2', 'bg-[#093c96]', 'hover:bg-blue-800', 'shadow-sm', 'hover:shadow-md', 'px-6', 'py-3', 'rounded-xl', 'font-semibold', 'text-white', 'text-xs', 'sm:text-sm', 'active:scale-95', 'transition-all')}
           >
             <span>Lihat Semua Produk UMKM</span>
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className={cn('w-4', 'h-4')} />
           </Link>
         </div>
       </SectionContainer>
 
       {/* 5. CALL TO ACTION: DAFTAR VENDOR */}
-      <SectionContainer aria-labelledby="cta-heading" className="py-8 sm:py-14">
-        <div className="relative bg-brand-gradient shadow-card-hover p-8 sm:p-12 lg:p-16 rounded-3xl overflow-hidden text-white">
-          <div className="z-10 relative space-y-6 max-w-2xl">
-            <div className="inline-flex items-center gap-2 bg-white/10 px-3 py-1 border border-white/20 rounded-full font-semibold text-amber-300 text-xs">
-              <Users className="w-3.5 h-3.5" aria-hidden="true" />
+      <SectionContainer aria-labelledby="cta-heading" className={cn('py-8', 'sm:py-14')}>
+        <div className={cn('relative', 'bg-brand-gradient', 'shadow-card-hover', 'p-8', 'sm:p-12', 'lg:p-16', 'rounded-3xl', 'overflow-hidden', 'text-white')}>
+          <div className={cn('z-10', 'relative', 'space-y-6', 'max-w-2xl')}>
+            <div className={cn('inline-flex', 'items-center', 'gap-2', 'bg-white/10', 'px-3', 'py-1', 'border', 'border-white/20', 'rounded-full', 'font-semibold', 'text-amber-300', 'text-xs')}>
+              <Users className={cn('w-3.5', 'h-3.5')} aria-hidden="true" />
               <span>Untuk Pemilik Usaha di Kota Serang</span>
             </div>
 
             <h2
               id="cta-heading"
-              className="font-slab font-black text-2xl sm:text-3xl lg:text-4xl leading-tight"
+              className={cn('font-slab', 'font-black', 'text-2xl', 'sm:text-3xl', 'lg:text-4xl', 'leading-tight')}
             >
               Punya Usaha di Kota Serang? Buka Toko Online Anda Sekarang!
             </h2>
 
-            <p className="text-slate-200 text-sm sm:text-base leading-relaxed">
+            <p className={cn('text-slate-200', 'text-sm', 'sm:text-base', 'leading-relaxed')}>
               Daftarkan bisnis Anda di Mas Chan Digital secara mudah. Kelola
               katalog produk, pasang nomor WhatsApp toko, optimasi pencarian
               Google (SEO), dan terima pesanan langsung dari pelanggan tanpa
               potongan transaksi.
             </p>
 
-            <ul className="space-y-2 m-0 p-0 text-slate-200 text-xs sm:text-sm list-none">
-              <li className="flex items-center gap-2">
+            <ul className={cn('space-y-2', 'm-0', 'p-0', 'text-slate-200', 'text-xs', 'sm:text-sm', 'list-none')}>
+              <li className={cn('flex', 'items-center', 'gap-2')}>
                 <CheckCircle2
-                  className="w-4 h-4 text-emerald-400 shrink-0"
+                  className={cn('w-4', 'h-4', 'text-emerald-400', 'shrink-0')}
                   aria-hidden="true"
                 />
                 <span>
                   Tanpa biaya gateway & tanpa potongan fee per pesanan
                 </span>
               </li>
-              <li className="flex items-center gap-2">
+              <li className={cn('flex', 'items-center', 'gap-2')}>
                 <CheckCircle2
-                  className="w-4 h-4 text-emerald-400 shrink-0"
+                  className={cn('w-4', 'h-4', 'text-emerald-400', 'shrink-0')}
                   aria-hidden="true"
                 />
                 <span>Pelanggan langsung chat ke WhatsApp Anda</span>
               </li>
-              <li className="flex items-center gap-2">
+              <li className={cn('flex', 'items-center', 'gap-2')}>
                 <CheckCircle2
-                  className="w-4 h-4 text-emerald-400 shrink-0"
+                  className={cn('w-4', 'h-4', 'text-emerald-400', 'shrink-0')}
                   aria-hidden="true"
                 />
                 <span>
@@ -378,22 +438,22 @@ export default async function HomePage() {
               </li>
             </ul>
 
-            <div className="flex sm:flex-row flex-col gap-3 pt-2">
+            <div className={cn('flex', 'sm:flex-row', 'flex-col', 'gap-3', 'pt-2')}>
               <TrackedVendorRegisterLink href="/vendor/register" sourceLocation="hero_cta">
                 <Button
                   variant="secondary"
                   size="md"
-                  className="bg-white hover:bg-slate-100 shadow-md font-bold text-brand-900"
+                  className={cn('bg-white', 'hover:bg-slate-100', 'shadow-md', 'font-bold', 'text-brand-900')}
                 >
                   <span>Daftar Toko Gratis</span>
-                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  <ArrowRight className={cn('w-4', 'h-4')} aria-hidden="true" />
                 </Button>
               </TrackedVendorRegisterLink>
               <Link href="/tentang-kami">
                 <Button
                   variant="outline"
                   size="md"
-                  className="hover:bg-white/10 border-white/30 text-white"
+                  className={cn('hover:bg-white/10', 'border-white/30', 'text-white')}
                 >
                   <span>Pelajari Lebih Lanjut</span>
                 </Button>

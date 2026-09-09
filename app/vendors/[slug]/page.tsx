@@ -1,5 +1,3 @@
-// Tambahkan di baris atas file:
-
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -19,6 +17,7 @@ import {
   Phone,
   Clock,
   XCircle,
+  MessageSquare,
 } from "lucide-react";
 import { SectionContainer } from "@/components/layout/SectionContainer";
 import { ProductCard } from "@/components/cards/ProductCard";
@@ -31,9 +30,9 @@ import { checkStoreStatus } from "@/lib/storeStatus";
 import { StoreHours } from "@/types";
 import { VendorWhatsAppChat } from "@/components/chat/VendorWhatsAppChat";
 import { VendorJsonLd } from "@/components/seo/VendorJsonLd";
+import { cn } from "../../../lib/utils";
 
-// Halaman ini menampilkan status buka/tutup toko yang berubah tiap menit —
-// jangan pernah dibiarkan Next.js render statis sekali lalu disajikan basi.
+// Halaman ini menampilkan status buka/tutup toko yang dinamis
 export const dynamic = "force-dynamic";
 
 type VendorPageProps = {
@@ -119,11 +118,27 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
     notFound();
   }
 
-  const products = await getVendorProducts(vendor.id);
+  const allProducts = await getVendorProducts(vendor.id);
   const storeStatus = checkStoreStatus(
     vendor.store_hours,
     vendor.vacation_mode,
   );
+
+  // 1. Logika Pembatasan Etalase Publik Sesuai Status Langganan
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const vendorSub = (vendor as any).subscription;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const vendorPlanId = (vendor as any).plan_id || vendorSub?.plan_id;
+
+  const isPaidActive = Boolean(
+    (vendorSub && vendorSub.status === "active" && vendorSub.plan_id !== "free_forever") ||
+    (vendorPlanId && vendorPlanId !== "free_forever")
+  );
+
+  // Kuota etalase publik: jika paket berbayar aktif tampilkan semua, jika Starter batasi 3 produk
+  const maxPublicLimit = isPaidActive ? (vendorSub?.max_products ?? 999) : 3;
+  const publicProducts = allProducts.slice(0, maxPublicLimit);
+  const archivedProductsCount = Math.max(0, allProducts.length - publicProducts.length);
 
   const vendorUrl = `https://maschandigital.id/vendors/${vendor.slug}`;
   const kelurahan =
@@ -166,7 +181,7 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
   return (
     <article
       aria-labelledby="vendor-hero-title"
-      className="space-y-8 sm:space-y-12 pb-12"
+      className={cn('space-y-8', 'sm:space-y-12', 'pb-12')}
     >
       {/* Vendor Json LD */}
       <VendorJsonLd vendor={vendor} />
@@ -186,8 +201,8 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
       />
 
       {/* 1. VENDOR HERO BANNER */}
-      <header className="relative bg-slate-900 text-white">
-        <figure className="relative bg-slate-800 m-0 w-full h-48 sm:h-72 lg:h-80 overflow-hidden">
+      <header className={cn('relative', 'bg-slate-900', 'text-white')}>
+        <figure className={cn('relative', 'bg-slate-800', 'm-0', 'w-full', 'h-48', 'sm:h-72', 'lg:h-80', 'overflow-hidden')}>
           <Image
             src={
               vendor.banner ||
@@ -197,19 +212,19 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
             fill
             priority
             sizes="100vw"
-            className="opacity-75 object-cover"
+            className={cn('opacity-75', 'object-cover')}
           />
           <div
-            className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"
+            className={cn('absolute', 'inset-0', 'bg-gradient-to-t', 'from-slate-950', 'via-slate-950/40', 'to-transparent')}
             aria-hidden="true"
           />
         </figure>
 
-        <div className="z-10 relative mx-auto -mt-16 sm:-mt-24 px-4 sm:px-6 lg:px-8 pb-8 max-w-7xl">
-          <div className="flex md:flex-row flex-col justify-between md:items-end gap-6">
+        <div className={cn('z-10', 'relative', 'mx-auto', '-mt-16', 'sm:-mt-24', 'px-4', 'sm:px-6', 'lg:px-8', 'pb-8', 'max-w-7xl')}>
+          <div className={cn('flex', 'md:flex-row', 'flex-col', 'justify-between', 'md:items-end', 'gap-6')}>
             {/* Avatar & Store Info */}
-            <div className="flex sm:flex-row flex-col items-center sm:items-end gap-5 sm:text-left text-center">
-              <div className="relative bg-white dark:bg-slate-800 shadow-card-hover border-4 border-white dark:border-surface-darkCard rounded-3xl w-28 sm:w-36 h-28 sm:h-36 overflow-hidden shrink-0">
+            <div className={cn('flex', 'sm:flex-row', 'flex-col', 'items-center', 'sm:items-end', 'gap-5', 'sm:text-left', 'text-center')}>
+              <div className={cn('relative', 'bg-white', 'dark:bg-slate-800', 'shadow-card-hover', 'border-4', 'border-white', 'dark:border-surface-darkCard', 'rounded-3xl', 'w-28', 'sm:w-36', 'h-28', 'sm:h-36', 'overflow-hidden', 'shrink-0')}>
                 <Image
                   src={
                     vendor.avatar ||
@@ -223,20 +238,20 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
               </div>
 
               <div className="space-y-2">
-                <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2">
+                <div className={cn('flex', 'flex-wrap', 'justify-center', 'sm:justify-start', 'items-center', 'gap-2')}>
                   <h1
                     id="vendor-hero-title"
-                    className="font-slab font-black text-2xl sm:text-3xl tracking-tight"
+                    className={cn('font-slab', 'font-black', 'text-2xl', 'sm:text-3xl', 'tracking-tight')}
                   >
                     {vendor.store_name}
                   </h1>
                   {vendor.is_verified && (
                     <Badge
                       variant="success"
-                      className="bg-emerald-500/20 border-emerald-400/30 text-emerald-300"
+                      className={cn('bg-emerald-500/20', 'border-emerald-400/30', 'text-emerald-300')}
                     >
                       <ShieldCheck
-                        className="mr-1 w-3.5 h-3.5"
+                        className={cn('mr-1', 'w-3.5', 'h-3.5')}
                         aria-hidden="true"
                       />
                       <span>Terverifikasi Serang</span>
@@ -247,34 +262,34 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                   {storeStatus.isVacation ? (
                     <Badge
                       variant="danger"
-                      className="bg-rose-500/20 border-rose-400/30 text-rose-300"
+                      className={cn('bg-rose-500/20', 'border-rose-400/30', 'text-rose-300')}
                     >
-                      <XCircle className="mr-1 w-3.5 h-3.5" />
+                      <XCircle className={cn('mr-1', 'w-3.5', 'h-3.5')} />
                       <span>Sedang Libur</span>
                     </Badge>
                   ) : storeStatus.isOpen ? (
                     <Badge
                       variant="success"
-                      className="bg-emerald-500/20 border-emerald-400/30 text-emerald-300"
+                      className={cn('bg-emerald-500/20', 'border-emerald-400/30', 'text-emerald-300')}
                     >
-                      <Clock className="mr-1 w-3.5 h-3.5" />
+                      <Clock className={cn('mr-1', 'w-3.5', 'h-3.5')} />
                       <span>Buka Sekarang</span>
                     </Badge>
                   ) : (
                     <Badge
                       variant="neutral"
-                      className="bg-slate-500/20 border-slate-400/30 text-slate-300"
+                      className={cn('bg-slate-500/20', 'border-slate-400/30', 'text-slate-300')}
                     >
-                      <Clock className="mr-1 w-3.5 h-3.5" />
+                      <Clock className={cn('mr-1', 'w-3.5', 'h-3.5')} />
                       <span>Sedang Tutup</span>
                     </Badge>
                   )}
                 </div>
 
-                <div className="flex flex-wrap justify-center sm:justify-start items-center gap-4 text-slate-300 text-xs sm:text-sm">
-                  <address className="flex items-center gap-1 not-italic">
+                <div className={cn('flex', 'flex-wrap', 'justify-center', 'sm:justify-start', 'items-center', 'gap-4', 'text-slate-300', 'text-xs', 'sm:text-sm')}>
+                  <address className={cn('flex', 'items-center', 'gap-1', 'not-italic')}>
                     <MapPin
-                      className="w-4 h-4 text-brand-400"
+                      className={cn('w-4', 'h-4', 'text-brand-400')}
                       aria-hidden="true"
                     />
                     <span>
@@ -288,9 +303,9 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                   </address>
 
                   {vendor.rating && (
-                    <span className="flex items-center gap-1 font-semibold text-amber-300">
+                    <span className={cn('flex', 'items-center', 'gap-1', 'font-semibold', 'text-amber-300')}>
                       <Star
-                        className="fill-amber-400 w-4 h-4 text-amber-400"
+                        className={cn('fill-amber-400', 'w-4', 'h-4', 'text-amber-400')}
                         aria-hidden="true"
                       />
                       <span className="sr-only">Rating: </span>
@@ -300,26 +315,28 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                       </span>
                     </span>
                   )}
-                  <span className="flex items-center gap-1">
+
+                  {/* Jumlah Produk Aktif di Etalase Publik */}
+                  <span className={cn('flex', 'items-center', 'gap-1')}>
                     <Package
-                      className="w-4 h-4 text-brand-300"
+                      className={cn('w-4', 'h-4', 'text-brand-300')}
                       aria-hidden="true"
                     />
-                    <span>{products.length} Produk Aktif</span>
+                    <span>{publicProducts.length} Produk Aktif</span>
                   </span>
                 </div>
               </div>
             </div>
 
             {/* Quick Action: Chat WhatsApp & Share */}
-            <div className="flex flex-wrap justify-center sm:justify-end items-center gap-3 w-full md:w-auto">
+            <div className={cn('flex', 'flex-wrap', 'justify-center', 'sm:justify-end', 'items-center', 'gap-3', 'w-full', 'md:w-auto')}>
               <ShareButton
                 title={`Toko ${vendor.store_name} - Mas Chan Digital`}
                 text={`Kunjungi toko ${vendor.store_name} di Mas Chan Digital Kota Serang:`}
                 url={vendorUrl}
                 variant="outline"
                 size="lg"
-                className="bg-white/10 hover:bg-white/20 border-white/20 text-white hover:text-white"
+                className={cn('bg-white/10', 'hover:bg-white/20', 'border-white/20', 'text-white', 'hover:text-white')}
               />
 
               {storeStatus.isVacation ? (
@@ -327,9 +344,9 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                   variant="outline"
                   size="lg"
                   disabled
-                  className="bg-slate-800/80 opacity-80 border-slate-700 w-full sm:w-auto text-slate-400 cursor-not-allowed"
+                  className={cn('bg-slate-800/80', 'opacity-80', 'border-slate-700', 'w-full', 'sm:w-auto', 'text-slate-400', 'cursor-not-allowed')}
                 >
-                  <XCircle className="mr-2 w-5 h-5 text-amber-400" />
+                  <XCircle className={cn('mr-2', 'w-5', 'h-5', 'text-amber-400')} />
                   <span>Toko Sedang Libur</span>
                 </Button>
               ) : !storeStatus.isOpen ? (
@@ -337,9 +354,9 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                   variant="outline"
                   size="lg"
                   disabled
-                  className="bg-slate-800/80 opacity-80 border-slate-700 w-full sm:w-auto text-slate-400 cursor-not-allowed"
+                  className={cn('bg-slate-800/80', 'opacity-80', 'border-slate-700', 'w-full', 'sm:w-auto', 'text-slate-400', 'cursor-not-allowed')}
                 >
-                  <Clock className="mr-2 w-5 h-5 text-slate-400" />
+                  <Clock className={cn('mr-2', 'w-5', 'h-5', 'text-slate-400')} />
                   <span>Toko Sedang Tutup</span>
                 </Button>
               ) : (
@@ -347,16 +364,16 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                   href={waVendorUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp-500 w-full sm:w-auto"
+                  className={cn('rounded-xl', 'focus-visible:outline-none', 'focus-visible:ring-2', 'focus-visible:ring-whatsapp-500', 'w-full', 'sm:w-auto')}
                   aria-label={`Hubungi toko ${vendor.store_name} lewat chat WhatsApp`}
                 >
                   <Button
                     variant="whatsapp"
                     size="lg"
-                    className="shadow-card-hover w-full font-bold"
+                    className={cn('shadow-card-hover', 'w-full', 'font-bold')}
                   >
                     <MessageCircle
-                      className="fill-white mr-2 w-5 h-5"
+                      className={cn('fill-white', 'mr-2', 'w-5', 'h-5')}
                       aria-hidden="true"
                     />
                     <span>Chat WhatsApp Toko</span>
@@ -373,17 +390,17 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
         <SectionContainer className="py-0">
           <aside
             aria-label="Pemberitahuan Libur Toko"
-            className="flex items-start gap-3.5 bg-amber-50 dark:bg-amber-950/70 shadow-subtle p-4 sm:p-5 border border-amber-200 dark:border-amber-800/80 rounded-3xl text-amber-900 dark:text-amber-200"
+            className={cn('flex', 'items-start', 'gap-3.5', 'bg-amber-50', 'dark:bg-amber-950/70', 'shadow-subtle', 'p-4', 'sm:p-5', 'border', 'border-amber-200', 'dark:border-amber-800/80', 'rounded-3xl', 'text-amber-900', 'dark:text-amber-200')}
           >
             <XCircle
-              className="mt-0.5 w-6 h-6 text-amber-600 dark:text-amber-400 shrink-0"
+              className={cn('mt-0.5', 'w-6', 'h-6', 'text-amber-600', 'dark:text-amber-400', 'shrink-0')}
               aria-hidden="true"
             />
             <div className="space-y-1">
-              <h3 className="font-slab font-bold text-base">
+              <h3 className={cn('font-slab', 'font-bold', 'text-base')}>
                 Pemberitahuan: Toko Kami Sedang Libur
               </h3>
-              <p className="text-amber-800 dark:text-amber-300 text-xs sm:text-sm leading-relaxed">
+              <p className={cn('text-amber-800', 'dark:text-amber-300', 'text-xs', 'sm:text-sm', 'leading-relaxed')}>
                 {vendor.vacation_mode?.vacationMessage ||
                   "Toko kami sedang tutup sementara waktu. Seluruh pemesanan produk akan diproses kembali setelah masa libur berakhir."}
               </p>
@@ -394,37 +411,37 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
 
       {/* 2. VENDOR DETAILS & CATALOG */}
       <SectionContainer className="py-0">
-        <div className="items-start gap-8 grid grid-cols-1 lg:grid-cols-12">
+        <div className={cn('items-start', 'gap-8', 'grid', 'grid-cols-1', 'lg:grid-cols-12')}>
           {/* Left Sidebar: About Vendor & Operating Hours */}
           <aside
             aria-label="Profil dan Kontak Toko"
-            className="space-y-6 lg:col-span-4"
+            className={cn('space-y-6', 'lg:col-span-4')}
           >
             {/* About Box */}
             <section
               aria-labelledby="about-store-heading"
-              className="space-y-4 bg-white dark:bg-surface-darkCard shadow-subtle p-6 border border-slate-200/80 dark:border-slate-800 rounded-3xl"
+              className={cn('space-y-4', 'bg-white', 'dark:bg-surface-darkCard', 'shadow-subtle', 'p-6', 'border', 'border-slate-200/80', 'dark:border-slate-800', 'rounded-3xl')}
             >
               <h2
                 id="about-store-heading"
-                className="flex items-center gap-2 font-slab font-bold text-slate-900 dark:text-white text-base"
+                className={cn('flex', 'items-center', 'gap-2', 'font-slab', 'font-bold', 'text-slate-900', 'dark:text-white', 'text-base')}
               >
                 <Store
-                  className="w-4 h-4 text-brand-700 dark:text-brand-400"
+                  className={cn('w-4', 'h-4', 'text-brand-700', 'dark:text-brand-400')}
                   aria-hidden="true"
                 />
                 <span>Tentang Toko</span>
               </h2>
-              <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed">
+              <p className={cn('text-slate-600', 'dark:text-slate-300', 'text-xs', 'sm:text-sm', 'leading-relaxed')}>
                 {vendor.description ||
                   "Penyedia produk dan layanan lokal berkualitas di wilayah Kota Serang."}
               </p>
 
-              <address className="space-y-3 pt-4 border-slate-100 dark:border-slate-800 border-t text-slate-600 dark:text-slate-300 text-xs sm:text-sm not-italic">
+              <address className={cn('space-y-3', 'pt-4', 'border-slate-100', 'dark:border-slate-800', 'border-t', 'text-slate-600', 'dark:text-slate-300', 'text-xs', 'sm:text-sm', 'not-italic')}>
                 <div className="space-y-2">
-                  <div className="flex items-start gap-2.5">
+                  <div className={cn('flex', 'items-start', 'gap-2.5')}>
                     <MapPin
-                      className="mt-0.5 w-4 h-4 text-brand-600 shrink-0"
+                      className={cn('mt-0.5', 'w-4', 'h-4', 'text-brand-600', 'shrink-0')}
                       aria-hidden="true"
                     />
                     <span>
@@ -441,7 +458,7 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                     href={mapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 ml-6 font-bold text-brand-700 dark:text-brand-400 text-xs hover:underline"
+                    className={cn('inline-flex', 'items-center', 'gap-1.5', 'ml-6', 'font-bold', 'text-brand-700', 'dark:text-brand-400', 'text-xs', 'hover:underline')}
                     aria-label={`Buka petunjuk arah lokasi ${vendor.store_name} di Google Maps`}
                   >
                     <span>Buka Petunjuk Arah di Google Maps</span>
@@ -453,9 +470,9 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                 {(vendor.location_district ||
                   vendor.location_subdistrict ||
                   vendor.subdistrict) && (
-                  <div className="flex items-start gap-2.5">
+                  <div className={cn('flex', 'items-start', 'gap-2.5')}>
                     <Building2
-                      className="mt-0.5 w-4 h-4 text-brand-600 shrink-0"
+                      className={cn('mt-0.5', 'w-4', 'h-4', 'text-brand-600', 'shrink-0')}
                       aria-hidden="true"
                     />
                     <span>
@@ -469,9 +486,9 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                   </div>
                 )}
                 {vendor.whatsapp_number && (
-                  <div className="flex items-center gap-2.5">
+                  <div className={cn('flex', 'items-center', 'gap-2.5')}>
                     <Phone
-                      className="w-4 h-4 text-brand-600 shrink-0"
+                      className={cn('w-4', 'h-4', 'text-brand-600', 'shrink-0')}
                       aria-hidden="true"
                     />
                     <a
@@ -483,9 +500,9 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                   </div>
                 )}
                 {vendor.email && (
-                  <div className="flex items-center gap-2.5">
+                  <div className={cn('flex', 'items-center', 'gap-2.5')}>
                     <Mail
-                      className="w-4 h-4 text-brand-600 shrink-0"
+                      className={cn('w-4', 'h-4', 'text-brand-600', 'shrink-0')}
                       aria-hidden="true"
                     />
                     <a
@@ -497,9 +514,9 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                   </div>
                 )}
                 {vendor.joined_date && (
-                  <div className="flex items-center gap-2.5">
+                  <div className={cn('flex', 'items-center', 'gap-2.5')}>
                     <Calendar
-                      className="w-4 h-4 text-brand-600 shrink-0"
+                      className={cn('w-4', 'h-4', 'text-brand-600', 'shrink-0')}
                       aria-hidden="true"
                     />
                     <span>
@@ -517,15 +534,15 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
             {vendor.store_hours && (
               <section
                 aria-labelledby="hours-heading"
-                className="space-y-4 bg-white dark:bg-surface-darkCard shadow-subtle p-6 border border-slate-200/80 dark:border-slate-800 rounded-3xl"
+                className={cn('space-y-4', 'bg-white', 'dark:bg-surface-darkCard', 'shadow-subtle', 'p-6', 'border', 'border-slate-200/80', 'dark:border-slate-800', 'rounded-3xl')}
               >
-                <div className="flex justify-between items-center">
+                <div className={cn('flex', 'justify-between', 'items-center')}>
                   <h2
                     id="hours-heading"
-                    className="flex items-center gap-2 font-slab font-bold text-slate-900 dark:text-white text-base"
+                    className={cn('flex', 'items-center', 'gap-2', 'font-slab', 'font-bold', 'text-slate-900', 'dark:text-white', 'text-base')}
                   >
                     <Clock
-                      className="w-4 h-4 text-brand-700 dark:text-brand-400"
+                      className={cn('w-4', 'h-4', 'text-brand-700', 'dark:text-brand-400')}
                       aria-hidden="true"
                     />
                     <span>Jam Buka Toko</span>
@@ -543,23 +560,23 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                   </span>
                 </div>
 
-                <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                <div className={cn('divide-y', 'divide-slate-100', 'dark:divide-slate-800', 'text-xs')}>
                   {daysLabel.map(({ key, label }) => {
                     const d = vendor.store_hours?.[key];
                     return (
                       <div
                         key={key}
-                        className="flex justify-between items-center py-2"
+                        className={cn('flex', 'justify-between', 'items-center', 'py-2')}
                       >
-                        <span className="font-medium text-slate-700 dark:text-slate-300">
+                        <span className={cn('font-medium', 'text-slate-700', 'dark:text-slate-300')}>
                           {label}
                         </span>
                         {d?.isOpen ? (
-                          <span className="text-slate-500 dark:text-slate-400">
+                          <span className={cn('text-slate-500', 'dark:text-slate-400')}>
                             {d.openTime} - {d.closeTime}
                           </span>
                         ) : (
-                          <span className="font-semibold text-rose-500">
+                          <span className={cn('font-semibold', 'text-rose-500')}>
                             Tutup
                           </span>
                         )}
@@ -574,42 +591,68 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
           {/* Right Area: Products Catalog */}
           <section
             aria-labelledby="catalog-heading"
-            className="space-y-6 lg:col-span-8"
+            className={cn('space-y-6', 'lg:col-span-8')}
           >
-            <header className="flex justify-between items-center">
+            <header className={cn('flex', 'justify-between', 'items-center')}>
               <div>
                 <h2
                   id="catalog-heading"
-                  className="font-slab font-bold text-slate-900 dark:text-white text-xl sm:text-2xl"
+                  className={cn('font-slab', 'font-bold', 'text-slate-900', 'dark:text-white', 'text-xl', 'sm:text-2xl')}
                 >
                   Katalog Produk Toko
                 </h2>
-                <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
+                <p className={cn('text-slate-500', 'dark:text-slate-400', 'text-xs', 'sm:text-sm')}>
                   Daftar produk resmi yang dijual oleh {vendor.store_name}
                 </p>
               </div>
               <Badge variant="neutral" className="text-xs">
-                {products.length} Produk
+                {publicProducts.length} Produk
               </Badge>
             </header>
 
-            {products.length > 0 ? (
-              <div className="gap-4 sm:gap-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                {products.map((product, idx) => (
-                  <ProductCard
-                    key={`vendor-product-${vendor.id}-${product.id || idx}-${product.slug || idx}-${idx}`}
-                    product={product}
-                    vendorStoreStatus={storeStatus}
-                  />
-                ))}
+            {publicProducts.length > 0 ? (
+              <div className="space-y-6">
+                <div className={cn('gap-4', 'sm:gap-6', 'grid', 'grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3')}>
+                  {publicProducts.map((product, idx) => (
+                    <ProductCard
+                      key={`vendor-product-${vendor.id}-${product.id || idx}-${product.slug || idx}-${idx}`}
+                      product={product}
+                      vendorStoreStatus={storeStatus}
+                    />
+                  ))}
+                </div>
+
+                {/* Catatan Halus jika Toko Memiliki Produk yang Terarsip */}
+                {archivedProductsCount > 0 && (
+                  <div className={cn('space-y-2', 'bg-slate-50', 'dark:bg-slate-900/50', 'p-4', 'sm:p-5', 'border', 'border-slate-200', 'dark:border-slate-800', 'border-dashed', 'rounded-2xl', 'text-center')}>
+                    <div className={cn('flex', 'justify-center', 'items-center', 'gap-1.5', 'font-bold', 'text-slate-700', 'dark:text-slate-300', 'text-xs')}>
+                      <MessageSquare className={cn('w-4', 'h-4', 'text-[#093c96]', 'dark:text-blue-400')} />
+                      <span>Menampilkan {publicProducts.length} Produk Unggulan</span>
+                    </div>
+                    <p className={cn('mx-auto', 'max-w-md', 'text-slate-500', 'dark:text-slate-400', 'text-xs', 'leading-relaxed')}>
+                      Toko ini masih memiliki <strong>{archivedProductsCount} produk pilihan lainnya</strong> yang belum ditampilkan di katalog web. Anda dapat menanyakan katalog lengkap atau ketersediaan stok produk lainnya langsung ke WhatsApp penjual.
+                    </p>
+                    <div className="pt-1">
+                      <a
+                        href={waVendorUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn('inline-flex', 'items-center', 'gap-1.5', 'bg-emerald-50', 'hover:bg-emerald-100', 'dark:bg-emerald-950/40', 'px-3.5', 'py-1.5', 'border', 'border-emerald-200', 'dark:border-emerald-800', 'rounded-xl', 'font-semibold', 'text-emerald-700', 'dark:text-emerald-300', 'text-xs', 'transition-colors')}
+                      >
+                        <MessageCircle className={cn('fill-emerald-600', 'w-3.5', 'h-3.5', 'text-emerald-600')} />
+                        <span>Tanya Katalog Lain via WhatsApp</span>
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="space-y-3 bg-white dark:bg-surface-darkCard p-10 border border-slate-200/80 dark:border-slate-800 rounded-3xl text-center">
+              <div className={cn('space-y-3', 'bg-white', 'dark:bg-surface-darkCard', 'p-10', 'border', 'border-slate-200/80', 'dark:border-slate-800', 'rounded-3xl', 'text-center')}>
                 <Package
-                  className="mx-auto w-10 h-10 text-slate-400"
+                  className={cn('mx-auto', 'w-10', 'h-10', 'text-slate-400')}
                   aria-hidden="true"
                 />
-                <h3 className="font-slab font-bold text-slate-800 dark:text-white text-base">
+                <h3 className={cn('font-slab', 'font-bold', 'text-slate-800', 'dark:text-white', 'text-base')}>
                   Belum Ada Produk Ditampilkan
                 </h3>
               </div>

@@ -8,9 +8,14 @@ import {
   MessageCircle,
   Package,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import { Vendor } from "@/types";
-import { cn, generateWhatsAppVendorUrl, resolveVendorDistrict } from "@/lib/utils";
+import {
+  cn,
+  generateWhatsAppVendorUrl,
+  resolveVendorDistrict,
+} from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { trackWhatsAppClick } from "@/lib/analytics";
@@ -22,7 +27,25 @@ interface VendorCardProps {
 }
 
 export function VendorCard({ vendor, className }: VendorCardProps) {
-  const storeStatus = checkStoreStatus(vendor.store_hours, vendor.vacation_mode);
+  const storeStatus = checkStoreStatus(
+    vendor.store_hours,
+    vendor.vacation_mode,
+  );
+
+  // Cek apakah vendor berlangganan aktif berbayar
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const vendorSub = (vendor as any).subscription;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const vendorPlan = (vendor as any).plan_id || vendorSub?.plan_id;
+
+  const isPriority = Boolean(
+    (vendorSub &&
+      vendorSub.status === "active" &&
+      vendorSub.plan_id !== "free_forever") ||
+    (vendorPlan && vendorPlan !== "free_forever") ||
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Boolean((vendor as any).is_vip),
+  );
 
   const waUrl = generateWhatsAppVendorUrl({
     whatsappNumber: vendor.whatsapp_number,
@@ -40,8 +63,8 @@ export function VendorCard({ vendor, className }: VendorCardProps) {
     <article
       aria-labelledby={`vendor-title-${vendor.id}`}
       className={cn(
-        "group relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 overflow-hidden shadow-2xs hover:shadow-md transition-all duration-300 h-full flex flex-col justify-between",
-        className
+        "group relative flex flex-col justify-between bg-white dark:bg-slate-900 shadow-2xs hover:shadow-md border border-slate-200/90 dark:border-slate-800 rounded-2xl h-full overflow-hidden transition-all duration-300",
+        className,
       )}
     >
       {/* Banner Cover & Badges */}
@@ -71,16 +94,25 @@ export function VendorCard({ vendor, className }: VendorCardProps) {
           </Badge>
         </div>
 
-        {/* Store Status Badge (Buka/Tutup) */}
-        <div className="top-3 right-3 z-10 absolute">
+        {/* Lencana Status Toko & Mitra Prioritas */}
+        <div className="top-3 right-3 z-10 absolute flex flex-wrap justify-end items-center gap-1.5">
+          {/* Lencana Emas Khusus Toko Berlangganan Aktif */}
+          {isPriority && (
+            <span className="inline-flex items-center gap-1 bg-amber-500 shadow-xs px-2.5 py-1 rounded-full font-bold text-[10px] text-white shrink-0">
+              <Sparkles className="fill-white w-3 h-3 text-white shrink-0" />
+              <span>Mitra Prioritas</span>
+            </span>
+          )}
+
+          {/* Lencana Status Toko (Buka / Tutup) */}
           {storeStatus.isOpen ? (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shadow-2xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/50 shadow-2xs px-2.5 py-1 border border-emerald-200 dark:border-emerald-800 rounded-full font-bold text-[11px] text-emerald-700 dark:text-emerald-400 shrink-0">
+              <span className="bg-emerald-500 rounded-full w-1.5 h-1.5 animate-pulse" />
               <span>Buka Sekarang</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 border border-rose-200 dark:border-rose-800 shadow-2xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+            <span className="inline-flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/50 shadow-2xs px-2.5 py-1 border border-rose-200 dark:border-rose-800 rounded-full font-bold text-[11px] text-rose-700 dark:text-rose-400 shrink-0">
+              <span className="bg-rose-500 rounded-full w-1.5 h-1.5" />
               <span>Toko Tutup</span>
             </span>
           )}
@@ -88,7 +120,7 @@ export function VendorCard({ vendor, className }: VendorCardProps) {
       </figure>
 
       {/* Profile Avatar & Info */}
-      <div className="p-4 sm:p-5 pt-0 flex-1 flex flex-col justify-between space-y-3">
+      <div className="flex flex-col flex-1 justify-between space-y-3 p-4 sm:p-5 pt-0">
         <div className="flex-1 space-y-2">
           <header className="z-10 relative flex justify-between items-end -mt-8 @[350px]:-mt-10 mb-3">
             <div className="bg-white dark:bg-slate-800 shadow-md border-4 border-white dark:border-surface-darkCard rounded-2xl w-16 @[350px]:w-20 h-16 @[350px]:h-20 overflow-hidden">
@@ -129,7 +161,7 @@ export function VendorCard({ vendor, className }: VendorCardProps) {
               )}
             </h3>
 
-            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed flex-grow">
+            <p className="flex-grow mt-1 text-slate-600 dark:text-slate-400 text-xs line-clamp-2 leading-relaxed">
               {vendor.description ||
                 "Toko resmi mitra UMKM Kota Serang di Mas Chan Digital."}
             </p>
@@ -137,7 +169,7 @@ export function VendorCard({ vendor, className }: VendorCardProps) {
         </div>
 
         {/* Action Buttons */}
-        <footer className="pt-3 border-t border-slate-100 dark:border-slate-800/80 mt-auto flex @[280px]:flex-row flex-col gap-2">
+        <footer className="flex @[280px]:flex-row flex-col gap-2 mt-auto pt-3 border-slate-100 dark:border-slate-800/80 border-t">
           <Link
             href={`/vendors/${vendor.slug}`}
             className="flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
@@ -185,4 +217,3 @@ export function VendorCard({ vendor, className }: VendorCardProps) {
     </article>
   );
 }
-

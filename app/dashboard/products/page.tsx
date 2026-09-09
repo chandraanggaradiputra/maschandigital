@@ -11,6 +11,9 @@ import {
   AlertCircle,
   Loader2,
   Package,
+  Archive,
+  CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -18,6 +21,7 @@ import { getMyVendorProducts, deleteProduct } from "@/lib/api/wordpress";
 import { getBillingInfo } from "@/lib/api/billing";
 import { formatRupiah } from "@/lib/utils";
 import { Product, VendorSubscription } from "@/types";
+import { cn } from "../../../lib/utils";
 
 export default function DashboardProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -25,6 +29,7 @@ export default function DashboardProductsPage() {
     null,
   );
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "archived">("all");
   const [isLoading, setIsLoading] = useState(true);
   const [deleteNotice, setDeleteNotice] = useState("");
 
@@ -49,15 +54,30 @@ export default function DashboardProductsPage() {
     loadData();
   }, []);
 
+  // 1. Logika Pembatasan Etalase Publik vs Terarsip
+  const maxActiveQuota = subscription?.max_products ?? 3;
+  const isStarterPlan = subscription?.plan_id === "free_forever";
+
+  // Petakan status terarsip berdasarkan urutan asli produk di katalog vendor
+  const productStatusMap = new Map<number, boolean>();
+  products.forEach((p, idx) => {
+    const isArchived = isStarterPlan && idx >= maxActiveQuota;
+    productStatusMap.set(p.id, isArchived);
+  });
+
+  const archivedProductsCount = products.filter(
+    (p) => productStatusMap.get(p.id) === true
+  ).length;
+
+  const activeProductsCount = products.length - archivedProductsCount;
+
   const handleDelete = async (id: number, name: string) => {
     const isOverQuota = Boolean(
-      subscription &&
-        subscription.plan_id === "free_forever" &&
-        products.length >= subscription.max_products,
+      isStarterPlan && products.length >= maxActiveQuota,
     );
 
     const confirmMessage = isOverQuota
-      ? `⚠️ PERINGATAN KUOTA PRODUK:\n\nAkun toko Anda saat ini berada pada Paket Starter UMKM (kuota maksimal ${subscription?.max_products} produk) dengan total ${products.length} produk aktif.\n\nJika Anda menghapus produk "${name}", Anda TIDAK DAPAT menambahkan produk baru lagi karena total produk toko Anda masih mencapai atau melebihi kuota gratis, kecuali setelah Anda meng-upgrade paket langganan.\n\nApakah Anda yakin ingin tetap menghapus produk ini?`
+      ? `⚠️ PERINGATAN KUOTA PRODUK:\n\nAkun toko Anda saat ini berada pada Paket Starter UMKM (kuota maksimal ${maxActiveQuota} produk publik) dengan total ${products.length} produk tersimpan.\n\nJika Anda menghapus produk "${name}", Anda TIDAK DAPAT menambahkan produk baru lagi karena total produk toko Anda masih mencapai atau melebihi kuota gratis, kecuali setelah Anda meng-upgrade paket langganan.\n\nApakah Anda yakin ingin tetap menghapus produk ini?`
       : `Apakah Anda yakin ingin menghapus produk "${name}"?`;
 
     if (confirm(confirmMessage)) {
@@ -72,24 +92,33 @@ export default function DashboardProductsPage() {
     }
   };
 
-  const filteredProducts = products.filter(
-    (p) =>
+  // Filter pencarian dan tab status
+  const filteredProducts = products.filter((p) => {
+    const isArchived = productStatusMap.get(p.id) === true;
+    
+    // Filter tab
+    if (statusFilter === "active" && isArchived) return false;
+    if (statusFilter === "archived" && !isArchived) return false;
+
+    // Filter search keyword
+    const matchesSearch =
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.categories?.[0]?.name &&
-        p.categories[0].name.toLowerCase().includes(searchQuery.toLowerCase())),
-  );
+        p.categories[0].name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    return matchesSearch;
+  });
 
   return (
-    <div className="space-y-6 w-full min-w-0 overflow-hidden">
+    <div className={cn('space-y-6', 'w-full', 'min-w-0', 'overflow-hidden')}>
       {/* Header & Add Button */}
-      <header className="flex sm:flex-row flex-col justify-between sm:items-center gap-4">
+      <header className={cn('flex', 'sm:flex-row', 'flex-col', 'justify-between', 'sm:items-center', 'gap-4')}>
         <div>
-          <h2 className="font-slab font-bold text-slate-900 dark:text-white text-xl">
+          <h2 className={cn('font-slab', 'font-bold', 'text-slate-900', 'dark:text-white', 'text-xl')}>
             Katalog Produk Toko Anda
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 text-xs">
-            Daftar produk yang Anda daftarkan di marketplace lokal Mas Chan
-            Digital
+          <p className={cn('text-slate-500', 'dark:text-slate-400', 'text-xs')}>
+            Daftar produk yang Anda daftarkan di marketplace lokal Mas Chan Digital
           </p>
         </div>
 
@@ -97,9 +126,9 @@ export default function DashboardProductsPage() {
           <Button
             variant="primary"
             size="sm"
-            className="w-full sm:w-auto font-bold"
+            className={cn('w-full', 'sm:w-auto', 'font-bold')}
           >
-            <PlusCircle className="mr-1.5 w-4 h-4" aria-hidden="true" />
+            <PlusCircle className={cn('mr-1.5', 'w-4', 'h-4')} aria-hidden="true" />
             <span>Tambah Produk</span>
           </Button>
         </Link>
@@ -109,262 +138,369 @@ export default function DashboardProductsPage() {
       {deleteNotice && (
         <aside
           aria-live="polite"
-          className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/80 p-3.5 border border-emerald-200 dark:border-emerald-800 rounded-2xl text-emerald-800 dark:text-emerald-200 text-xs"
+          className={cn('flex', 'items-center', 'gap-2', 'bg-emerald-50', 'dark:bg-emerald-950/80', 'p-3.5', 'border', 'border-emerald-200', 'dark:border-emerald-800', 'rounded-2xl', 'text-emerald-800', 'dark:text-emerald-200', 'text-xs')}
         >
           <AlertCircle
-            className="w-4 h-4 text-emerald-500 shrink-0"
+            className={cn('w-4', 'h-4', 'text-emerald-500', 'shrink-0')}
             aria-hidden="true"
           />
           <span>{deleteNotice}</span>
         </aside>
       )}
 
-      {/* Search Input */}
+      {/* Banner Edukasi Produk Terarsip (Hanya muncul jika kuota Starter terlampaui) */}
+      {archivedProductsCount > 0 && (
+        <aside className={cn('flex', 'sm:flex-row', 'flex-col', 'justify-between', 'sm:items-center', 'gap-4', 'bg-amber-50/90', 'dark:bg-amber-950/40', 'shadow-2xs', 'p-4', 'sm:p-5', 'border', 'border-amber-200', 'dark:border-amber-800/70', 'rounded-2xl', 'animate-in', 'duration-200', 'fade-in')}>
+          <div className={cn('flex', 'items-start', 'gap-3', 'min-w-0')}>
+            <div className={cn('flex', 'justify-center', 'items-center', 'bg-amber-500/15', 'mt-0.5', 'rounded-xl', 'w-9', 'h-9', 'text-amber-700', 'dark:text-amber-400', 'shrink-0')}>
+              <Archive className={cn('w-5', 'h-5')} aria-hidden="true" />
+            </div>
+            <div className={cn('space-y-1', 'min-w-0')}>
+              <h3 className={cn('font-slab', 'font-bold', 'text-slate-900', 'dark:text-white', 'text-xs', 'sm:text-sm')}>
+                {archivedProductsCount} Produk Tersimpan dalam Status &ldquo;Terarsip&rdquo;
+              </h3>
+              <p className={cn('max-w-2xl', 'text-slate-600', 'dark:text-slate-300', 'text-xs', 'leading-relaxed')}>
+                Toko Anda saat ini berada di <strong>Paket Starter UMKM</strong> (maksimal {maxActiveQuota} produk publik). 
+                Data produk Anda <strong>100% aman dan tidak dihapus</strong>, namun produk ke-{maxActiveQuota + 1} dst. sementara tersembunyi dari etalase publik.
+              </p>
+            </div>
+          </div>
+
+          <Link href="/dashboard/billing" className="shrink-0">
+            <Button
+              variant="primary"
+              size="sm"
+              className={cn('bg-[#093c96]', 'hover:bg-blue-800', 'shadow-sm', 'w-full', 'sm:w-auto', 'font-bold', 'text-xs')}
+            >
+              <Sparkles className={cn('mr-1.5', 'w-3.5', 'h-3.5')} />
+              <span>Aktifkan Semua Produk</span>
+            </Button>
+          </Link>
+        </aside>
+      )}
+
+      {/* Kontrol Bar: Pencarian & Tab Filter Status */}
       {products.length > 0 && (
-        <div className="relative w-full">
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari nama produk atau kategori toko Anda..."
-            className="bg-white dark:bg-surface-darkCard shadow-subtle py-2.5 pr-4 pl-10 border border-slate-200/80 focus:border-brand-500 dark:border-slate-800 rounded-2xl outline-none w-full text-slate-800 dark:text-slate-100 text-sm placeholder-slate-400"
-          />
-          <Search
-            className="top-1/2 left-3.5 absolute w-4 h-4 text-slate-400 -translate-y-1/2"
-            aria-hidden="true"
-          />
+        <div className="space-y-3">
+          <div className={cn('flex', 'sm:flex-row', 'flex-col', 'justify-between', 'sm:items-center', 'gap-3')}>
+            {/* Tab Filter Status */}
+            <div className={cn('flex', 'items-center', 'gap-1.5', 'bg-slate-100', 'dark:bg-slate-800/80', 'p-1', 'rounded-xl', 'w-fit')}>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("all")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  statusFilter === "all"
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                Semua ({products.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("active")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+                  statusFilter === "active"
+                    ? "bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-2xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                <CheckCircle2 className={cn('w-3', 'h-3', 'text-emerald-500')} />
+                <span>Tayang ({activeProductsCount})</span>
+              </button>
+              {archivedProductsCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("archived")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+                    statusFilter === "archived"
+                      ? "bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-400 shadow-2xs"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                  }`}
+                >
+                  <Archive className={cn('w-3', 'h-3', 'text-amber-500')} />
+                  <span>Terarsip ({archivedProductsCount})</span>
+                </button>
+              )}
+            </div>
+
+            {/* Input Pencarian */}
+            <div className={cn('relative', 'w-full', 'sm:w-72')}>
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari produk atau kategori..."
+                className={cn('bg-white', 'dark:bg-surface-darkCard', 'shadow-subtle', 'py-2', 'pr-4', 'pl-9', 'border', 'border-slate-200/80', 'focus:border-brand-500', 'dark:border-slate-800', 'rounded-xl', 'outline-none', 'w-full', 'text-slate-800', 'dark:text-slate-100', 'text-xs', 'placeholder-slate-400')}
+              />
+              <Search
+                className={cn('top-1/2', 'left-3', 'absolute', 'w-3.5', 'h-3.5', 'text-slate-400', '-translate-y-1/2')}
+                aria-hidden="true"
+              />
+            </div>
+          </div>
         </div>
       )}
 
       {/* Container Utama Produk */}
-      <div className="bg-white dark:bg-surface-darkCard shadow-subtle border border-slate-200/80 dark:border-slate-800 rounded-3xl w-full min-w-0 overflow-hidden">
+      <div className={cn('bg-white', 'dark:bg-surface-darkCard', 'shadow-subtle', 'border', 'border-slate-200/80', 'dark:border-slate-800', 'rounded-3xl', 'w-full', 'min-w-0', 'overflow-hidden')}>
         {isLoading ? (
-          <div className="flex flex-col justify-center items-center gap-2 p-12 text-slate-500 text-center">
-            <Loader2 className="w-6 h-6 text-brand-700 dark:text-brand-400 animate-spin" />
-            <span className="font-semibold text-xs">
+          <div className={cn('flex', 'flex-col', 'justify-center', 'items-center', 'gap-2', 'p-12', 'text-slate-500', 'text-center')}>
+            <Loader2 className={cn('w-6', 'h-6', 'text-brand-700', 'dark:text-brand-400', 'animate-spin')} />
+            <span className={cn('font-semibold', 'text-xs')}>
               Memuat produk toko Anda...
             </span>
           </div>
         ) : filteredProducts.length > 0 ? (
           <>
             {/* 1. TAMPILAN MOBILE: KARTU PRODUK (Khusus Layar HP / sm:hidden) */}
-            <div className="sm:hidden block divide-y divide-slate-100 dark:divide-slate-800 w-full">
-              {filteredProducts.map((product) => (
-                <article
-                  key={`mobile-prod-${product.id}`}
-                  className="space-y-3 p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <img
-                      src={
-                        product.images?.[0]?.src ||
-                        "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100&auto=format&fit=crop&q=80"
-                      }
-                      alt={product.name}
-                      className="bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-2xl w-14 h-14 object-cover shrink-0"
-                    />
-                    <div className="flex-1 space-y-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <Badge
-                          variant="neutral"
-                          className="px-2 py-0 text-[10px]"
-                        >
-                          {product.categories?.[0]?.name || "Umum"}
-                        </Badge>
-                        {product.type === "affiliate" ? (
+            <div className={cn('sm:hidden', 'block', 'divide-y', 'divide-slate-100', 'dark:divide-slate-800', 'w-full')}>
+              {filteredProducts.map((product) => {
+                const isArchived = productStatusMap.get(product.id) === true;
+
+                return (
+                  <article
+                    key={`mobile-prod-${product.id}`}
+                    className={`space-y-3 p-4 transition-colors ${
+                      isArchived
+                        ? "bg-slate-50/60 dark:bg-slate-900/30"
+                        : "bg-white dark:bg-slate-900/10"
+                    }`}
+                  >
+                    <div className={cn('flex', 'items-start', 'gap-3')}>
+                      <img
+                        src={
+                          product.images?.[0]?.src ||
+                          "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100&auto=format&fit=crop&q=80"
+                        }
+                        alt={product.name}
+                        className={cn('bg-slate-50', 'border', 'border-slate-200', 'dark:border-slate-800', 'rounded-2xl', 'w-14', 'h-14', 'object-cover', 'shrink-0')}
+                      />
+                      <div className={cn('flex-1', 'space-y-1', 'min-w-0')}>
+                        <div className={cn('flex', 'flex-wrap', 'items-center', 'gap-1.5')}>
+                          {/* Lencana Status Etalase */}
+                          {isArchived ? (
+                            <span className={cn('inline-flex', 'items-center', 'gap-1', 'bg-amber-50', 'dark:bg-amber-950/50', 'px-2', 'py-0.5', 'border', 'border-amber-200', 'dark:border-amber-800', 'rounded-md', 'font-bold', 'text-[10px]', 'text-amber-700', 'dark:text-amber-400')}>
+                              <Archive className={cn('w-3', 'h-3')} />
+                              <span>Terarsip</span>
+                            </span>
+                          ) : (
+                            <span className={cn('inline-flex', 'items-center', 'gap-1', 'bg-emerald-50', 'dark:bg-emerald-950/50', 'px-2', 'py-0.5', 'border', 'border-emerald-200', 'dark:border-emerald-800', 'rounded-md', 'font-bold', 'text-[10px]', 'text-emerald-700', 'dark:text-emerald-400')}>
+                              <CheckCircle2 className={cn('w-3', 'h-3')} />
+                              <span>Tayang Publik</span>
+                            </span>
+                          )}
+
                           <Badge
-                            variant="primary"
-                            className="px-2 py-0 text-[10px]"
+                            variant="neutral"
+                            className={cn('px-2', 'py-0', 'text-[10px]')}
                           >
-                            Affiliate
+                            {product.categories?.[0]?.name || "Umum"}
                           </Badge>
-                        ) : (
-                          <Badge
-                            variant="success"
-                            className="px-2 py-0 text-[10px]"
-                          >
-                            WhatsApp
-                          </Badge>
-                        )}
+                        </div>
+                        <h3 className={cn('font-bold', 'text-slate-900', 'dark:text-white', 'text-sm', 'line-clamp-2', 'leading-snug')}>
+                          {product.name}
+                        </h3>
+                        <p className={cn('font-slab', 'font-black', 'text-brand-900', 'dark:text-brand-400', 'text-sm')}>
+                          {formatRupiah(product.regular_price || product.price)}
+                        </p>
                       </div>
-                      <h3 className="font-bold text-slate-900 dark:text-white text-sm line-clamp-2 leading-snug">
-                        {product.name}
-                      </h3>
-                      <p className="font-slab font-black text-brand-900 dark:text-brand-400 text-sm">
-                        {formatRupiah(product.regular_price || product.price)}
-                      </p>
                     </div>
-                  </div>
 
-                  {/* Tombol Aksi Mobile */}
-                  <div className="flex justify-end items-center gap-2 pt-2 border-slate-100 dark:border-slate-800 border-t">
-                    <Link
-                      href={`/products/${product.slug}`}
-                      target="_blank"
-                      className="flex-1"
-                    >
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="py-2 w-full font-semibold text-xs"
+                    {/* Tombol Aksi Mobile */}
+                    <div className={cn('flex', 'justify-end', 'items-center', 'gap-2', 'pt-2', 'border-slate-100', 'dark:border-slate-800', 'border-t')}>
+                      <Link
+                        href={`/products/${product.slug}`}
+                        target="_blank"
+                        className="flex-1"
                       >
-                        <Eye className="mr-1 w-3.5 h-3.5" />
-                        <span>Lihat</span>
-                      </Button>
-                    </Link>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={cn('py-2', 'w-full', 'font-semibold', 'text-xs')}
+                        >
+                          <Eye className={cn('mr-1', 'w-3.5', 'h-3.5')} />
+                          <span>{isArchived ? "Pratinjau" : "Lihat"}</span>
+                        </Button>
+                      </Link>
 
-                    <Link
-                      href={`/dashboard/products/${product.id}`}
-                      className="flex-1"
-                    >
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        className="py-2 w-full font-semibold text-xs"
+                      <Link
+                        href={`/dashboard/products/${product.id}`}
+                        className="flex-1"
                       >
-                        <Edit3 className="mr-1 w-3.5 h-3.5" />
-                        <span>Edit</span>
-                      </Button>
-                    </Link>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className={cn('py-2', 'w-full', 'font-semibold', 'text-xs')}
+                        >
+                          <Edit3 className={cn('mr-1', 'w-3.5', 'h-3.5')} />
+                          <span>Edit</span>
+                        </Button>
+                      </Link>
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(product.id, product.name)}
-                      className="hover:bg-rose-50 dark:hover:bg-rose-950/50 p-2 w-9 h-9 text-rose-600 shrink-0"
-                      title="Hapus Produk"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      <span className="sr-only">Hapus</span>
-                    </Button>
-                  </div>
-                </article>
-              ))}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(product.id, product.name)}
+                        className={cn('hover:bg-rose-50', 'dark:hover:bg-rose-950/50', 'p-2', 'w-9', 'h-9', 'text-rose-600', 'shrink-0')}
+                        title="Hapus Produk"
+                      >
+                        <Trash2 className={cn('w-4', 'h-4')} />
+                        <span className="sr-only">Hapus</span>
+                      </Button>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
 
             {/* 2. TAMPILAN TABLE: DESKTOP & TABLET (Khusus Layar Lebar / hidden sm:block) */}
-            <div className="hidden sm:block w-full overflow-x-auto">
-              <table className="w-full min-w-[650px] text-left border-collapse">
+            <div className={cn('hidden', 'sm:block', 'w-full', 'overflow-x-auto')}>
+              <table className={cn('w-full', 'min-w-[700px]', 'text-left', 'border-collapse')}>
                 <thead>
-                  <tr className="bg-slate-50/50 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800 border-b font-bold text-[11px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    <th className="px-4 sm:px-6 py-3.5">Produk</th>
-                    <th className="px-4 py-3.5">Kategori</th>
-                    <th className="px-4 py-3.5">Harga Normal</th>
-                    <th className="px-4 py-3.5">Tipe Transaksi</th>
-                    <th className="px-4 py-3.5 text-right">Aksi</th>
+                  <tr className={cn('bg-slate-50/50', 'dark:bg-slate-900/40', 'border-slate-100', 'dark:border-slate-800', 'border-b', 'font-bold', 'text-[11px]', 'text-slate-500', 'dark:text-slate-400', 'uppercase', 'tracking-wider')}>
+                    <th className={cn('px-4', 'sm:px-6', 'py-3.5')}>Produk</th>
+                    <th className={cn('px-4', 'py-3.5')}>Status Etalase</th>
+                    <th className={cn('px-4', 'py-3.5')}>Kategori</th>
+                    <th className={cn('px-4', 'py-3.5')}>Harga Normal</th>
+                    <th className={cn('px-4', 'py-3.5')}>Tipe Transaksi</th>
+                    <th className={cn('px-4', 'py-3.5', 'text-right')}>Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs sm:text-sm">
-                  {filteredProducts.map((product) => (
-                    <tr
-                      key={`desktop-prod-${product.id}`}
-                      className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors"
-                    >
-                      <td className="px-4 sm:px-6 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={
-                              product.images?.[0]?.src ||
-                              "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100&auto=format&fit=crop&q=80"
-                            }
-                            alt={product.name}
-                            className="bg-slate-50 border border-slate-200 dark:border-slate-800 rounded-xl w-10 h-10 object-cover shrink-0"
-                          />
-                          <div className="min-w-0">
-                            <span className="font-bold text-slate-900 dark:text-white line-clamp-1">
-                              {product.name}
-                            </span>
-                            <span className="text-[11px] text-slate-400">
-                              SEO Focus: {product.seo?.focus_keyword || "-"}
-                            </span>
+                <tbody className={cn('divide-y', 'divide-slate-100', 'dark:divide-slate-800', 'text-xs', 'sm:text-sm')}>
+                  {filteredProducts.map((product) => {
+                    const isArchived = productStatusMap.get(product.id) === true;
+
+                    return (
+                      <tr
+                        key={`desktop-prod-${product.id}`}
+                        className={`transition-colors ${
+                          isArchived
+                            ? "bg-slate-50/40 dark:bg-slate-900/30 hover:bg-slate-100/50 dark:hover:bg-slate-800/40"
+                            : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
+                        }`}
+                      >
+                        <td className={cn('px-4', 'sm:px-6', 'py-3.5')}>
+                          <div className={cn('flex', 'items-center', 'gap-3')}>
+                            <img
+                              src={
+                                product.images?.[0]?.src ||
+                                "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100&auto=format&fit=crop&q=80"
+                              }
+                              alt={product.name}
+                              className={cn('bg-slate-50', 'border', 'border-slate-200', 'dark:border-slate-800', 'rounded-xl', 'w-10', 'h-10', 'object-cover', 'shrink-0')}
+                            />
+                            <div className="min-w-0">
+                              <span className={cn('font-bold', 'text-slate-900', 'dark:text-white', 'line-clamp-1')}>
+                                {product.name}
+                              </span>
+                              <span className={cn('text-[11px]', 'text-slate-400')}>
+                                SEO Focus: {product.seo?.focus_keyword || "-"}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="px-4 py-3.5">
-                        <Badge variant="neutral" className="text-xs">
-                          {product.categories?.[0]?.name || "Umum"}
-                        </Badge>
-                      </td>
+                        {/* Kolom Status Etalase */}
+                        <td className={cn('px-4', 'py-3.5')}>
+                          {isArchived ? (
+                            <span className={cn('inline-flex', 'items-center', 'gap-1.5', 'bg-amber-50', 'dark:bg-amber-950/50', 'px-2.5', 'py-1', 'border', 'border-amber-200', 'dark:border-amber-800', 'rounded-lg', 'font-bold', 'text-[11px]', 'text-amber-700', 'dark:text-amber-400')}>
+                              <Archive className={cn('w-3.5', 'h-3.5')} />
+                              <span>Terarsip</span>
+                            </span>
+                          ) : (
+                            <span className={cn('inline-flex', 'items-center', 'gap-1.5', 'bg-emerald-50', 'dark:bg-emerald-950/50', 'px-2.5', 'py-1', 'border', 'border-emerald-200', 'dark:border-emerald-800', 'rounded-lg', 'font-bold', 'text-[11px]', 'text-emerald-700', 'dark:text-emerald-400')}>
+                              <CheckCircle2 className={cn('w-3.5', 'h-3.5', 'text-emerald-500')} />
+                              <span>Tayang Publik</span>
+                            </span>
+                          )}
+                        </td>
 
-                      <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-200">
-                        {formatRupiah(product.regular_price || product.price)}
-                      </td>
-
-                      <td className="px-4 py-3.5">
-                        {product.type === "affiliate" ? (
-                          <Badge variant="primary" className="text-[11px]">
-                            Affiliate Link
+                        <td className={cn('px-4', 'py-3.5')}>
+                          <Badge variant="neutral" className="text-xs">
+                            {product.categories?.[0]?.name || "Umum"}
                           </Badge>
-                        ) : (
-                          <Badge variant="success" className="text-[11px]">
-                            WhatsApp
-                          </Badge>
-                        )}
-                      </td>
+                        </td>
 
-                      <td className="px-4 py-3.5 text-right">
-                        <div className="flex justify-end items-center gap-1.5">
-                          <Link
-                            href={`/products/${product.slug}`}
-                            target="_blank"
-                            title="Lihat Halaman Publik"
-                          >
+                        <td className={cn('px-4', 'py-3.5', 'font-bold', 'text-slate-800', 'dark:text-slate-200')}>
+                          {formatRupiah(product.regular_price || product.price)}
+                        </td>
+
+                        <td className={cn('px-4', 'py-3.5')}>
+                          {product.type === "affiliate" ? (
+                            <Badge variant="primary" className="text-[11px]">
+                              Affiliate Link
+                            </Badge>
+                          ) : (
+                            <Badge variant="success" className="text-[11px]">
+                              WhatsApp
+                            </Badge>
+                          )}
+                        </td>
+
+                        <td className={cn('px-4', 'py-3.5', 'text-right')}>
+                          <div className={cn('flex', 'justify-end', 'items-center', 'gap-1.5')}>
+                            <Link
+                              href={`/products/${product.slug}`}
+                              target="_blank"
+                              title={isArchived ? "Pratinjau Produk Terarsip" : "Lihat Halaman Publik"}
+                            >
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className={cn('p-2', 'w-8', 'h-8', 'text-slate-500', 'hover:text-slate-800')}
+                              >
+                                <Eye
+                                  className={cn('w-4', 'h-4')}
+                                  aria-hidden="true"
+                                />
+                                <span className="sr-only">Lihat Produk</span>
+                              </Button>
+                            </Link>
+
+                            <Link
+                              href={`/dashboard/products/${product.id}`}
+                              title="Edit Produk"
+                            >
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className={cn('p-2', 'w-8', 'h-8', 'text-brand-700', 'dark:text-brand-400')}
+                              >
+                                <Edit3 className={cn('w-4', 'h-4')} aria-hidden="true" />
+                                <span className="sr-only">Edit Produk</span>
+                              </Button>
+                            </Link>
+
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="p-2 w-8 h-8"
+                              onClick={() =>
+                                handleDelete(product.id, product.name)
+                              }
+                              className={cn('hover:bg-rose-50', 'dark:hover:bg-rose-950/50', 'p-2', 'w-8', 'h-8', 'text-rose-600')}
+                              title="Hapus Produk"
                             >
-                              <Eye
-                                className="w-4 h-4 text-slate-500"
-                                aria-hidden="true"
-                              />
-                              <span className="sr-only">Lihat Produk</span>
+                              <Trash2 className={cn('w-4', 'h-4')} aria-hidden="true" />
+                              <span className="sr-only">Hapus Produk</span>
                             </Button>
-                          </Link>
-
-                          <Link
-                            href={`/dashboard/products/${product.id}`}
-                            title="Edit Produk"
-                          >
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="p-2 w-8 h-8 text-brand-700 dark:text-brand-400"
-                            >
-                              <Edit3 className="w-4 h-4" aria-hidden="true" />
-                              <span className="sr-only">Edit Produk</span>
-                            </Button>
-                          </Link>
-
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              handleDelete(product.id, product.name)
-                            }
-                            className="hover:bg-rose-50 dark:hover:bg-rose-950/50 p-2 w-8 h-8 text-rose-600"
-                            title="Hapus Produk"
-                          >
-                            <Trash2 className="w-4 h-4" aria-hidden="true" />
-                            <span className="sr-only">Hapus Produk</span>
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           </>
         ) : (
           /* Tampilan Toko Kosong */
-          <div className="space-y-3 px-4 py-14 text-slate-400 text-center">
-            <Package className="mx-auto w-10 h-10 text-slate-300 dark:text-slate-600" />
-            <p className="font-slab font-bold text-slate-700 dark:text-slate-300 text-sm">
+          <div className={cn('space-y-3', 'px-4', 'py-14', 'text-slate-400', 'text-center')}>
+            <Package className={cn('mx-auto', 'w-10', 'h-10', 'text-slate-300', 'dark:text-slate-600')} />
+            <p className={cn('font-slab', 'font-bold', 'text-slate-700', 'dark:text-slate-300', 'text-sm')}>
               Belum Ada Produk di Toko Anda
             </p>
-            <p className="mx-auto max-w-sm text-slate-400 text-xs">
+            <p className={cn('mx-auto', 'max-w-sm', 'text-slate-400', 'text-xs')}>
               Mulai tambahkan produk pertama Anda agar pembeli di Kota Serang
               dapat melihat dan memesan via WhatsApp.
             </p>
@@ -373,9 +509,9 @@ export default function DashboardProductsPage() {
                 <Button
                   variant="primary"
                   size="sm"
-                  className="font-bold text-xs"
+                  className={cn('font-bold', 'text-xs')}
                 >
-                  <PlusCircle className="mr-1.5 w-3.5 h-3.5" />
+                  <PlusCircle className={cn('mr-1.5', 'w-3.5', 'h-3.5')} />
                   <span>Tambah Produk Sekarang</span>
                 </Button>
               </Link>
