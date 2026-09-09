@@ -1177,12 +1177,12 @@ export async function getAdminReviews(
 }
 
 /**
- * Melakukan aksi moderasi ulasan (approve atau reject)
+ * Melakukan aksi moderasi ulasan (approve, reject, atau delete)
  */
 export async function performReviewAction(
   token: string,
   reviewId: number,
-  action: "approve" | "reject",
+  action: "approve" | "reject" | "delete",
   reason?: string,
 ): Promise<{ success: boolean; message: string }> {
   if (!token || !reviewId) {

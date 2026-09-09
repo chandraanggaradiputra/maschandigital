@@ -1,253 +1,182 @@
-### 🎯 Instruksi Lengkap Antigravity: Auto-Format Paragraf WYSIWYG, Editor Rich Text di ProductForm, & Sticky Galeri Desktop
+### 🎯 Instruksi Lengkap Antigravity: Penambahan Fitur Hapus Testimoni Permanen Khusus Super Admin (/admin/moderasi)
 
-Terapkan SOP Kerja Penuh: Isolasi Git Branch -> Buat Komponen WysiwygEditor -> Pasang di ProductForm -> Perbaiki Render Deskripsi & Buat Sticky Galeri di Single Product Page -> Evaluasi Mandiri (tsc, lint, build) -> Merge ke Main -> Push ke GitHub -> Tulis Laporan ke AGENTS.OUTPUT.md & Output Wajib Git Diff.
+Terapkan SOP Kerja Penuh: Isolasi Git Branch -> Tambahkan Aksi 'delete' di Backend & API Client -> Tambahkan Tombol Hapus & Modal Konfirmasi di Halaman Moderasi -> Evaluasi Mandiri (tsc, lint, build) -> Merge ke Main -> Push ke GitHub -> Tulis Laporan ke AGENTS.OUTPUT.md & Output Wajib Git Diff.
 
 ---
 
 #### 1. Alur Git Awal (Branching)
 Jalankan di terminal PC lokal:
 1. `git checkout main && git pull origin main`
-2. `git checkout -b feature/wysiwyg-editor-and-sticky-gallery`
+2. `git checkout -b feature/super-admin-delete-testimonial`
 
 ---
 
 #### 2. Spesifikasi Berkas Target & Kode Implementasi
 
-##### A. Buat Komponen Baru: `components/forms/WysiwygEditor.tsx`
-Buat berkas baru `components/forms/WysiwygEditor.tsx` (React 19 / TypeScript 7 murni tanpa ketergantungan library luar) untuk memberikan bilah alat formatting yang aman dan mudah bagi vendor:
+##### A. Backend WordPress (`maschan-headless.php`)
+Pada endpoint penanganan aksi moderasi ulasan `POST /wp-json/maschan/v1/admin/reviews/<id>/action`:
+Tambahkan penanganan untuk `action === 'delete'` menggunakan fungsi bawaan WordPress `wp_delete_comment`:
 
-```tsx
-"use client";
-
-import React, { useRef, useEffect } from "react";
-import {
-  Bold,
-  Italic,
-  Heading2,
-  Heading3,
-  List,
-  ListOrdered,
-  Quote,
-  Undo,
-  Redo,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-
-interface WysiwygEditorProps {
-  value: string;
-  onChange: (html: string) => void;
-  placeholder?: string;
-  className?: string;
+```php
+// Penanganan Aksi Hapus Permanen Khusus Super Admin
+if ($action === 'delete') {
+    $deleted = wp_delete_comment($review_id, true); // true = force delete permanen dari database
+    if ($deleted) {
+        return rest_ensure_response([
+            'success' => true,
+            'message' => 'Testimoni telah berhasil dihapus secara permanen dari database.'
+        ]);
+    } else {
+        return new WP_Error('delete_failed', 'Gagal menghapus testimoni dari database.', ['status' => 500]);
+    }
 }
 
-export function WysiwygEditor({
-  value,
-  onChange,
-  placeholder = "Tuliskan rincian deskripsi lengkap produk Anda di sini...",
-  className,
-}: WysiwygEditorProps) {
-  const editorRef = useRef<HTMLDivElement>(null);
+B. Perbarui API Client Frontend (lib/api/wordpress.ts)
+Buka lib/api/wordpress.ts, temukan fungsi performReviewAction:
+Perluas tipe parameter action agar menerima 'delete':
 
-  // Inisialisasi konten awal
-  useEffect(() => {
-    if (editorRef.current && editorRef.current.innerHTML !== value) {
-      editorRef.current.innerHTML = value || "";
+export async function performReviewAction(
+  token: string,
+  id: number,
+  action: "approve" | "reject" | "delete",
+  reason?: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const res = await fetch(
+      `${WORDPRESS_URL}/wp-json/maschan/v1/admin/reviews/${id}/action`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
+        },
+        body: JSON.stringify({ action, reason }),
+      }
+    );
+    const data = await res.json();
+    return {
+      success: data.success ?? false,
+      message: data.message || "Aksi berhasil diproses.",
+    };
+  } catch (err: unknown) {
+    const msg =
+      err instanceof Error ? err.message : "Terjadi kesalahan jaringan.";
+    return { success: false, message: msg };
+  }
+}
+
+C. Perbarui Halaman Moderasi Super Admin (app/admin/moderasi/page.tsx)
+Buka app/admin/moderasi/page.tsx:
+
+Impor Ikon Trash2 dari lucide-react:
+
+import { Trash2 } from "lucide-react";
+
+Tambahkan State & Handler Hapus Testimoni:
+
+const [deletingReview, setDeletingReview] = useState<AdminReviewItem | null>(null);
+const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+const handleConfirmDelete = async () => {
+  if (!deletingReview || !token) return;
+
+  setIsDeleting(true);
+  try {
+    const res = await performReviewAction(token, deletingReview.id, "delete");
+    if (res.success) {
+      showToast(
+        "success",
+        `Testimoni dari "${deletingReview.author_name}" berhasil dihapus permanen.`
+      );
+
+      // Pembaruan Optimistik
+      setReviews((prev) => prev.filter((r) => r.id !== deletingReview.id));
+      if (deletingReview.status === "pending") {
+        setPendingCount((prev) => Math.max(0, prev - 1));
+      }
+      setDeletingReview(null);
+    } else {
+      showToast("error", res.message || "Gagal menghapus testimoni.");
     }
-  }, [value]);
+  } catch {
+    showToast("error", "Terjadi kesalahan jaringan saat menghapus ulasan.");
+  } finally {
+    setIsDeleting(false);
+  }
+};
 
-  const executeCommand = (command: string, valueArgument: string = "") => {
-    document.execCommand(command, false, valueArgument);
-    if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
-    }
-  };
+3. Tambahkan Tombol Hapus pada Kartu Ulasan:
+Pada blok tombol aksi di setiap kartu ulasan (tersedia di tab pending maupun tab approved):
+Sematkan tombol [🗑️ Hapus] berwarna merah:
 
-  const handleInput = () => {
-    if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
-    }
-  };
+<button
+  type="button"
+  onClick={() => setDeletingReview(review)}
+  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl border border-rose-200 dark:border-rose-900/50 transition-colors shrink-0"
+  title="Hapus testimoni ini secara permanen"
+>
+  <Trash2 className="w-4 h-4" />
+  <span className="hidden sm:inline">Hapus</span>
+</button>
 
-  return (
+4. Sematkan Modal Dialog Konfirmasi Keamanan Penghapusan:
+Di bagian bawah halaman (sebelum penutup </main>):
+
+{/* Modal Konfirmasi Hapus Permanen */}
+{deletingReview && (
+  <div
+    role="dialog"
+    aria-modal="true"
+    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+  >
     <div
-      className={cn(
-        "rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 overflow-hidden shadow-2xs focus-within:ring-2 focus-within:ring-[#093c96] focus-within:border-transparent transition-all",
-        className
-      )}
+      className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4 animate-in zoom-in-95 duration-200"
+      onClick={(e) => e.stopPropagation()}
     >
-      {/* Toolbar WYSIWYG */}
-      <div className={cn('flex', 'flex-wrap', 'items-center', 'gap-1', 'p-2', 'bg-slate-50', 'dark:bg-slate-900/60', 'border-b', 'border-slate-200', 'dark:border-slate-700/80')}>
-        <button
-          type="button"
-          onClick={() => executeCommand("bold")}
-          title="Tebal (Ctrl+B)"
-          className={cn('p-1.5', 'rounded-lg', 'text-slate-700', 'dark:text-slate-300', 'hover:bg-slate-200', 'dark:hover:bg-slate-700', 'transition-colors')}
-        >
-          <Bold className={cn('w-4', 'h-4')} />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => executeCommand("italic")}
-          title="Miring (Ctrl+I)"
-          className={cn('p-1.5', 'rounded-lg', 'text-slate-700', 'dark:text-slate-300', 'hover:bg-slate-200', 'dark:hover:bg-slate-700', 'transition-colors')}
-        >
-          <Italic className={cn('w-4', 'h-4')} />
-        </button>
-
-        <div className={cn('h-4', 'w-px', 'bg-slate-300', 'dark:bg-slate-700', 'mx-1')} />
-
-        <button
-          type="button"
-          onClick={() => executeCommand("formatBlock", "<h2>")}
-          title="Judul Bagian (H2)"
-          className={cn('px-2', 'py-1', 'rounded-lg', 'text-xs', 'font-bold', 'text-slate-700', 'dark:text-slate-300', 'hover:bg-slate-200', 'dark:hover:bg-slate-700', 'transition-colors', 'flex', 'items-center', 'gap-0.5')}
-        >
-          <Heading2 className={cn('w-4', 'h-4')} />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => executeCommand("formatBlock", "<h3>")}
-          title="Sub-judul (H3)"
-          className={cn('px-2', 'py-1', 'rounded-lg', 'text-xs', 'font-bold', 'text-slate-700', 'dark:text-slate-300', 'hover:bg-slate-200', 'dark:hover:bg-slate-700', 'transition-colors', 'flex', 'items-center', 'gap-0.5')}
-        >
-          <Heading3 className={cn('w-4', 'h-4')} />
-        </button>
-
-        <div className={cn('h-4', 'w-px', 'bg-slate-300', 'dark:bg-slate-700', 'mx-1')} />
-
-        <button
-          type="button"
-          onClick={() => executeCommand("insertUnorderedList")}
-          title="Daftar Poin (Bullets)"
-          className={cn('p-1.5', 'rounded-lg', 'text-slate-700', 'dark:text-slate-300', 'hover:bg-slate-200', 'dark:hover:bg-slate-700', 'transition-colors')}
-        >
-          <List className={cn('w-4', 'h-4')} />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => executeCommand("insertOrderedList")}
-          title="Daftar Nomor"
-          className={cn('p-1.5', 'rounded-lg', 'text-slate-700', 'dark:text-slate-300', 'hover:bg-slate-200', 'dark:hover:bg-slate-700', 'transition-colors')}
-        >
-          <ListOrdered className={cn('w-4', 'h-4')} />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => executeCommand("formatBlock", "<blockquote>")}
-          title="Kutipan (Quote)"
-          className={cn('p-1.5', 'rounded-lg', 'text-slate-700', 'dark:text-slate-300', 'hover:bg-slate-200', 'dark:hover:bg-slate-700', 'transition-colors')}
-        >
-          <Quote className={cn('w-4', 'h-4')} />
-        </button>
-
-        <div className={cn('h-4', 'w-px', 'bg-slate-300', 'dark:bg-slate-700', 'mx-1')} />
-
-        <button
-          type="button"
-          onClick={() => executeCommand("undo")}
-          title="Urungkan (Ctrl+Z)"
-          className={cn('p-1.5', 'rounded-lg', 'text-slate-700', 'dark:text-slate-300', 'hover:bg-slate-200', 'dark:hover:bg-slate-700', 'transition-colors')}
-        >
-          <Undo className={cn('w-3.5', 'h-3.5')} />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => executeCommand("redo")}
-          title="Ulangi (Ctrl+Y)"
-          className={cn('p-1.5', 'rounded-lg', 'text-slate-700', 'dark:text-slate-300', 'hover:bg-slate-200', 'dark:hover:bg-slate-700', 'transition-colors')}
-        >
-          <Redo className={cn('w-3.5', 'h-3.5')} />
-        </button>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+          <Trash2 className="w-5 h-5" />
+        </div>
+        <div>
+          <h4 className="font-slab font-bold text-base text-slate-900 dark:text-white">
+            Hapus Testimoni?
+          </h4>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Tindakan ini permanen dan tidak dapat dibatalkan.
+          </p>
+        </div>
       </div>
 
-      {/* Area Edit ContentEditable */}
-      <div
-        ref={editorRef}
-        contentEditable
-        onInput={handleInput}
-        onBlur={handleInput}
-        data-placeholder={placeholder}
-        className={cn('p-4', 'min-h-[180px]', 'max-h-[400px]', 'overflow-y-auto', 'focus:outline-none', 'text-xs', 'sm:text-sm', 'text-slate-900', 'dark:text-white', 'leading-relaxed', '[&_p]:mb-3', '[&_p]:leading-relaxed', '[&_ul]:list-disc', '[&_ul]:pl-5', '[&_ul]:mb-3', '[&_ul]:space-y-1', '[&_ol]:list-decimal', '[&_ol]:pl-5', '[&_ol]:mb-3', '[&_ol]:space-y-1', '[&_h2]:text-base', '[&_h2]:font-bold', '[&_h2]:mb-2', '[&_h2]:text-slate-900', 'dark:[&_h2]:text-white', '[&_h3]:text-sm', '[&_h3]:font-bold', '[&_h3]:mb-1.5', '[&_h3]:text-slate-800', 'dark:[&_h3]:text-slate-200', '[&_blockquote]:border-l-4', '[&_blockquote]:border-[#093c96]', '[&_blockquote]:pl-3', '[&_blockquote]:italic', '[&_blockquote]:my-2', 'empty:before:content-[attr(data-placeholder)]', 'empty:before:text-slate-400', 'empty:before:pointer-events-none')}
-      />
+      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+        Ulasan dari <strong>{deletingReview.author_name}</strong> untuk produk <em>&ldquo;{deletingReview.product_name}&rdquo;</em> akan dihapus sepenuhnya dari database.
+      </p>
+
+      <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <button
+          type="button"
+          onClick={() => setDeletingReview(null)}
+          disabled={isDeleting}
+          className="px-3.5 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+        >
+          Batal
+        </button>
+        <button
+          type="button"
+          onClick={handleConfirmDelete}
+          disabled={isDeleting}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl shadow-sm disabled:opacity-50 transition-all"
+        >
+          {isDeleting ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span>Menghapus...</span>
+            </>
+          ) : (
+            <span>Ya, Hapus Permanen</span>
+          )}
+        </button>
+      </div>
     </div>
-  );
-}
-
-B. Pasang WysiwygEditor pada components/forms/ProductForm.tsx
-Buka components/forms/ProductForm.tsx:
-
-1. Impor komponen baru:
-
-import { WysiwygEditor } from "@/components/forms/WysiwygEditor";
-
-2. Temukan bagian input deskripsi produk (yang sebelumnya menggunakan <textarea id="description" ...>):
-
-3. Ganti elemen <textarea> tersebut dengan:
-
-<div className="space-y-1.5">
-  <label htmlFor="description" className={cn('block', 'text-xs', 'sm:text-sm', 'font-semibold', 'text-slate-800', 'dark:text-slate-200')}>
-    Deskripsi Lengkap Produk <span className="text-rose-500">*</span>
-  </label>
-  <p className={cn('text-[11px]', 'text-slate-500', 'dark:text-slate-400', 'mb-1.5')}>
-    Gunakan format tebal, poin-poin (bullets), dan paragraf untuk memudahkan pembeli memahami produk Anda.
-  </p>
-  <WysiwygEditor
-    value={description}
-    onChange={(html) => setDescription(html)}
-    placeholder="Jelaskan spesifikasi, ukuran, varian, keunggulan, atau cara penggunaan produk secara jelas..."
-  />
-</div>
-
-C. Perbaikan Halaman Produk: Auto-Format WYSIWYG & Sticky Galeri (app/products/[slug]/page.tsx)
-Buka app/products/[slug]/page.tsx:
-
-1. Tambahkan Fungsi Pemformat Paragraf Otomatis:
-Sebelum blok return JSX, tambahkan fungsi pemformat teks lama:
-
-// Pemformat cerdas: jika teks deskripsi lama belum bertag HTML, ubah enter ganda jadi paragraf dan enter tunggal jadi <br/>
-const formattedDescription = (() => {
-  const raw = product.description || "";
-  if (!raw.trim()) return "<p>Belum ada deskripsi lengkap untuk produk ini.</p>";
-
-  // Jika sudah memiliki tag HTML paragraf, list, atau heading
-  if (/<(p|br|ul|ol|li|h[1-6]|blockquote|div)[^>]*>/i.test(raw)) {
-    return raw;
-  }
-
-  // Jika teks polos dari textarea lama, ubah \n\n menjadi <p> dan \n menjadi <br/>
-  return raw
-    .split(/\r?\n\r?\n+/)
-    .map((paragraph) => `<p>${paragraph.replace(/\r?\n/g, "<br />")}</p>`)
-    .join("");
-})();
-
-2. Perbarui Blok Rendering Deskripsi:
-Ganti markup deskripsi produk menjadi:
-
-{/* 1. DESKRIPSI PRODUK LENGKAP */}
-<div className={cn('p-5', 'sm:p-7', 'bg-white', 'dark:bg-slate-900', 'border', 'border-slate-200', 'dark:border-slate-800', 'rounded-2xl', 'shadow-sm', 'space-y-4')}>
-  <div className={cn('flex', 'items-center', 'gap-2', 'text-slate-900', 'dark:text-white', 'font-slab', 'font-bold', 'text-lg', 'border-b', 'border-slate-100', 'dark:border-slate-800', 'pb-3')}>
-    <FileText className={cn('w-5', 'h-5', 'text-[#093c96]', 'dark:text-blue-400')} />
-    <h3>Deskripsi Lengkap Produk</h3>
   </div>
-
-  {/* Render Rich HTML dengan Tipografi Terstruktur */}
-  <div
-    className={cn('prose', 'prose-slate', 'dark:prose-invert', 'max-w-none', 'text-sm', 'sm:text-base', 'leading-relaxed', 'text-slate-700', 'dark:text-slate-300', '[&_p]:mb-4', '[&_p]:leading-relaxed', 'last:[&_p]:mb-0', '[&_ul]:list-disc', '[&_ul]:pl-6', '[&_ul]:mb-4', '[&_ul]:space-y-1.5', '[&_ol]:list-decimal', '[&_ol]:pl-6', '[&_ol]:mb-4', '[&_ol]:space-y-1.5', '[&_li]:text-slate-700', 'dark:[&_li]:text-slate-300', '[&_strong]:font-bold', '[&_strong]:text-slate-900', 'dark:[&_strong]:text-white', '[&_h1]:text-xl', '[&_h1]:font-bold', '[&_h1]:mb-3', '[&_h2]:text-lg', '[&_h2]:font-bold', '[&_h2]:mb-2.5', '[&_h3]:text-base', '[&_h3]:font-bold', '[&_h3]:mb-2', '[&_blockquote]:border-l-4', '[&_blockquote]:border-[#093c96]', '[&_blockquote]:pl-4', '[&_blockquote]:italic', '[&_blockquote]:my-3', '[&_br]:block', '[&_br]:content-['']', '[&_br]:my-1')}
-    dangerouslySetInnerHTML={{ __html: formattedDescription }}
-  />
-</div>
-
-3. Buat Kolom Galeri Gambar Sticky di Desktop:
-Temukan elemen pembungkus kolom galeri gambar (di sebelah kiri grid lg:grid-cols-12):
-Tambahkan kelas lg:sticky lg:top-24 self-start:
-
-{/* Kolom Kiri: Galeri Foto Produk (Sticky di Desktop) */}
-<div className={cn('lg:col-span-6', 'space-y-4', 'lg:sticky', 'lg:top-24', 'self-start')}>
-  <ProductGallery images={product.images} title={product.name} />
-</div>
+)}

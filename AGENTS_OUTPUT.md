@@ -1,7 +1,7 @@
-# 📋 Laporan Hasil Eksekusi AI Agent: Auto-Format Paragraf WYSIWYG, Editor Rich Text di ProductForm, & Sticky Galeri Desktop
+# 📋 Laporan Hasil Eksekusi AI Agent: Penambahan Fitur Hapus Testimoni Permanen Khusus Super Admin (/admin/moderasi)
 
 **Proyek**: Mas Chan Digital (Marketplace & Direktori UMKM Kota Serang, Banten)  
-**Cabang Fitur**: `feature/wysiwyg-editor-and-sticky-gallery`  
+**Cabang Fitur**: `feature/super-admin-delete-testimonial`  
 **Target Cabang**: `main`  
 **Status**: ✅ Sukses Terverifikasi (TypeScript 0 Error, Linting 0 Error, Build Sukses)
 
@@ -11,35 +11,29 @@
 
 Sesuai dengan instruksi dari Admin Chan di `AGENTS_INSTRUCTION.md`, seluruh pekerjaan telah diselesaikan dan diuji dengan standar kualitas tinggi (SOP Penuh):
 
-### 1. Komponen Baru: `components/forms/WysiwygEditor.tsx`
-- **Native React 19 & TypeScript 7**: Dibangun murni tanpa ketergantungan library luar yang berat menggunakan `document.execCommand` yang dikemas aman dan responsif.
-- **Toolbar Formatting Lengkap**:
-  - Teks Tebal (`Bold`) & Miring (`Italic`)
-  - Heading 2 (`Heading2`) & Heading 3 (`Heading3`)
-  - Daftar Poin / Bullets (`List`) & Nomor Urut (`ListOrdered`)
-  - Kutipan (`Quote` / `blockquote` dengan border `#093c96`)
-  - Undo & Redo (`Undo`, `Redo`)
-- **Fitur ContentEditable**:
-  - Sinkronisasi state 2-arah aman (`useEffect` inisialisasi awal, `onInput`, `onBlur`).
-  - Atribut placeholder dinamis via Tailwind CSS pseudo-class `empty:before:content-[attr(data-placeholder)]`.
-  - Aksesibilitas dan warning suppression: `suppressContentEditableWarning={true}`.
+### 1. Backend WordPress (`maschan-headless.php`)
+- Menambahkan penanganan aksi `action === 'delete'` pada endpoint REST API `POST /wp-json/maschan/v1/admin/reviews/<id>/action`.
+- Memanfaatkan fungsi inti WordPress `wp_delete_comment($comment_id, true)` dengan parameter `$force_delete = true` agar ulasan dihapus secara permanen dari basis data MySQL.
+- Menjaga hak akses ketat Super Admin via `maschan_get_authenticated_admin_id` (`manage_options`).
+- Mengembalikan respons JSON standar: `{ success: true, message: 'Testimoni telah berhasil dihapus secara permanen dari database.' }`.
 
-### 2. Integrasi Editor di Formulir Produk (`components/forms/ProductForm.tsx`)
-- Menggantikan elemen `<textarea id="product-full-desc">` dengan komponen `<WysiwygEditor>`.
-- Dilengkapi label instruksi informatif yang membimbing vendor untuk menggunakan fitur format tebal, poin-poin, dan paragraf.
-- Nilai HTML deskripsi tersimpan langsung ke state `description` dan terkirim ke backend WordPress REST API secara utuh.
+### 2. API Client Frontend (`lib/api/wordpress.ts`)
+- Memperluas tipe parameter aksi pada fungsi `performReviewAction`:
+  `action: "approve" | "reject" | "delete"`.
+- Memastikan header `Authorization: Bearer <token>` dan `Content-Type: application/json` terkirim dengan aman ke server WordPress.
 
-### 3. Smart Auto-Format Paragraf & Sticky Galeri Desktop (`app/products/[slug]/page.tsx`)
-- **Fungsi Pemformat Otomatis (`formattedDescription`)**:
-  - Mendeteksi secara cerdas apakah deskripsi produk sudah memiliki tag HTML (`p`, `br`, `ul`, `ol`, `li`, `h1`-`h6`, `blockquote`, `div`).
-  - Jika belum memiliki tag HTML (data teks polos warisan dari textarea lama), otomatis mengubah enter ganda (`\n\n`) menjadi paragraf `<p>` dan enter tunggal (`\n`) menjadi `<br />`.
-  - Menghindari teks deskripsi menumpuk menjadi satu blok panjang tak berjarak.
-- **Styling Tipografi Terstruktur**:
-  - Rendition `dangerouslySetInnerHTML={{ __html: formattedDescription }}` dengan kelas Tailwind Typography/Prose yang kaya dan responsif.
-  - Border kutipan `blockquote` disesuaikan dengan warna identitas resmi brand `#093c96`.
-- **Kolom Galeri Sticky di Desktop**:
-  - Menambahkan kelas `lg:sticky lg:top-24 self-start` pada pembungkus kolom galeri foto produk (`lg:col-span-6`).
-  - Galeri produk tetap terlihat nyaman di sisi kiri layar desktop saat calon pembeli menggulir membaca deskripsi panjang dan ulasan di sisi kanan.
+### 3. Halaman Moderasi Super Admin (`app/admin/moderasi/page.tsx`)
+- **Tombol Hapus Permanen di Setiap Kartu Ulasan**:
+  - Menyematkan tombol `[🗑️ Hapus]` merah pada footer setiap kartu ulasan di kedua tab (`pending` maupun `approved`).
+  - Desain responsif, modern, dan memiliki atribut aksesibilitas yang jelas.
+- **Modal Dialog Konfirmasi Keamanan Penghapusan**:
+  - Modal pop-up dengan latar belakang backdrop blur lembut (`bg-slate-900/60 backdrop-blur-sm`).
+  - Menampilkan nama pengulas dan nama produk terkait untuk mencegah ketidaksengajaan klik.
+  - Tombol aksi: `[Batal]` dan `[Ya, Hapus Permanen]` dengan indikator status loading spinner (`Loader2`).
+- **Pembaruan Optimistik**:
+  - Menghapus item ulasan secara instan dari state lokal `reviews` segera setelah API merespons sukses.
+  - Memperbarui badge `pendingCount` secara akurat jika ulasan yang dihapus berstatus pending.
+  - Menampilkan notifikasi umpan balik visual (*toast notification*).
 
 ---
 
@@ -47,10 +41,10 @@ Sesuai dengan instruksi dari Admin Chan di `AGENTS_INSTRUCTION.md`, seluruh peke
 
 1. **TypeScript Type Check**:
    - Perintah: `npx tsc --noEmit`
-   - Hasil: **0 Error** (Type safety terjaga penuh tanpa `any` liar).
+   - Hasil: **0 Error** (Type safety terjamin tanpa `any` liar).
 2. **ESLint Static Code Analysis**:
    - Perintah: `npm run lint`
-   - Hasil: **0 Error** (Semua berkas baru dan modifikasi lulus aturan linter).
+   - Hasil: **0 Error** (Semua komponen dan hook patuh standar React 19).
 3. **Next.js Production Build**:
    - Perintah: `npm run build`
    - Hasil: **Kompilasi Sukses (Turbopack Next.js 16.3.3 - Exit Code 0)**.
@@ -58,4 +52,4 @@ Sesuai dengan instruksi dari Admin Chan di `AGENTS_INSTRUCTION.md`, seluruh peke
 ---
 
 ## 📦 Status Git
-- Cabang `feature/wysiwyg-editor-and-sticky-gallery` telah selesai diuji, di-commit, di-merge ke branch `main`, dan di-push ke repositori GitHub `origin/main`.
+- Seluruh berkas telah di-commit ke cabang `feature/super-admin-delete-testimonial`, di-merge ke cabang `main`, dan di-push ke repositori GitHub `origin/main`.
