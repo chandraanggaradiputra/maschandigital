@@ -139,6 +139,23 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
 
   const productUrl = `https://maschandigital.id/products/${product.slug}`;
 
+  // Pemformat cerdas: jika teks deskripsi lama belum bertag HTML, ubah enter ganda jadi paragraf dan enter tunggal jadi <br/>
+  const formattedDescription = (() => {
+    const raw = product.description || "";
+    if (!raw.trim()) return "<p>Belum ada deskripsi lengkap untuk produk ini.</p>";
+
+    // Jika sudah memiliki tag HTML paragraf, list, atau heading
+    if (/<(p|br|ul|ol|li|h[1-6]|blockquote|div)[^>]*>/i.test(raw)) {
+      return raw;
+    }
+
+    // Jika teks polos dari textarea lama, ubah \n\n menjadi <p> dan \n menjadi <br/>
+    return raw
+      .split(/\r?\n\r?\n+/)
+      .map((paragraph) => `<p>${paragraph.replace(/\r?\n/g, "<br />")}</p>`)
+      .join("");
+  })();
+
   return (
     <>
       {/* Product Json LD dengan Schema.org Rich Snippets & Breadcrumb Graph */}
@@ -186,8 +203,8 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
       {/* Main Product Showcase */}
       <SectionContainer className="py-0">
         <div className="items-start gap-8 lg:gap-12 grid grid-cols-1 lg:grid-cols-12">
-          {/* Left: Interactive Product Gallery (Foto Utama + Galeri Thumbnail) */}
-          <div className="lg:col-span-6">
+          {/* Kolom Kiri: Galeri Foto Produk (Sticky di Desktop) */}
+          <div className={cn('lg:col-span-6', 'space-y-4', 'lg:sticky', 'lg:top-24', 'self-start')}>
             <ProductGallery
               images={product.images}
               productName={product.name}
@@ -357,10 +374,10 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
                 <h3>Deskripsi Lengkap Produk</h3>
               </div>
 
-              {/* Render Rich HTML dari WYSIWYG Editor dengan Jarak Paragraf & List Bullets Rapi */}
+              {/* Render Rich HTML dengan Tipografi Terstruktur */}
               <div
-                className={cn('prose', 'prose-slate', 'dark:prose-invert', 'max-w-none', 'text-sm', 'sm:text-base', 'leading-relaxed', 'text-slate-700', 'dark:text-slate-300', '[&_p]:mb-4', '[&_p]:leading-relaxed', 'last:[&_p]:mb-0', '[&_ul]:list-disc', '[&_ul]:pl-6', '[&_ul]:mb-4', '[&_ul]:space-y-1.5', '[&_ol]:list-decimal', '[&_ol]:pl-6', '[&_ol]:mb-4', '[&_ol]:space-y-1.5', '[&_li]:text-slate-700', 'dark:[&_li]:text-slate-300', '[&_strong]:font-bold', '[&_strong]:text-slate-900', 'dark:[&_strong]:text-white', '[&_h1]:text-xl', '[&_h1]:font-bold', '[&_h1]:mb-3', '[&_h2]:text-lg', '[&_h2]:font-bold', '[&_h2]:mb-2.5', '[&_h3]:text-base', '[&_h3]:font-bold', '[&_h3]:mb-2', '[&_blockquote]:border-l-4', '[&_blockquote]:border-blue-500', '[&_blockquote]:pl-4', '[&_blockquote]:italic', '[&_blockquote]:my-3', '[&_br]:block', '[&_br]:content-[\'\']', '[&_br]:my-1')}
-                dangerouslySetInnerHTML={{ __html: product.description }}
+                className={cn('prose', 'prose-slate', 'dark:prose-invert', 'max-w-none', 'text-sm', 'sm:text-base', 'leading-relaxed', 'text-slate-700', 'dark:text-slate-300', '[&_p]:mb-4', '[&_p]:leading-relaxed', 'last:[&_p]:mb-0', '[&_ul]:list-disc', '[&_ul]:pl-6', '[&_ul]:mb-4', '[&_ul]:space-y-1.5', '[&_ol]:list-decimal', '[&_ol]:pl-6', '[&_ol]:mb-4', '[&_ol]:space-y-1.5', '[&_li]:text-slate-700', 'dark:[&_li]:text-slate-300', '[&_strong]:font-bold', '[&_strong]:text-slate-900', 'dark:[&_strong]:text-white', '[&_h1]:text-xl', '[&_h1]:font-bold', '[&_h1]:mb-3', '[&_h2]:text-lg', '[&_h2]:font-bold', '[&_h2]:mb-2.5', '[&_h3]:text-base', '[&_h3]:font-bold', '[&_h3]:mb-2', '[&_blockquote]:border-l-4', '[&_blockquote]:border-[#093c96]', '[&_blockquote]:pl-4', '[&_blockquote]:italic', '[&_blockquote]:my-3', '[&_br]:block', '[&_br]:content-[\'\']', '[&_br]:my-1')}
+                dangerouslySetInnerHTML={{ __html: formattedDescription }}
               />
             </div>
 

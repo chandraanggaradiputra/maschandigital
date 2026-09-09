@@ -1,22 +1,3 @@
-### 🎯 Instruksi Lengkap Antigravity: Auto-Format Paragraf WYSIWYG, Editor Rich Text di ProductForm, & Sticky Galeri Desktop
-
-Terapkan SOP Kerja Penuh: Isolasi Git Branch -> Buat Komponen WysiwygEditor -> Pasang di ProductForm -> Perbaiki Render Deskripsi & Buat Sticky Galeri di Single Product Page -> Evaluasi Mandiri (tsc, lint, build) -> Merge ke Main -> Push ke GitHub -> Tulis Laporan ke AGENTS.OUTPUT.md & Output Wajib Git Diff.
-
----
-
-#### 1. Alur Git Awal (Branching)
-Jalankan di terminal PC lokal:
-1. `git checkout main && git pull origin main`
-2. `git checkout -b feature/wysiwyg-editor-and-sticky-gallery`
-
----
-
-#### 2. Spesifikasi Berkas Target & Kode Implementasi
-
-##### A. Buat Komponen Baru: `components/forms/WysiwygEditor.tsx`
-Buat berkas baru `components/forms/WysiwygEditor.tsx` (React 19 / TypeScript 7 murni tanpa ketergantungan library luar) untuk memberikan bilah alat formatting yang aman dan mudah bagi vendor:
-
-```tsx
 "use client";
 
 import React, { useRef, useEffect } from "react";
@@ -169,6 +150,7 @@ export function WysiwygEditor({
       <div
         ref={editorRef}
         contentEditable
+        suppressContentEditableWarning
         onInput={handleInput}
         onBlur={handleInput}
         data-placeholder={placeholder}
@@ -177,77 +159,3 @@ export function WysiwygEditor({
     </div>
   );
 }
-
-B. Pasang WysiwygEditor pada components/forms/ProductForm.tsx
-Buka components/forms/ProductForm.tsx:
-
-1. Impor komponen baru:
-
-import { WysiwygEditor } from "@/components/forms/WysiwygEditor";
-
-2. Temukan bagian input deskripsi produk (yang sebelumnya menggunakan <textarea id="description" ...>):
-
-3. Ganti elemen <textarea> tersebut dengan:
-
-<div className="space-y-1.5">
-  <label htmlFor="description" className={cn('block', 'text-xs', 'sm:text-sm', 'font-semibold', 'text-slate-800', 'dark:text-slate-200')}>
-    Deskripsi Lengkap Produk <span className="text-rose-500">*</span>
-  </label>
-  <p className={cn('text-[11px]', 'text-slate-500', 'dark:text-slate-400', 'mb-1.5')}>
-    Gunakan format tebal, poin-poin (bullets), dan paragraf untuk memudahkan pembeli memahami produk Anda.
-  </p>
-  <WysiwygEditor
-    value={description}
-    onChange={(html) => setDescription(html)}
-    placeholder="Jelaskan spesifikasi, ukuran, varian, keunggulan, atau cara penggunaan produk secara jelas..."
-  />
-</div>
-
-C. Perbaikan Halaman Produk: Auto-Format WYSIWYG & Sticky Galeri (app/products/[slug]/page.tsx)
-Buka app/products/[slug]/page.tsx:
-
-1. Tambahkan Fungsi Pemformat Paragraf Otomatis:
-Sebelum blok return JSX, tambahkan fungsi pemformat teks lama:
-
-// Pemformat cerdas: jika teks deskripsi lama belum bertag HTML, ubah enter ganda jadi paragraf dan enter tunggal jadi <br/>
-const formattedDescription = (() => {
-  const raw = product.description || "";
-  if (!raw.trim()) return "<p>Belum ada deskripsi lengkap untuk produk ini.</p>";
-
-  // Jika sudah memiliki tag HTML paragraf, list, atau heading
-  if (/<(p|br|ul|ol|li|h[1-6]|blockquote|div)[^>]*>/i.test(raw)) {
-    return raw;
-  }
-
-  // Jika teks polos dari textarea lama, ubah \n\n menjadi <p> dan \n menjadi <br/>
-  return raw
-    .split(/\r?\n\r?\n+/)
-    .map((paragraph) => `<p>${paragraph.replace(/\r?\n/g, "<br />")}</p>`)
-    .join("");
-})();
-
-2. Perbarui Blok Rendering Deskripsi:
-Ganti markup deskripsi produk menjadi:
-
-{/* 1. DESKRIPSI PRODUK LENGKAP */}
-<div className={cn('p-5', 'sm:p-7', 'bg-white', 'dark:bg-slate-900', 'border', 'border-slate-200', 'dark:border-slate-800', 'rounded-2xl', 'shadow-sm', 'space-y-4')}>
-  <div className={cn('flex', 'items-center', 'gap-2', 'text-slate-900', 'dark:text-white', 'font-slab', 'font-bold', 'text-lg', 'border-b', 'border-slate-100', 'dark:border-slate-800', 'pb-3')}>
-    <FileText className={cn('w-5', 'h-5', 'text-[#093c96]', 'dark:text-blue-400')} />
-    <h3>Deskripsi Lengkap Produk</h3>
-  </div>
-
-  {/* Render Rich HTML dengan Tipografi Terstruktur */}
-  <div
-    className={cn('prose', 'prose-slate', 'dark:prose-invert', 'max-w-none', 'text-sm', 'sm:text-base', 'leading-relaxed', 'text-slate-700', 'dark:text-slate-300', '[&_p]:mb-4', '[&_p]:leading-relaxed', 'last:[&_p]:mb-0', '[&_ul]:list-disc', '[&_ul]:pl-6', '[&_ul]:mb-4', '[&_ul]:space-y-1.5', '[&_ol]:list-decimal', '[&_ol]:pl-6', '[&_ol]:mb-4', '[&_ol]:space-y-1.5', '[&_li]:text-slate-700', 'dark:[&_li]:text-slate-300', '[&_strong]:font-bold', '[&_strong]:text-slate-900', 'dark:[&_strong]:text-white', '[&_h1]:text-xl', '[&_h1]:font-bold', '[&_h1]:mb-3', '[&_h2]:text-lg', '[&_h2]:font-bold', '[&_h2]:mb-2.5', '[&_h3]:text-base', '[&_h3]:font-bold', '[&_h3]:mb-2', '[&_blockquote]:border-l-4', '[&_blockquote]:border-[#093c96]', '[&_blockquote]:pl-4', '[&_blockquote]:italic', '[&_blockquote]:my-3', '[&_br]:block', '[&_br]:content-['']', '[&_br]:my-1')}
-    dangerouslySetInnerHTML={{ __html: formattedDescription }}
-  />
-</div>
-
-3. Buat Kolom Galeri Gambar Sticky di Desktop:
-Temukan elemen pembungkus kolom galeri gambar (di sebelah kiri grid lg:grid-cols-12):
-Tambahkan kelas lg:sticky lg:top-24 self-start:
-
-{/* Kolom Kiri: Galeri Foto Produk (Sticky di Desktop) */}
-<div className={cn('lg:col-span-6', 'space-y-4', 'lg:sticky', 'lg:top-24', 'self-start')}>
-  <ProductGallery images={product.images} title={product.name} />
-</div>
