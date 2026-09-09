@@ -7,10 +7,9 @@ import {
   Save,
   CheckCircle2,
   Globe,
-  Plus,
   FolderPlus,
-  ChevronRight,
   AlertCircle,
+  Check,
 } from "lucide-react";
 import { Product, ProductType, ProductCategory } from "@/types";
 import { Button } from "@/components/ui/Button";
@@ -25,7 +24,7 @@ import {
   getCategories,
   createCategory,
 } from "@/lib/api/wordpress";
-import { buildCategoryTree } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface ProductFormProps {
   initialData?: Partial<Product>;
@@ -50,14 +49,24 @@ export function ProductForm({
   );
 
   // Hierarchical Categories State
-  const [availableCategories, setAvailableCategories] = useState<
-    ProductCategory[]
-  >([]);
   const [flatCategories, setFlatCategories] = useState<ProductCategory[]>([]);
+  const [selectedParentId, setSelectedParentId] = useState<number | null>(null);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>(
     initialData?.category_ids ||
       initialData?.categories?.map((c) => c.id) ||
       [],
+  );
+
+  const categories = flatCategories;
+
+  // Kategori Utama (Parent Categories: yang tidak memiliki parent atau parent === 0)
+  const parentCategories = categories.filter(
+    (c) => Boolean(!c.parent || c.parent === 0),
+  );
+
+  // Subkategori sesuai Kategori Utama yang dipilih
+  const subcategories = categories.filter(
+    (c) => Boolean(selectedParentId !== null && c.parent === selectedParentId),
   );
 
   // Add Category Inline Form
@@ -107,15 +116,51 @@ export function ProductForm({
     async function loadCats() {
       const cats = await getCategories();
       setFlatCategories(cats);
-      setAvailableCategories(buildCategoryTree(cats));
+
+      // Sinkronisasi Mode Edit (initialData)
+      if (
+        initialData?.categories &&
+        initialData.categories.length > 0 &&
+        cats.length > 0
+      ) {
+        const initialCatIds = initialData.categories.map((c) => c.id);
+        setSelectedCategoryIds(initialCatIds);
+
+        // Temukan parent category dari kategori yang tersimpan
+        const activeCat = cats.find((c) => initialCatIds.includes(c.id));
+        if (activeCat) {
+          if (!activeCat.parent || activeCat.parent === 0) {
+            setSelectedParentId(activeCat.id);
+          } else {
+            setSelectedParentId(activeCat.parent);
+          }
+        }
+      }
     }
     loadCats();
-  }, []);
+  }, [initialData?.categories]);
 
-  const handleToggleCategory = (id: number) => {
-    setSelectedCategoryIds((prev) =>
-      prev.includes(id) ? prev.filter((cId) => cId !== id) : [...prev, id],
-    );
+  const handleSelectParentCategory = (parentId: number) => {
+    setSelectedParentId(parentId);
+    // Masukkan parent category ID ke daftar kategori terpilih
+    setSelectedCategoryIds(() => {
+      // Bersihkan subkategori lama dari parent lain jika diinginkan, atau pertahankan parent aktif
+      return [parentId];
+    });
+  };
+
+  const handleToggleSubcategory = (subId: number) => {
+    setSelectedCategoryIds((prev) => {
+      const exists = prev.includes(subId);
+      const updated = exists
+        ? prev.filter((id) => id !== subId)
+        : [...prev, subId];
+      // Pastikan parent category ID juga tetap tersimpan di dalam data submission
+      if (selectedParentId && !updated.includes(selectedParentId)) {
+        updated.push(selectedParentId);
+      }
+      return updated;
+    });
   };
 
   const handleAddNewCategory = async (e: React.FormEvent) => {
@@ -127,8 +172,12 @@ export function ProductForm({
     if (res.success && res.category) {
       const updatedCats = await getCategories();
       setFlatCategories(updatedCats);
-      setAvailableCategories(buildCategoryTree(updatedCats));
       setSelectedCategoryIds((prev) => [...prev, res.category!.id]);
+      if (!newCatParent || newCatParent === 0) {
+        setSelectedParentId(res.category!.id);
+      } else {
+        setSelectedParentId(newCatParent);
+      }
       setNewCatName("");
       setShowAddCat(false);
     } else {
@@ -208,36 +257,6 @@ export function ProductForm({
     shortDesc ||
     "Beli produk UMKM asli Kota Serang berkualitas. Hubungi langsung WhatsApp vendor tanpa biaya perantara.";
 
-  const renderCategoryTree = (categories: ProductCategory[], level = 0) => {
-    return categories.map((cat) => (
-      <div key={cat.id} className="space-y-1">
-        <label
-          className="flex items-center gap-2.5 py-1 text-slate-700 hover:text-brand-800 dark:hover:text-brand-400 dark:text-slate-300 text-xs sm:text-sm cursor-pointer"
-          style={{ paddingLeft: `${level * 18}px` }}
-        >
-          <input
-            type="checkbox"
-            checked={selectedCategoryIds.includes(cat.id)}
-            onChange={() => handleToggleCategory(cat.id)}
-            className="border-slate-300 rounded focus:ring-brand-500 w-4 h-4 text-brand-800 cursor-pointer"
-          />
-          {level > 0 && (
-            <ChevronRight
-              className="w-3 h-3 text-slate-400"
-              aria-hidden="true"
-            />
-          )}
-          <span className="font-medium">{cat.name}</span>
-          {cat.count !== undefined && (
-            <span className="text-[11px] text-slate-400">({cat.count})</span>
-          )}
-        </label>
-        {cat.children &&
-          cat.children.length > 0 &&
-          renderCategoryTree(cat.children, level + 1)}
-      </div>
-    ));
-  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 pb-12 max-w-4xl">
@@ -308,22 +327,19 @@ export function ProductForm({
             />
           </div>
 
-          {/* Kategori Checkbox Tree */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <label className="block font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
-                Kategori Produk (Pilih satu atau lebih){" "}
-                <span className="text-rose-500">*</span>
+          {/* SEKSI KATEGORI PRODUK BERTINGKAT */}
+          <div className={cn('space-y-4', 'pt-2')}>
+            <div className={cn('flex', 'items-center', 'justify-between')}>
+              <label className={cn('block', 'text-xs', 'sm:text-sm', 'font-semibold', 'text-slate-800', 'dark:text-slate-200')}>
+                Kategori Produk <span className="text-rose-500">*</span>
               </label>
+              {/* Tombol Tambah Kategori Baru Tetap Dipertahankan */}
               <button
                 type="button"
                 onClick={() => setShowAddCat(!showAddCat)}
-                className="inline-flex items-center gap-1 font-semibold text-brand-800 dark:text-brand-400 text-xs hover:underline"
+                className={cn('text-xs', 'font-semibold', 'text-[#093c96]', 'hover:text-blue-800', 'dark:text-blue-400', 'dark:hover:text-blue-300', 'flex', 'items-center', 'gap-1', 'transition-colors')}
               >
-                <Plus className="w-3.5 h-3.5" />
-                <span>
-                  {showAddCat ? "Tutup Form" : "+ Tambah Kategori Baru"}
-                </span>
+                <span>{showAddCat ? "Tutup Form" : "+ Tambah Kategori Baru"}</span>
               </button>
             </div>
 
@@ -378,15 +394,76 @@ export function ProductForm({
               </div>
             )}
 
-            <div className="bg-slate-50 dark:bg-slate-900 p-3 border border-slate-200 dark:border-slate-800 rounded-2xl divide-y divide-slate-100 dark:divide-slate-800/50 max-h-48 overflow-y-auto">
-              {availableCategories.length > 0 ? (
-                renderCategoryTree(availableCategories)
-              ) : (
-                <p className="py-2 text-slate-400 text-xs text-center">
-                  Memuat pilihan kategori produk...
-                </p>
-              )}
+            {/* LANGKAH 1: PILIH KATEGORI UTAMA */}
+            <div className="space-y-2">
+              <span className={cn('text-xs', 'text-slate-500', 'dark:text-slate-400', 'font-medium')}>
+                1. Pilih Kategori Utama (Parent):
+              </span>
+              <div className={cn('grid', 'grid-cols-2', 'sm:grid-cols-3', 'gap-2')}>
+                {parentCategories.map((parent) => {
+                  const isSelected = selectedParentId === parent.id;
+                  return (
+                    <button
+                      key={parent.id}
+                      type="button"
+                      onClick={() => handleSelectParentCategory(parent.id)}
+                      className={cn(
+                        "p-3 rounded-xl border text-left text-xs font-semibold transition-all flex items-center justify-between",
+                        isSelected
+                          ? "bg-blue-50 border-[#093c96] text-[#093c96] dark:bg-blue-950/50 dark:border-blue-500 dark:text-blue-300 ring-2 ring-[#093c96]/20 shadow-2xs"
+                          : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
+                      )}
+                    >
+                      <span className="truncate">{parent.name}</span>
+                      {isSelected && <Check className={cn('w-4', 'h-4', 'shrink-0', 'text-[#093c96]', 'dark:text-blue-400')} />}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+
+            {/* LANGKAH 2: PILIH SUBKATEGORI (MUNCUL OTOMATIS SESUAI PARENT TERPILIH) */}
+            {selectedParentId && (
+              <div className={cn('space-y-2', 'animate-in', 'fade-in', 'duration-200', 'pt-2', 'border-t', 'border-slate-100', 'dark:border-slate-800')}>
+                <div className={cn('flex', 'items-center', 'justify-between')}>
+                  <span className={cn('text-xs', 'text-slate-500', 'dark:text-slate-400', 'font-medium')}>
+                    2. Pilih Subkategori (Pilih satu atau lebih):
+                  </span>
+                  <span className={cn('text-[11px]', 'text-slate-400')}>
+                    {subcategories.length > 0 ? `${subcategories.length} Subkategori tersedia` : "Tanpa subkategori"}
+                  </span>
+                </div>
+
+                {subcategories.length > 0 ? (
+                  <div className={cn('p-3', 'bg-slate-50', 'dark:bg-slate-900/50', 'rounded-xl', 'border', 'border-slate-200', 'dark:border-slate-800', 'max-h-52', 'overflow-y-auto', 'space-y-1.5')}>
+                    {subcategories.map((sub) => {
+                      const isChecked = selectedCategoryIds.includes(sub.id);
+                      return (
+                        <label
+                          key={sub.id}
+                          className={cn('flex', 'items-center', 'gap-2.5', 'p-2', 'rounded-lg', 'hover:bg-white', 'dark:hover:bg-slate-800/80', 'transition-colors', 'cursor-pointer', 'text-xs', 'font-medium', 'text-slate-700', 'dark:text-slate-300')}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => handleToggleSubcategory(sub.id)}
+                            className={cn('rounded', 'border-slate-300', 'text-[#093c96]', 'focus:ring-[#093c96]', 'w-4', 'h-4')}
+                          />
+                          <span className="flex-1">{sub.name}</span>
+                          {sub.count !== undefined && (
+                            <span className={cn('text-[10px]', 'text-slate-400')}>({sub.count})</span>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className={cn('p-3', 'bg-slate-50', 'dark:bg-slate-900/50', 'rounded-xl', 'border', 'border-dashed', 'border-slate-200', 'dark:border-slate-800', 'text-xs', 'text-slate-500', 'text-center')}>
+                    Kategori utama ini belum memiliki subkategori. Produk akan didaftarkan pada kategori utama.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div>

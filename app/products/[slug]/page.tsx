@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { Store, ShieldCheck, MapPin, CheckCircle2 } from "lucide-react";
+import { Store, ShieldCheck, MapPin, CheckCircle2, FileText } from "lucide-react";
 import { SectionContainer } from "@/components/layout/SectionContainer";
 import { ProductCard } from "@/components/cards/ProductCard";
 import { Button } from "@/components/ui/Button";
@@ -22,7 +22,7 @@ import {
   getVendorBySlug,
   getProductReviews,
 } from "@/lib/api/wordpress";
-import { formatRupiah } from "@/lib/utils";
+import { formatRupiah, cn } from "@/lib/utils";
 import { checkStoreStatus } from "@/lib/storeStatus";
 
 // Jaring pengaman eksplisit — konsisten dengan halaman lain yang menampilkan
@@ -350,21 +350,19 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
               </li>
             </ul>
 
-            {/* Full Description */}
-            <section
-              aria-labelledby="desc-heading"
-              className="space-y-4 pt-6 border-slate-200 dark:border-slate-800 border-t"
-            >
-              <h2
-                id="desc-heading"
-                className="font-slab font-bold text-slate-900 dark:text-white text-lg"
-              >
-                Deskripsi Lengkap Produk
-              </h2>
-              <div className="space-y-3 text-slate-700 dark:text-slate-300 text-sm leading-relaxed">
-                <p>{product.description}</p>
+            {/* 1. DESKRIPSI PRODUK LENGKAP */}
+            <div className={cn('p-5', 'sm:p-7', 'bg-white', 'dark:bg-slate-900', 'border', 'border-slate-200', 'dark:border-slate-800', 'rounded-2xl', 'shadow-sm', 'space-y-4')}>
+              <div className={cn('flex', 'items-center', 'gap-2', 'text-slate-900', 'dark:text-white', 'font-slab', 'font-bold', 'text-lg', 'border-b', 'border-slate-100', 'dark:border-slate-800', 'pb-3')}>
+                <FileText className={cn('w-5', 'h-5', 'text-[#093c96]', 'dark:text-blue-400')} />
+                <h3>Deskripsi Lengkap Produk</h3>
               </div>
-            </section>
+
+              {/* Render Rich HTML dari WYSIWYG Editor dengan Jarak Paragraf & List Bullets Rapi */}
+              <div
+                className={cn('prose', 'prose-slate', 'dark:prose-invert', 'max-w-none', 'text-sm', 'sm:text-base', 'leading-relaxed', 'text-slate-700', 'dark:text-slate-300', '[&_p]:mb-4', '[&_p]:leading-relaxed', 'last:[&_p]:mb-0', '[&_ul]:list-disc', '[&_ul]:pl-6', '[&_ul]:mb-4', '[&_ul]:space-y-1.5', '[&_ol]:list-decimal', '[&_ol]:pl-6', '[&_ol]:mb-4', '[&_ol]:space-y-1.5', '[&_li]:text-slate-700', 'dark:[&_li]:text-slate-300', '[&_strong]:font-bold', '[&_strong]:text-slate-900', 'dark:[&_strong]:text-white', '[&_h1]:text-xl', '[&_h1]:font-bold', '[&_h1]:mb-3', '[&_h2]:text-lg', '[&_h2]:font-bold', '[&_h2]:mb-2.5', '[&_h3]:text-base', '[&_h3]:font-bold', '[&_h3]:mb-2', '[&_blockquote]:border-l-4', '[&_blockquote]:border-blue-500', '[&_blockquote]:pl-4', '[&_blockquote]:italic', '[&_blockquote]:my-3', '[&_br]:block', '[&_br]:content-[\'\']', '[&_br]:my-1')}
+                dangerouslySetInnerHTML={{ __html: product.description }}
+              />
+            </div>
 
             {/* Testimoni & Ulasan Pembeli Otentik */}
             <ProductReviewsSection
