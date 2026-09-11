@@ -58,36 +58,146 @@ export function ProductCatalogView({
     [categories],
   );
 
+  const serviceParentCategory = useMemo(() => {
+    return (
+      categories.find(
+        (c) =>
+          c.slug === "layanan-jasa" ||
+          c.slug === "jasa" ||
+          c.name.toLowerCase() === "layanan jasa",
+      ) || null
+    );
+  }, [categories]);
+
+  const isServiceCategory = useCallback(
+    (cat: ProductCategory) => {
+      if (serviceParentCategory && Number(cat.id) === Number(serviceParentCategory.id)) {
+        return true;
+      }
+      if (serviceParentCategory && Number(cat.parent) === Number(serviceParentCategory.id)) {
+        return true;
+      }
+      const slug = (cat.slug || "").toLowerCase();
+      const name = (cat.name || "").toLowerCase();
+      return (
+        slug === "layanan-jasa" ||
+        slug === "jasa" ||
+        name.includes("layanan jasa") ||
+        slug === "elektronik-komputer" ||
+        slug === "konstruksi-baja-ringan" ||
+        slug === "legalitas-bisnis"
+      );
+    },
+    [serviceParentCategory],
+  );
+
+  const serviceCategorySlugs = useMemo(() => {
+    const set = new Set<string>();
+    categories.forEach((c) => {
+      if (isServiceCategory(c)) {
+        if (c.slug) set.add(c.slug.toLowerCase());
+        if (c.name) set.add(c.name.toLowerCase());
+      }
+    });
+    set.add("layanan-jasa");
+    set.add("jasa");
+    set.add("elektronik-komputer");
+    set.add("konstruksi-baja-ringan");
+    set.add("legalitas-bisnis");
+    return set;
+  }, [categories, isServiceCategory]);
+
+  const serviceSubcategories = useMemo(() => {
+    return categories.filter((c) => {
+      if (serviceParentCategory && Number(c.id) === Number(serviceParentCategory.id)) {
+        return false;
+      }
+      return isServiceCategory(c);
+    });
+  }, [categories, serviceParentCategory, isServiceCategory]);
+
+  const productParentCategories = useMemo(() => {
+    return categories.filter((c) => {
+      if (isServiceCategory(c)) return false;
+      return !c.parent || Number(c.parent) === 0;
+    });
+  }, [categories, isServiceCategory]);
+
+  const isCategoryValidForType = useCallback(
+    (catSlug: string, type: "all" | "product" | "service"): boolean => {
+      if (!catSlug || catSlug === "semua") return true;
+      const isService = serviceCategorySlugs.has(catSlug.toLowerCase());
+      if (type === "service") return isService;
+      if (type === "product") return !isService;
+      return true;
+    },
+    [serviceCategorySlugs],
+  );
+
+  const formatCatName = (name: string) => {
+    return name.replace(/&amp;/g, "&");
+  };
+
+  const getCategoryCount = useCallback(
+    (cat: ProductCategory, type: "all" | "product" | "service") => {
+      const catSlug = (cat.slug || "").toLowerCase();
+      const catId = Number(cat.id);
+      const childSlugs = new Set<string>([catSlug]);
+      const childIds = new Set<number>([catId]);
+      categories
+        .filter((c) => Number(c.parent) === catId)
+        .forEach((child) => {
+          if (child.slug) childSlugs.add(child.slug.toLowerCase());
+          childIds.add(Number(child.id));
+        });
+
+      return initialProducts.filter((p) => {
+        if (type === "service" && p.business_type !== "service") return false;
+        if (type === "product" && p.business_type === "service") return false;
+        return p.categories?.some((c) => {
+          const s = (c.slug || "").toLowerCase();
+          const id = Number(c.id);
+          return childIds.has(id) || childSlugs.has(s);
+        });
+      }).length;
+    },
+    [categories, initialProducts],
+  );
+
+  const effectiveInitialCategory = isCategoryValidForType(initialCategory, initialBusinessType)
+    ? initialCategory
+    : "semua";
+
   const initialParentId = useMemo(() => {
-    if (!initialCategory || initialCategory === "semua") return 0;
+    if (!effectiveInitialCategory || effectiveInitialCategory === "semua") return 0;
     const cat = categories.find(
       (c) =>
-        c.slug?.toLowerCase() === initialCategory.toLowerCase() ||
-        c.name?.toLowerCase() === initialCategory.toLowerCase() ||
-        String(c.id) === initialCategory,
+        c.slug?.toLowerCase() === effectiveInitialCategory.toLowerCase() ||
+        c.name?.toLowerCase() === effectiveInitialCategory.toLowerCase() ||
+        String(c.id) === effectiveInitialCategory,
     );
     if (!cat) return 0;
     return cat.parent && Number(cat.parent) > 0
       ? Number(cat.parent)
       : Number(cat.id);
-  }, [initialCategory, categories]);
+  }, [effectiveInitialCategory, categories]);
 
   const initialSubcategoryId = useMemo(() => {
-    if (!initialCategory || initialCategory === "semua") return 0;
+    if (!effectiveInitialCategory || effectiveInitialCategory === "semua") return 0;
     const cat = categories.find(
       (c) =>
-        c.slug?.toLowerCase() === initialCategory.toLowerCase() ||
-        c.name?.toLowerCase() === initialCategory.toLowerCase() ||
-        String(c.id) === initialCategory,
+        c.slug?.toLowerCase() === effectiveInitialCategory.toLowerCase() ||
+        c.name?.toLowerCase() === effectiveInitialCategory.toLowerCase() ||
+        String(c.id) === effectiveInitialCategory,
     );
     if (!cat) return 0;
     return cat.parent && Number(cat.parent) > 0 ? Number(cat.id) : 0;
-  }, [initialCategory, categories]);
+  }, [effectiveInitialCategory, categories]);
 
   const [searchQuery, setSearchQuery] = useState(initialQ);
   const [selectedParentId, setSelectedParentId] = useState<number>(initialParentId);
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number>(initialSubcategoryId);
-  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
+  const [selectedCategory, setSelectedCategory] = useState<string>(effectiveInitialCategory);
   const [selectedDistrict, setSelectedDistrict] = useState<string>(initialDistrict);
   const [sortBy, setSortBy] = useState<string>(initialSort);
   const [onlyOpenStores, setOnlyOpenStores] = useState<boolean>(false);
@@ -113,13 +223,17 @@ export function ProductCatalogView({
     const qParam = searchParams.get("q") || searchParams.get("search") || "";
     const distParam =
       searchParams.get("kecamatan") || searchParams.get("district") || "";
-    const catParam =
+    let catParam =
       searchParams.get("category") || searchParams.get("kategori") || "semua";
     const sortParam = searchParams.get("sort") || "recommended";
     const typeParam =
       searchParams.get("type") || searchParams.get("business_type") || "all";
     const resolvedType: "all" | "product" | "service" =
       typeParam === "service" || typeParam === "product" ? typeParam : "all";
+
+    if (!isCategoryValidForType(catParam, resolvedType)) {
+      catParam = "semua";
+    }
 
     setSearchQuery(qParam);
     setSelectedDistrict(
@@ -192,11 +306,18 @@ export function ProductCatalogView({
   const handleBusinessTypeChange = (
     newType: "all" | "product" | "service",
   ) => {
+    let nextCategory = selectedCategory;
+    if (!isCategoryValidForType(selectedCategory, newType)) {
+      nextCategory = "semua";
+      setSelectedCategory("semua");
+      setSelectedParentId(0);
+      setSelectedSubcategoryId(0);
+    }
     setSelectedBusinessType(newType);
     updateUrlParams(
       searchQuery,
       selectedDistrict,
-      selectedCategory,
+      nextCategory,
       sortBy,
       newType,
     );
@@ -213,19 +334,6 @@ export function ProductCatalogView({
     );
   };
 
-  const handleParentChange = (pId: number) => {
-    setSelectedParentId(pId);
-    setSelectedSubcategoryId(0);
-    if (pId === 0) {
-      setSelectedCategory("semua");
-      updateUrlParams(searchQuery, selectedDistrict, "semua", sortBy);
-    } else {
-      const parentCat = categories.find((c) => Number(c.id) === pId);
-      const catSlug = parentCat ? parentCat.slug : String(pId);
-      setSelectedCategory(catSlug);
-      updateUrlParams(searchQuery, selectedDistrict, catSlug, sortBy);
-    }
-  };
 
   const handleCategoryChange = (slug: string) => {
     setSelectedCategory(slug);
@@ -627,36 +735,106 @@ export function ProductCatalogView({
           )}
         </div>
 
-        {/* Grid 2 Dropdown Utama: Kategori Utama & Urutan */}
+        {/* Grid 2 Dropdown Utama: Kategori Adaptif & Urutan */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Dropdown Kategori Utama (Parent Category) */}
+          {/* Dropdown Kategori Adaptif */}
           <div className="relative">
             <Tag
               className="w-4 h-4 text-[#093c96] dark:text-blue-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
               aria-hidden="true"
             />
             <select
-              value={selectedParentId}
+              value={selectedCategory}
               onChange={(e) => {
-                const pId = Number(e.target.value);
-                handleParentChange(pId);
+                const slug = e.target.value;
+                handleCategoryChange(slug);
               }}
               className="w-full pl-10 pr-8 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:border-[#093c96] cursor-pointer appearance-none font-medium transition-colors"
-              aria-label="Filter berdasarkan Kategori Utama"
+              aria-label="Filter berdasarkan Kategori"
             >
-              <option value="0">
-                🏷️ Semua Kategori Utama (
-                {categories
-                  .filter((c) => !c.parent || Number(c.parent) === 0)
-                  .reduce((acc, curr) => acc + (curr.count || 0), 0) ||
-                  initialProducts.length}
-                )
-              </option>
-              {parentCategories.map((parent) => (
-                <option key={parent.id} value={parent.id}>
-                  {parent.name} ({parent.count || 0})
-                </option>
-              ))}
+              {selectedBusinessType === "service" ? (
+                <>
+                  <option value="semua">
+                    🏷️ Semua Kategori Jasa ({serviceCount})
+                  </option>
+                  {serviceSubcategories.map((sub) => {
+                    const count = getCategoryCount(sub, "service");
+                    return (
+                      <option key={sub.id} value={sub.slug}>
+                        {formatCatName(sub.name)} ({count})
+                      </option>
+                    );
+                  })}
+                </>
+              ) : selectedBusinessType === "product" ? (
+                <>
+                  <option value="semua">
+                    🏷️ Semua Kategori Produk ({productCount})
+                  </option>
+                  {productParentCategories.map((parent) => {
+                    const children = categories.filter(
+                      (c) => Number(c.parent) === Number(parent.id) && !isServiceCategory(c),
+                    );
+                    const parentCount = getCategoryCount(parent, "product");
+                    if (children.length > 0) {
+                      return (
+                        <optgroup key={parent.id} label={formatCatName(parent.name)}>
+                          <option value={parent.slug}>
+                            Semua {formatCatName(parent.name)} ({parentCount})
+                          </option>
+                          {children.map((child) => {
+                            const childCount = getCategoryCount(child, "product");
+                            return (
+                              <option key={child.id} value={child.slug}>
+                                {formatCatName(child.name)} ({childCount})
+                              </option>
+                            );
+                          })}
+                        </optgroup>
+                      );
+                    }
+                    return (
+                      <option key={parent.id} value={parent.slug}>
+                        {formatCatName(parent.name)} ({parentCount})
+                      </option>
+                    );
+                  })}
+                </>
+              ) : (
+                <>
+                  <option value="semua">
+                    🏷️ Semua Kategori Penawaran ({initialProducts.length})
+                  </option>
+                  {parentCategories.map((parent) => {
+                    const children = categories.filter(
+                      (c) => Number(c.parent) === Number(parent.id),
+                    );
+                    const parentCount = getCategoryCount(parent, "all");
+                    if (children.length > 0) {
+                      return (
+                        <optgroup key={parent.id} label={formatCatName(parent.name)}>
+                          <option value={parent.slug}>
+                            Semua {formatCatName(parent.name)} ({parentCount})
+                          </option>
+                          {children.map((child) => {
+                            const childCount = getCategoryCount(child, "all");
+                            return (
+                              <option key={child.id} value={child.slug}>
+                                {formatCatName(child.name)} ({childCount})
+                              </option>
+                            );
+                          })}
+                        </optgroup>
+                      );
+                    }
+                    return (
+                      <option key={parent.id} value={parent.slug}>
+                        {formatCatName(parent.name)} ({parentCount})
+                      </option>
+                    );
+                  })}
+                </>
+              )}
             </select>
           </div>
 
@@ -679,8 +857,8 @@ export function ProductCatalogView({
           </div>
         </div>
 
-        {/* Baris Subkategori Dinamis (Hanya muncul jika kategori induk aktif memiliki anak) */}
-        {activeSubcategories.length > 0 && (
+        {/* Baris Subkategori Dinamis (Hanya muncul jika kategori induk aktif memiliki anak dan BUKAN dalam mode service) */}
+        {selectedBusinessType !== "service" && activeSubcategories.length > 0 && (
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pl-2 py-1.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-100 dark:border-slate-800/80">
             <span className="text-[11px] font-semibold text-slate-400 shrink-0 px-1">
               Subkategori:
@@ -697,7 +875,7 @@ export function ProductCatalogView({
                   : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800"
               }`}
             >
-              Semua di {activeParentCategory?.name}
+              Semua di {formatCatName(activeParentCategory?.name || "")}
             </button>
             {activeSubcategories.map((sub) => {
               const isSubSelected =
@@ -716,7 +894,7 @@ export function ProductCatalogView({
                       : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
                   }`}
                 >
-                  {sub.name}{" "}
+                  {formatCatName(sub.name)}{" "}
                   {sub.count !== undefined &&
                     sub.count > 0 &&
                     `(${sub.count})`}
@@ -781,7 +959,15 @@ export function ProductCatalogView({
           {selectedCategory !== "semua" && (
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300">
               <Tag className="w-3.5 h-3.5" />
-              <span className="capitalize">{selectedCategory}</span>
+              <span>
+                {formatCatName(
+                  categories.find(
+                    (c) =>
+                      c.slug?.toLowerCase() === selectedCategory.toLowerCase() ||
+                      c.name?.toLowerCase() === selectedCategory.toLowerCase(),
+                  )?.name || selectedCategory
+                )}
+              </span>
               <button
                 type="button"
                 onClick={() => {

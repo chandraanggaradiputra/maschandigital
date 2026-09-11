@@ -141,7 +141,7 @@ export function DesktopHeader() {
   const isHomeActive = pathname === '/';
 
   return (
-    <header ref={headerRef} className="hidden md:block sticky top-0 z-50 w-full shadow-sm transition-colors">
+    <header ref={headerRef} className="hidden md:block sticky top-0 relative z-50 overflow-visible w-full shadow-sm transition-colors">
       {/* 1. TOP ANNOUNCEMENT BAR (IDENTITAS RESMI MAS CHAN DIGITAL) */}
       <div className="bg-[#093c96] text-white text-xs font-semibold py-1.5 px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -164,7 +164,7 @@ export function DesktopHeader() {
       </div>
 
       {/* 2. LAPISAN UTAMA (LOGO, SEARCH, CTA BANTEN MENGAJI, & AUTH ACTIONS) */}
-      <div className="bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80">
+      <div className="relative z-50 overflow-visible bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80">
         <div className="max-w-7xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 gap-4">
           {/* Logo Mas Chan Digital */}
           <Link href="/" className="flex items-center gap-3 shrink-0 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-2xl">
@@ -224,7 +224,7 @@ export function DesktopHeader() {
             {/* Bagian Akun / Dasbor (Dinamis Sesuai Status Login) */}
             {isVendor && session?.user ? (
               <div 
-                className="relative pl-1 border-l border-slate-200 dark:border-slate-800"
+                className="relative z-50 pl-1 border-l border-slate-200 dark:border-slate-800"
                 onMouseEnter={() => handleMouseEnter('account')}
                 onMouseLeave={() => handleMouseLeave('account')}
               >
@@ -267,7 +267,7 @@ export function DesktopHeader() {
                 {activeDropdown === 'account' && (
                   <div
                     role="menu"
-                    className="absolute right-0 top-full mt-1.5 w-72 rounded-2xl border border-slate-200/90 bg-white/95 p-2 shadow-2xl backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 transition-all duration-200 ease-out z-50 animate-in fade-in slide-in-from-top-2"
+                    className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 p-2 shadow-2xl backdrop-blur-md transition-all duration-200 ease-out z-[70] animate-in fade-in slide-in-from-top-2"
                   >
                     {/* Header Kartu Mini Toko */}
                     <div className="p-3 bg-gradient-to-br from-slate-50 to-blue-50/40 dark:from-slate-800/80 dark:to-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-700/60 mb-1.5">
@@ -401,7 +401,7 @@ export function DesktopHeader() {
       </div>
 
       {/* 3. LAPISAN NAVIGASI MENU (SUB-NAVBAR DENGAN DROPDOWN MODERN 2026) */}
-      <div className="bg-slate-50/95 dark:bg-slate-900/95 border-b border-slate-200/80 dark:border-slate-800/80 backdrop-blur-sm">
+      <div className="relative z-40 bg-slate-50/95 dark:bg-slate-900/95 border-b border-slate-200/80 dark:border-slate-800/80 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 py-1.5">
           <nav aria-label="Navigasi Menu Belanja" className="flex items-center gap-1.5">
             {/* 1. Menu Beranda */}
@@ -453,7 +453,7 @@ export function DesktopHeader() {
               {activeDropdown === 'catalog' && (
                 <div
                   role="menu"
-                  className="absolute left-0 top-full mt-1.5 w-80 rounded-2xl border border-slate-200/90 bg-white/95 p-2 shadow-2xl backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 transition-all duration-200 ease-out z-50 animate-in fade-in slide-in-from-top-2"
+                  className="absolute left-0 top-full mt-1.5 w-80 rounded-2xl border border-slate-200/90 bg-white/95 p-2 shadow-2xl backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 transition-all duration-200 ease-out z-[60] animate-in fade-in slide-in-from-top-2"
                 >
                   <div className="space-y-1">
                     {/* Produk Fisik & Kuliner */}
@@ -587,7 +587,7 @@ export function DesktopHeader() {
               {activeDropdown === 'help' && (
                 <div
                   role="menu"
-                  className="absolute left-0 top-full mt-1.5 w-72 rounded-2xl border border-slate-200/90 bg-white/95 p-2 shadow-2xl backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 transition-all duration-200 ease-out z-50 animate-in fade-in slide-in-from-top-2"
+                  className="absolute left-0 top-full mt-1.5 w-72 rounded-2xl border border-slate-200/90 bg-white/95 p-2 shadow-2xl backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 transition-all duration-200 ease-out z-[60] animate-in fade-in slide-in-from-top-2"
                 >
                   <div className="space-y-1">
                     {/* Panduan Toko & Pembeli */}
