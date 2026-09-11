@@ -9,11 +9,20 @@ import {
   Lock,
   Home,
   Store,
+  MapPin,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { checkStoreStatus, type StoreStatus } from "@/lib/storeStatus";
-import type { StoreHours, VacationMode, ProductVariation } from "@/types";
+import type {
+  StoreHours,
+  VacationMode,
+  ProductVariation,
+  BusinessType,
+  PriceModel,
+  ServiceAction,
+} from "@/types";
 import { WhatsAppOrderModal } from "./WhatsAppOrderModal";
 import { trackWhatsAppClick } from "@/lib/analytics";
 import { formatRupiah } from "@/lib/utils";
@@ -34,6 +43,10 @@ export interface OrderSectionProps {
   vendorSlug?: string;
   isVariable?: boolean;
   variations?: ProductVariation[];
+  businessType?: BusinessType;
+  priceModel?: PriceModel;
+  serviceAction?: ServiceAction;
+  serviceAreas?: string[];
 }
 
 export function OrderSection({
@@ -52,6 +65,10 @@ export function OrderSection({
   vendorSlug,
   isVariable,
   variations,
+  businessType = "product",
+  priceModel = "fixed",
+  serviceAction = "consultation",
+  serviceAreas = [],
 }: OrderSectionProps) {
   const [storeStatus, setStoreStatus] =
     useState<StoreStatus>(initialStoreStatus);
@@ -94,6 +111,31 @@ export function OrderSection({
     `Halo ${vendorName || "Admin"}, saya ingin bertanya mengenai produk ini dari *Mas Chan Digital*:\n\n📦 *Produk:* ${productName}${activeVariation ? `\n🏷️ *Varian:* ${activeVariation.name}\n💰 *Harga:* ${formatRupiah(effectivePrice)}` : ""}\n🔗 *Link:* ${productUrl}\n\nTerima kasih!`,
   )}`;
 
+  const getServiceMessage = () => {
+    let actionHeader = "ingin berkonsultasi mengenai layanan jasa";
+    if (serviceAction === "appointment") {
+      actionHeader = "ingin memanggil teknisi / membuat janji temu untuk layanan";
+    } else if (serviceAction === "reservation") {
+      actionHeader = "ingin mengecek jadwal dan reservasi untuk layanan";
+    }
+
+    let tarifInfo = "";
+    if (priceModel === "consultation") {
+      tarifInfo = "Konsultasi Tarif / Sesuai Survei";
+    } else if (priceModel === "starting_at") {
+      tarifInfo = `Mulai dari ${formatRupiah(unitPrice)}`;
+    } else {
+      tarifInfo = formatRupiah(unitPrice);
+    }
+
+    const areasText =
+      serviceAreas && serviceAreas.length > 0
+        ? `\n📍 *Cakupan Layanan:* Kec. ${serviceAreas.join(", ")}`
+        : "";
+
+    return `Halo ${vendorName || "Penyedia Jasa"}, saya ${actionHeader} dari *Mas Chan Digital*:\n\n🛠️ *Layanan:* ${productName}\n💰 *Skema Tarif:* ${tarifInfo}${areasText}\n🔗 *Link:* ${productUrl}\n\nMohon info ketersediaan jadwal atau konsultasi lebih lanjut. Terima kasih!`;
+  };
+
   return (
     <>
       {/* Store Status Notification (Vacation / Closed Hours) */}
@@ -132,7 +174,7 @@ export function OrderSection({
       ) : null}
 
       {/* Pilihan Varian Produk (Variable Products) */}
-      {hasVariations && variations && variations.length > 0 && (
+      {hasVariations && businessType !== "service" && variations && variations.length > 0 && (
         <div className="space-y-3 bg-slate-50/80 dark:bg-slate-900/60 p-4 border border-slate-200 dark:border-slate-800 rounded-2xl">
           <div className="flex items-center justify-between">
             <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">
@@ -276,8 +318,50 @@ export function OrderSection({
               </a>
             )}
           </>
+        ) : businessType === "service" ? (
+          /* 2. LAYANAN JASA DIRECT WHATSAPP */
+          <a
+            href={`https://wa.me/${normalizedPhone}?text=${encodeURIComponent(getServiceMessage())}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => {
+              trackWhatsAppClick({
+                vendorName,
+                productId: productId ? String(productId) : undefined,
+                productName,
+                kecamatan: serviceAreas?.[0] || "Kota Serang",
+              });
+            }}
+            className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp-500 w-full"
+            aria-label={`Hubungi penyedia jasa ${productName} via WhatsApp`}
+          >
+            <Button
+              type="button"
+              variant="whatsapp"
+              size="lg"
+              fullWidth
+              className="shadow-card-hover py-4 font-bold text-sm sm:text-base flex items-center justify-center gap-2"
+            >
+              {serviceAction === "appointment" ? (
+                <>
+                  <MapPin className="w-5 h-5 text-white shrink-0" aria-hidden="true" />
+                  <span>📍 Panggil Teknisi / Buat Janji Temu</span>
+                </>
+              ) : serviceAction === "reservation" ? (
+                <>
+                  <Calendar className="w-5 h-5 text-white shrink-0" aria-hidden="true" />
+                  <span>📅 Cek Jadwal & Reservasi</span>
+                </>
+              ) : (
+                <>
+                  <MessageCircle className="w-5 h-5 text-white fill-white shrink-0" aria-hidden="true" />
+                  <span>💬 Konsultasi Kebutuhan Jasa</span>
+                </>
+              )}
+            </Button>
+          </a>
         ) : isOutOfStock ? (
-          /* 2. VARIAN HABIS */
+          /* 3. VARIAN HABIS */
           <Button
             type="button"
             variant="outline"
@@ -289,7 +373,7 @@ export function OrderSection({
             <span>Varian Ini Sedang Habis</span>
           </Button>
         ) : (
-          /* 3. PRODUK DIRECT WHATSAPP */
+          /* 4. PRODUK DIRECT WHATSAPP */
           <Button
             type="button"
             variant="whatsapp"
@@ -309,7 +393,7 @@ export function OrderSection({
       </div>
 
       {/* WhatsAppOrderModal */}
-      {!isAffiliate && (
+      {!isAffiliate && businessType !== "service" && (
         <WhatsAppOrderModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
@@ -431,6 +515,49 @@ export function OrderSection({
                     </Button>
                   </a>
                 ) : null
+              ) : businessType === "service" ? (
+                <a
+                  href={`https://wa.me/${normalizedPhone}?text=${encodeURIComponent(getServiceMessage())}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => {
+                    trackWhatsAppClick({
+                      vendorName,
+                      productId: productId ? String(productId) : undefined,
+                      productName,
+                      kecamatan: serviceAreas?.[0] || "Kota Serang",
+                    });
+                  }}
+                  className="block w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp-500 rounded-xl"
+                  aria-label={`Hubungi penyedia jasa ${productName} via WhatsApp`}
+                >
+                  <Button
+                    type="button"
+                    variant="whatsapp"
+                    size="md"
+                    fullWidth
+                    className="font-bold text-xs sm:text-sm py-2.5 h-auto shadow-sm flex items-center justify-between px-3 w-full"
+                  >
+                    <div className="flex flex-col items-start leading-none text-left">
+                      <span className="text-[10px] opacity-90 block truncate max-w-[140px]">
+                        {serviceAction === "appointment"
+                          ? "Panggil Teknisi"
+                          : serviceAction === "reservation"
+                            ? "Reservasi Jadwal"
+                            : "Konsultasi Jasa"}
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold block mt-0.5">
+                        {priceModel === "consultation"
+                          ? "Konsultasi Tarif"
+                          : formatRupiah(unitPrice)}
+                      </span>
+                    </div>
+                    <MessageCircle
+                      className="fill-white w-5 h-5 ml-2 shrink-0"
+                      aria-hidden="true"
+                    />
+                  </Button>
+                </a>
               ) : isOutOfStock ? (
                 <Button
                   variant="outline"

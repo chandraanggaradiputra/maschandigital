@@ -13,8 +13,18 @@ import {
   Plus,
   Trash2,
   Layers,
+  Wrench,
 } from "lucide-react";
-import { Product, ProductType, ProductCategory, ProductVariation } from "@/types";
+import {
+  Product,
+  ProductType,
+  ProductCategory,
+  ProductVariation,
+  BusinessType,
+  PriceModel,
+  ServiceAction,
+} from "@/types";
+import { KECAMATAN_LIST } from "@/lib/constants/serangDistricts";
 import { Button } from "@/components/ui/Button";
 import { MediaUploader } from "@/components/forms/MediaUploader";
 import {
@@ -50,6 +60,30 @@ export function ProductForm({
   );
   const [description, setDescription] = useState(
     initialData?.description || "",
+  );
+
+  // Service Commerce & Classification State
+  const [businessType, setBusinessType] = useState<BusinessType>(() => {
+    if (initialData?.business_type) return initialData.business_type;
+    if (
+      initialData?.categories?.some(
+        (c) =>
+          c.name.toLowerCase().includes("jasa") ||
+          c.slug.toLowerCase().includes("jasa"),
+      )
+    ) {
+      return "service";
+    }
+    return "product";
+  });
+  const [priceModel, setPriceModel] = useState<PriceModel>(
+    initialData?.price_model || "fixed",
+  );
+  const [serviceAction, setServiceAction] = useState<ServiceAction>(
+    initialData?.service_action || "consultation",
+  );
+  const [serviceAreas, setServiceAreas] = useState<string[]>(
+    initialData?.service_areas || [],
   );
 
   // Hierarchical Categories State
@@ -187,6 +221,24 @@ export function ProductForm({
     loadCats();
   }, [initialData?.categories]);
 
+  const handleSelectBusinessType = (type: BusinessType) => {
+    setBusinessType(type);
+    if (type === "service") {
+      setIsVariable(false);
+      const jasaCategory = flatCategories.find(
+        (c) =>
+          c.name.toLowerCase().includes("jasa") ||
+          c.slug.toLowerCase().includes("jasa"),
+      );
+      if (jasaCategory) {
+        setSelectedParentId(jasaCategory.id);
+        setSelectedCategoryIds((prev) =>
+          prev.includes(jasaCategory.id) ? prev : [...prev, jasaCategory.id],
+        );
+      }
+    }
+  };
+
   const handleSelectParentCategory = (parentId: number) => {
     setSelectedParentId(parentId);
     // Masukkan parent category ID ke daftar kategori terpilih
@@ -239,7 +291,7 @@ export function ProductForm({
     setSuccessMessage("");
     setErrorMessage("");
 
-    if (isVariable) {
+    if (businessType === "product" && isVariable) {
       if (variations.length < 2) {
         setErrorMessage("Produk variasi wajib memiliki minimal 2 pilihan varian.");
         setIsSubmitting(false);
@@ -262,31 +314,62 @@ export function ProductForm({
       }
     }
 
+    if (
+      businessType === "service" &&
+      priceModel !== "consultation" &&
+      (!regularPrice || Number(regularPrice) <= 0)
+    ) {
+      setErrorMessage("Tarif layanan wajib diisi lebih dari Rp 0.");
+      setIsSubmitting(false);
+      return;
+    }
+
     const minVarPrice =
-      isVariable && variations.length > 0
+      businessType === "product" && isVariable && variations.length > 0
         ? Math.min(...variations.map((v) => Number(v.price) || 0))
         : 0;
 
+    const calculatedRegularPrice =
+      businessType === "service"
+        ? priceModel === "consultation"
+          ? "0"
+          : regularPrice
+        : isVariable
+          ? String(minVarPrice)
+          : regularPrice;
+
+    const calculatedSalePrice =
+      businessType === "service"
+        ? ""
+        : isVariable
+          ? ""
+          : onSale
+            ? salePrice
+            : "";
+
     const payload = {
       name,
+      business_type: businessType,
+      price_model: businessType === "service" ? priceModel : "fixed",
+      service_action:
+        businessType === "service" ? serviceAction : "consultation",
+      service_areas: businessType === "service" ? serviceAreas : [],
       type:
         productType === "affiliate"
           ? "affiliate"
-          : isVariable
+          : businessType === "product" && isVariable
             ? "variable"
             : "simple",
-      is_variable: isVariable,
-      variations: isVariable ? variations : [],
-      regular_price: isVariable ? String(minVarPrice) : regularPrice,
-      sale_price: isVariable ? "" : onSale ? salePrice : "",
-      on_sale: isVariable ? false : onSale,
+      is_variable: businessType === "product" && isVariable,
+      variations:
+        businessType === "product" && isVariable ? variations : [],
+      regular_price: calculatedRegularPrice,
+      sale_price: calculatedSalePrice,
+      on_sale:
+        businessType === "product" && !isVariable ? onSale : false,
       short_description: shortDesc,
       description,
       category_ids: selectedCategoryIds,
-      // Index 0 SELALU dicadangkan untuk foto utama (dipakai backend untuk
-      // resolve thumbnail) — kalau foto utama kosong tapi galeri ada isinya,
-      // tetap kirim placeholder kosong di index 0 supaya galeri tidak ikut
-      // terpotong/salah tafsir sebagai foto utama oleh backend.
       images:
         imageUrl || galleryImages.length > 0
           ? [
@@ -368,6 +451,276 @@ export function ProductForm({
         </aside>
       )}
 
+      {/* 0. KLASIFIKASI: PRODUK FISIK VS LAYANAN JASA */}
+      <section
+        aria-labelledby="classification-heading"
+        className="space-y-4 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 rounded-3xl"
+      >
+        <div>
+          <h2
+            id="classification-heading"
+            className="font-slab font-bold text-slate-900 dark:text-white text-lg"
+          >
+            Jenis Penawaran Toko <span className="text-rose-500">*</span>
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
+            Pilih apakah Anda menawarkan produk fisik (barang/kuliner) atau layanan jasa (panggilan/reparasi/keahlian)
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+          <button
+            type="button"
+            onClick={() => handleSelectBusinessType("product")}
+            className={cn(
+              "flex items-start gap-3.5 p-4 rounded-2xl border-2 text-left transition-all",
+              businessType === "product"
+                ? "border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-950 dark:text-emerald-100 shadow-sm"
+                : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-400"
+            )}
+          >
+            <div
+              className={cn(
+                "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-2xl",
+                businessType === "product"
+                  ? "bg-emerald-600 text-white"
+                  : "bg-slate-100 dark:bg-slate-800"
+              )}
+            >
+              🛍️
+            </div>
+            <div>
+              <p className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
+                Produk Fisik / Kuliner
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                Untuk barang, makanan, minuman, kerajinan, fashion, atau produk dengan pilihan variasi & stok.
+              </p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleSelectBusinessType("service")}
+            className={cn(
+              "flex items-start gap-3.5 p-4 rounded-2xl border-2 text-left transition-all",
+              businessType === "service"
+                ? "border-sky-600 bg-sky-50/50 dark:bg-sky-950/20 text-sky-950 dark:text-sky-100 shadow-sm"
+                : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-600 dark:text-slate-400"
+            )}
+          >
+            <div
+              className={cn(
+                "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-2xl",
+                businessType === "service"
+                  ? "bg-sky-600 text-white"
+                  : "bg-slate-100 dark:bg-slate-800"
+              )}
+            >
+              🛠️
+            </div>
+            <div>
+              <p className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
+                Layanan Jasa & Keahlian
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                Untuk servis AC, konstruksi/kanopi, legalitas, perbaikan, desain, atau jasa panggilan di Kota Serang.
+              </p>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      {/* KONFIGURASI KHUSUS LAYANAN JASA */}
+      {businessType === "service" && (
+        <section
+          aria-labelledby="service-config-heading"
+          className="space-y-6 bg-white dark:bg-surface-darkCard shadow-subtle p-6 sm:p-8 border border-sky-200 dark:border-sky-900/60 rounded-3xl animate-in fade-in duration-200"
+        >
+          <header className="flex items-center gap-2.5 pb-4 border-slate-100 dark:border-slate-800 border-b">
+            <div className="flex justify-center items-center bg-sky-100 dark:bg-sky-950/80 rounded-xl w-8 h-8 font-bold text-sky-700 dark:text-sky-400">
+              <Wrench className="w-4 h-4" />
+            </div>
+            <div>
+              <h2
+                id="service-config-heading"
+                className="font-slab font-bold text-slate-900 dark:text-white text-lg"
+              >
+                Pengaturan Layanan Jasa Kota Serang
+              </h2>
+              <p className="text-slate-500 dark:text-slate-400 text-xs">
+                Tentukan skema tarif, tombol aksi WhatsApp pemesanan, dan wilayah jangkauan kecamatan
+              </p>
+            </div>
+          </header>
+
+          {/* Model Tarif / Skema Biaya */}
+          <div className="space-y-3">
+            <label className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+              Skema Tarif Layanan <span className="text-rose-500">*</span>
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                {
+                  id: "starting_at",
+                  label: "Mulai Dari (Starting At)",
+                  desc: "Cocok jika biaya dasar jelas namun bisa bertambah tergantung tingkat kesulitan.",
+                },
+                {
+                  id: "consultation",
+                  label: "Konsultasi / Sesuai Survei",
+                  desc: "Tarif dinamis berdasarkan survei lapangan atau kesepakatan via WhatsApp.",
+                },
+                {
+                  id: "fixed",
+                  label: "Tarif Tetap (Fixed Price)",
+                  desc: "Biaya jasa sudah pasti per kunjungan, per tindakan, atau per unit.",
+                },
+              ].map((m) => (
+                <label
+                  key={m.id}
+                  className={cn(
+                    "flex flex-col p-4 rounded-2xl border cursor-pointer transition-all text-left",
+                    priceModel === m.id
+                      ? "border-sky-500 bg-sky-50/50 dark:bg-sky-950/30 text-sky-950 dark:text-sky-100 ring-2 ring-sky-500/20"
+                      : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                      {m.label}
+                    </span>
+                    <input
+                      type="radio"
+                      name="priceModel"
+                      value={m.id}
+                      checked={priceModel === m.id}
+                      onChange={() => setPriceModel(m.id as PriceModel)}
+                      className="text-sky-600 focus:ring-sky-500"
+                    />
+                  </div>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    {m.desc}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Tipe Aksi Pemesanan WhatsApp */}
+          <div className="space-y-3">
+            <label className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+              Tombol Aksi WhatsApp (Call To Action) <span className="text-rose-500">*</span>
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                {
+                  id: "appointment",
+                  label: "📍 Panggil Teknisi / Buat Janji",
+                  desc: "Cocok untuk servis AC, reparasi ke rumah/lokasi pelanggan.",
+                },
+                {
+                  id: "reservation",
+                  label: "📅 Cek Jadwal & Reservasi",
+                  desc: "Cocok untuk salon, sewa studio, fotografer, booking slot.",
+                },
+                {
+                  id: "consultation",
+                  label: "💬 Konsultasi Kebutuhan Jasa",
+                  desc: "Cocok untuk pembuatan kanopi, legalitas, desain & proyek custom.",
+                },
+              ].map((a) => (
+                <label
+                  key={a.id}
+                  className={cn(
+                    "flex flex-col p-4 rounded-2xl border cursor-pointer transition-all text-left",
+                    serviceAction === a.id
+                      ? "border-sky-500 bg-sky-50/50 dark:bg-sky-950/30 text-sky-950 dark:text-sky-100 ring-2 ring-sky-500/20"
+                      : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                      {a.label}
+                    </span>
+                    <input
+                      type="radio"
+                      name="serviceAction"
+                      value={a.id}
+                      checked={serviceAction === a.id}
+                      onChange={() => setServiceAction(a.id as ServiceAction)}
+                      className="text-sky-600 focus:ring-sky-500"
+                    />
+                  </div>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    {a.desc}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Cakupan Wilayah Kecamatan Kota Serang */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                Wilayah Cakupan Kerja di Kota Serang
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  if (serviceAreas.length === KECAMATAN_LIST.length) {
+                    setServiceAreas([]);
+                  } else {
+                    setServiceAreas([...KECAMATAN_LIST]);
+                  }
+                }}
+                className="text-xs text-sky-600 dark:text-sky-400 hover:underline font-semibold"
+              >
+                {serviceAreas.length === KECAMATAN_LIST.length
+                  ? "Batalkan Semua"
+                  : "Pilih Seluruh Kota Serang"}
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Centang wilayah kecamatan yang dapat Anda jangkau untuk pekerjaan ini:
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              {KECAMATAN_LIST.map((kec) => {
+                const isChecked = serviceAreas.includes(kec);
+                return (
+                  <label
+                    key={kec}
+                    className={cn(
+                      "flex items-center gap-2.5 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-colors",
+                      isChecked
+                        ? "border-sky-500 bg-sky-50/70 dark:bg-sky-950/40 text-sky-900 dark:text-sky-200 shadow-2xs"
+                        : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setServiceAreas((prev) => [...prev, kec]);
+                        } else {
+                          setServiceAreas((prev) =>
+                            prev.filter((k) => k !== kec),
+                          );
+                        }
+                      }}
+                      className="rounded border-slate-300 text-sky-600 focus:ring-sky-500 w-4 h-4"
+                    />
+                    <span>{kec}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* 1. INFORMASI DASAR */}
       <section
         aria-labelledby="basic-info-heading"
@@ -382,10 +735,14 @@ export function ProductForm({
               id="basic-info-heading"
               className="font-slab font-bold text-slate-900 dark:text-white text-lg"
             >
-              Informasi Dasar Produk
+              {businessType === "service"
+                ? "Informasi Dasar Layanan Jasa"
+                : "Informasi Dasar Produk"}
             </h2>
             <p className="text-slate-500 dark:text-slate-400 text-xs">
-              Judul, kategori checkbox, dan deskripsi produk Anda
+              {businessType === "service"
+                ? "Nama layanan jasa, kategori, dan deskripsi keahlian Anda"
+                : "Judul, kategori checkbox, dan deskripsi produk Anda"}
             </p>
           </div>
         </header>
@@ -396,7 +753,10 @@ export function ProductForm({
               htmlFor="product-name"
               className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm"
             >
-              Nama Produk <span className="text-rose-500">*</span>
+              {businessType === "service"
+                ? "Nama Layanan Jasa"
+                : "Nama Produk"}{" "}
+              <span className="text-rose-500">*</span>
             </label>
             <input
               id="product-name"
@@ -404,7 +764,11 @@ export function ProductForm({
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Contoh: Madu Akasia Asli Serang 500g"
+              placeholder={
+                businessType === "service"
+                  ? "Contoh: Jasa Pasang & Service AC Serang"
+                  : "Contoh: Madu Akasia Asli Serang 500g"
+              }
               className="bg-slate-50 dark:bg-slate-900 px-4 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm"
             />
           </div>
@@ -622,7 +986,8 @@ export function ProductForm({
         </header>
 
         <div className="space-y-4">
-          {productType !== "affiliate" && (
+          {/* Opsi Produk Fisik: Pilihan Varian */}
+          {businessType === "product" && productType !== "affiliate" && (
             <div className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200/80 dark:border-slate-800">
               <div className="flex items-center justify-between gap-4">
                 <div className="space-y-0.5">
@@ -753,7 +1118,8 @@ export function ProductForm({
             </div>
           )}
 
-          {!isVariable && (
+          {/* Harga Produk Fisik (Simple) */}
+          {businessType === "product" && !isVariable && (
             <div className="gap-4 grid grid-cols-1 sm:grid-cols-2">
               <div>
                 <label
@@ -801,6 +1167,53 @@ export function ProductForm({
                   className="bg-slate-50 dark:bg-slate-900 disabled:opacity-40 px-4 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm"
                 />
               </div>
+            </div>
+          )}
+
+          {/* Tarif Layanan Jasa */}
+          {businessType === "service" && (
+            <div>
+              {priceModel === "consultation" ? (
+                <div className="p-4 bg-sky-50/70 dark:bg-sky-950/40 rounded-2xl border border-sky-200 dark:border-sky-800 text-sky-900 dark:text-sky-200 space-y-1">
+                  <p className="font-bold text-sm flex items-center gap-2">
+                    <span>💬</span> Tarif Konsultasi / Survei (Sesuai Kesepakatan)
+                  </p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Anda telah memilih skema konsultasi. Layanan akan tampil dengan label <strong>&quot;Konsultasi Tarif&quot;</strong> di etalase dan halaman detail. Pembeli akan mendiskusikan biaya langsung melalui WhatsApp.
+                  </p>
+                </div>
+              ) : (
+                <div className="max-w-md">
+                  <label
+                    htmlFor="service-regular-price"
+                    className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm"
+                  >
+                    {priceModel === "starting_at"
+                      ? "Tarif Mulai Dari (Rp)"
+                      : "Biaya / Tarif Tetap (Rp)"}{" "}
+                    <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    id="service-regular-price"
+                    type="number"
+                    required
+                    min={1}
+                    value={regularPrice}
+                    onChange={(e) => setRegularPrice(e.target.value)}
+                    placeholder={
+                      priceModel === "starting_at"
+                        ? "Contoh: 50000"
+                        : "Contoh: 150000"
+                    }
+                    className="bg-slate-50 dark:bg-slate-900 px-4 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm"
+                  />
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    {priceModel === "starting_at"
+                      ? "* Di etalase akan tampil sebagai 'Mulai dari Rp ...'"
+                      : "* Tarif pasti yang berlaku untuk layanan ini."}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

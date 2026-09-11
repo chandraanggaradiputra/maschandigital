@@ -47,6 +47,9 @@ export interface ProductVariation {
 }
 
 export type ProductType = "simple" | "external" | "affiliate" | "variable";
+export type BusinessType = "product" | "service";
+export type PriceModel = "fixed" | "starting_at" | "consultation";
+export type ServiceAction = "appointment" | "reservation" | "consultation";
 
 export interface Product {
   id: number;
@@ -54,6 +57,10 @@ export interface Product {
   slug: string;
   permalink?: string;
   type: ProductType;
+  business_type?: BusinessType;
+  price_model?: PriceModel;
+  service_areas?: string[];
+  service_action?: ServiceAction;
   status: "publish" | "draft" | "pending";
   featured?: boolean;
   is_variable?: boolean;
@@ -80,6 +87,32 @@ export interface Product {
   created_at?: string;
   total_sales?: number;
   reviews_data?: ProductReviewsData;
+}
+
+export interface BankAccount {
+  bank: string;
+  account_number: string;
+  holder_name: string;
+}
+
+export interface SocialMediaItem {
+  platform: string;
+  url: string;
+}
+
+export interface FAQItem {
+  question: string;
+  answer: string;
+}
+
+export interface SiteSettings {
+  cs_whatsapp: string;
+  cs_email: string;
+  address: string;
+  top_announcement?: string;
+  bank_accounts: BankAccount[];
+  social_media: SocialMediaItem[];
+  faqs?: FAQItem[];
 }
 
 export interface StoreHoursDay {

@@ -70,7 +70,15 @@ export function ProductCard({
   );
 
   let displayedPrice = hasSale ? formattedSalePrice : formattedRegularPrice;
-  if (isVariable && priceRange && priceRange.min > 0) {
+  if (product.business_type === "service") {
+    if (product.price_model === "consultation") {
+      displayedPrice = "Konsultasi Tarif";
+    } else if (product.price_model === "starting_at") {
+      displayedPrice = `Mulai ${formatRupiah(product.regular_price || product.price)}`;
+    } else {
+      displayedPrice = formatRupiah(product.regular_price || product.price);
+    }
+  } else if (isVariable && priceRange && priceRange.min > 0) {
     if (priceRange.min === priceRange.max) {
       displayedPrice = formatRupiah(priceRange.min);
     } else {
@@ -204,7 +212,15 @@ export function ProductCard({
             </Badge>
           ) : null}
 
-          {isVariable && (
+          {product.business_type === "service" ? (
+            <Badge
+              variant="primary"
+              className="bg-sky-600 shadow-sm font-bold text-white text-[10px]"
+              suppressHydrationWarning
+            >
+              <span>🛠️ LAYANAN JASA</span>
+            </Badge>
+          ) : isVariable ? (
             <Badge
               variant="primary"
               className="bg-[#093c96] shadow-sm font-bold text-white text-[10px]"
@@ -212,7 +228,7 @@ export function ProductCard({
             >
               <span>PILIHAN VARIAN</span>
             </Badge>
-          )}
+          ) : null}
         </div>
       </figure>
 
@@ -300,7 +316,7 @@ export function ProductCard({
             <span className="font-slab font-black text-brand-800 dark:text-brand-400 text-base @[300px]:text-lg">
               {displayedPrice}
             </span>
-            {!isVariable && hasSale && (
+            {!isVariable && product.business_type !== "service" && hasSale && (
               <>
                 <span className="sr-only">Harga sebelum diskon:</span>
                 <del className="text-slate-400 dark:text-slate-500 text-xs line-through">
@@ -358,6 +374,25 @@ export function ProductCard({
               />
               <span>Toko Sedang Tutup</span>
             </Button>
+          ) : product.business_type === "service" ? (
+            <Link
+              href={`/products/${product.slug}`}
+              className="flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              aria-label={`Lihat layanan ${product.name}`}
+            >
+              <Button
+                variant="whatsapp"
+                size="sm"
+                fullWidth
+                className="text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white"
+              >
+                <MessageCircle
+                  className="fill-white mr-1 w-4 h-4"
+                  aria-hidden="true"
+                />
+                <span>Konsultasi Jasa</span>
+              </Button>
+            </Link>
           ) : isVariable ? (
             <Link
               href={`/products/${product.slug}`}

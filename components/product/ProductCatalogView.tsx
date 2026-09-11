@@ -47,6 +47,10 @@ export function ProductCatalogView({
       : rawSort === "price-desc"
         ? "price_desc"
         : rawSort;
+  const rawType =
+    searchParams.get("type") || searchParams.get("business_type") || "all";
+  const initialBusinessType: "all" | "product" | "service" =
+    rawType === "service" || rawType === "product" ? rawType : "all";
 
   // Resolusi Kategori Utama (Parent Category)
   const parentCategories = useMemo(
@@ -87,6 +91,18 @@ export function ProductCatalogView({
   const [selectedDistrict, setSelectedDistrict] = useState<string>(initialDistrict);
   const [sortBy, setSortBy] = useState<string>(initialSort);
   const [onlyOpenStores, setOnlyOpenStores] = useState<boolean>(false);
+  const [selectedBusinessType, setSelectedBusinessType] =
+    useState<"all" | "product" | "service">(initialBusinessType);
+
+  // Hitung jumlah produk fisik dan layanan jasa
+  const productCount = useMemo(
+    () => initialProducts.filter((p) => p.business_type !== "service").length,
+    [initialProducts],
+  );
+  const serviceCount = useMemo(
+    () => initialProducts.filter((p) => p.business_type === "service").length,
+    [initialProducts],
+  );
 
   // Sinkronkan state lokal saat URL searchParams berubah (navigasi eksternal/back-forward)
   const currentParamsString = searchParams.toString();
@@ -100,6 +116,10 @@ export function ProductCatalogView({
     const catParam =
       searchParams.get("category") || searchParams.get("kategori") || "semua";
     const sortParam = searchParams.get("sort") || "recommended";
+    const typeParam =
+      searchParams.get("type") || searchParams.get("business_type") || "all";
+    const resolvedType: "all" | "product" | "service" =
+      typeParam === "service" || typeParam === "product" ? typeParam : "all";
 
     setSearchQuery(qParam);
     setSelectedDistrict(
@@ -108,6 +128,7 @@ export function ProductCatalogView({
         : "Semua Kecamatan",
     );
     setSelectedCategory(catParam);
+    setSelectedBusinessType(resolvedType);
 
     if (catParam === "semua" || !catParam) {
       setSelectedParentId(0);
@@ -141,8 +162,15 @@ export function ProductCatalogView({
 
   // Update URL searchParams tanpa me-refresh halaman
   const updateUrlParams = useCallback(
-    (newQ: string, newDist: string, newCat: string, newSort: string) => {
+    (
+      newQ: string,
+      newDist: string,
+      newCat: string,
+      newSort: string,
+      newType: "all" | "product" | "service" = selectedBusinessType,
+    ) => {
       const params = new URLSearchParams();
+      if (newType && newType !== "all") params.set("type", newType);
       if (newQ.trim()) params.set("q", newQ.trim());
       if (newDist && newDist !== "Semua Kecamatan" && newDist !== "Semua") {
         params.set("kecamatan", newDist);
@@ -158,12 +186,31 @@ export function ProductCatalogView({
       const targetUrl = queryString ? `${pathname}?${queryString}` : pathname;
       router.replace(targetUrl, { scroll: false });
     },
-    [pathname, router],
+    [pathname, router, selectedBusinessType],
   );
+
+  const handleBusinessTypeChange = (
+    newType: "all" | "product" | "service",
+  ) => {
+    setSelectedBusinessType(newType);
+    updateUrlParams(
+      searchQuery,
+      selectedDistrict,
+      selectedCategory,
+      sortBy,
+      newType,
+    );
+  };
 
   const handleSearchChange = (val: string) => {
     setSearchQuery(val);
-    updateUrlParams(val, selectedDistrict, selectedCategory, sortBy);
+    updateUrlParams(
+      val,
+      selectedDistrict,
+      selectedCategory,
+      sortBy,
+      selectedBusinessType,
+    );
   };
 
   const handleParentChange = (pId: number) => {
@@ -209,11 +256,6 @@ export function ProductCatalogView({
     updateUrlParams(searchQuery, selectedDistrict, selectedCategory, newSort);
   };
 
-  // Cek apakah data kategori memiliki struktur hierarki parent-child murni WCFM/WooCommerce
-  const hasHierarchy = useMemo(() => {
-    return categories.some((c) => c.parent && Number(c.parent) > 0);
-  }, [categories]);
-
   // Ambil kategori induk aktif untuk menampilkan subkategori dinamis
   const activeParentCategory = useMemo(() => {
     if (selectedParentId > 0) {
@@ -246,6 +288,13 @@ export function ProductCatalogView({
   // Filter & Sort Logic di Sisi Klien
   const filteredProducts = useMemo(() => {
     let result = [...initialProducts];
+
+    // 0. Filter Tipe Bisnis (Produk Fisik vs Layanan Jasa)
+    if (selectedBusinessType === "product") {
+      result = result.filter((p) => p.business_type !== "service");
+    } else if (selectedBusinessType === "service") {
+      result = result.filter((p) => p.business_type === "service");
+    }
 
     // 1. Filter Pencarian Teks (Multi-field: Nama, Deskripsi, Toko, Kategori, Kota)
     if (searchQuery.trim()) {
@@ -409,6 +458,7 @@ export function ProductCatalogView({
     return result;
   }, [
     initialProducts,
+    selectedBusinessType,
     searchQuery,
     selectedCategory,
     selectedParentId,
@@ -420,6 +470,7 @@ export function ProductCatalogView({
   ]);
 
   const handleReset = () => {
+    setSelectedBusinessType("all");
     setSearchQuery("");
     setSelectedCategory("semua");
     setSelectedParentId(0);
@@ -431,6 +482,7 @@ export function ProductCatalogView({
   };
 
   const hasActiveFilter =
+    selectedBusinessType !== "all" ||
     searchQuery !== "" ||
     selectedCategory !== "semua" ||
     selectedParentId !== 0 ||
@@ -444,6 +496,73 @@ export function ProductCatalogView({
     <div className="space-y-6 sm:space-y-8">
       {/* Search & Filter Control Bar */}
       <div className="space-y-4 bg-white dark:bg-surface-darkCard shadow-subtle p-4 sm:p-6 border border-slate-200/80 dark:border-slate-800 rounded-3xl">
+        {/* Business Type Segmented Tabs */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-900/80 rounded-2xl border border-slate-200/60 dark:border-slate-800 overflow-x-auto no-scrollbar">
+          <button
+            type="button"
+            onClick={() => handleBusinessTypeChange("all")}
+            className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+              selectedBusinessType === "all"
+                ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs border border-slate-200/80 dark:border-slate-700"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+            }`}
+            aria-pressed={selectedBusinessType === "all"}
+          >
+            <span>Semua Penawaran</span>
+            <span
+              className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                selectedBusinessType === "all"
+                  ? "bg-blue-100 dark:bg-blue-900/50 text-[#093c96] dark:text-blue-300"
+                  : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+              }`}
+            >
+              {initialProducts.length}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleBusinessTypeChange("product")}
+            className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+              selectedBusinessType === "product"
+                ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs border border-slate-200/80 dark:border-slate-700"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+            }`}
+            aria-pressed={selectedBusinessType === "product"}
+          >
+            <span>🛍️ Produk Fisik</span>
+            <span
+              className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                selectedBusinessType === "product"
+                  ? "bg-blue-100 dark:bg-blue-900/50 text-[#093c96] dark:text-blue-300"
+                  : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+              }`}
+            >
+              {productCount}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleBusinessTypeChange("service")}
+            className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+              selectedBusinessType === "service"
+                ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs border border-blue-200 dark:border-blue-900/80"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+            }`}
+            aria-pressed={selectedBusinessType === "service"}
+          >
+            <span>🛠️ Layanan Jasa</span>
+            <span
+              className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                selectedBusinessType === "service"
+                  ? "bg-blue-100 dark:bg-blue-900/50 text-[#093c96] dark:text-blue-300"
+                  : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+              }`}
+            >
+              {serviceCount}
+            </span>
+          </button>
+        </div>
+
         {/* Search Bar Input */}
         <div className="relative">
           <Search
@@ -454,9 +573,15 @@ export function ProductCatalogView({
             type="search"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Cari produk kuliner, madu akasia, batik banten, nama toko..."
+            placeholder={
+              selectedBusinessType === "service"
+                ? "Cari jasa servis AC, bengkel, kanopi, renovasi, hukum/legalitas..."
+                : selectedBusinessType === "product"
+                  ? "Cari produk kuliner, madu akasia, keripik, batik banten..."
+                  : "Cari produk kuliner, madu akasia, atau layanan jasa di Kota Serang..."
+            }
             className="bg-slate-50 dark:bg-slate-900 py-3 sm:py-3.5 pr-10 pl-11 border border-slate-200 focus:border-[#093c96] dark:border-slate-800 rounded-2xl outline-none focus:ring-1 focus:ring-[#093c96] w-full font-sans text-slate-900 dark:text-white text-sm transition-all"
-            aria-label="Cari produk di Kota Serang"
+            aria-label="Cari produk atau layanan di Kota Serang"
           />
           {searchQuery && (
             <button
@@ -605,6 +730,23 @@ export function ProductCatalogView({
       {/* Active Filter Chips */}
       {hasActiveFilter && (
         <div className="flex flex-wrap items-center gap-2 px-1">
+          {selectedBusinessType !== "all" && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
+              <span>
+                {selectedBusinessType === "service"
+                  ? "🛠️ Layanan Jasa"
+                  : "🛍️ Produk Fisik"}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleBusinessTypeChange("all")}
+                className="hover:text-blue-900 dark:hover:text-blue-100 ml-0.5"
+                aria-label="Hapus filter tipe bisnis"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
           {searchQuery && (
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
               <Search className="w-3.5 h-3.5" />
@@ -627,7 +769,7 @@ export function ProductCatalogView({
                 type="button"
                 onClick={() => {
                   setSelectedDistrict("Semua Kecamatan");
-                  updateUrlParams(searchQuery, "Semua Kecamatan", selectedCategory, sortBy);
+                  updateUrlParams(searchQuery, "Semua Kecamatan", selectedCategory, sortBy, selectedBusinessType);
                 }}
                 className="hover:text-purple-900 dark:hover:text-purple-100 ml-0.5"
                 aria-label="Hapus filter kecamatan"
@@ -646,7 +788,7 @@ export function ProductCatalogView({
                   setSelectedCategory("semua");
                   setSelectedParentId(0);
                   setSelectedSubcategoryId(0);
-                  updateUrlParams(searchQuery, selectedDistrict, "semua", sortBy);
+                  updateUrlParams(searchQuery, selectedDistrict, "semua", sortBy, selectedBusinessType);
                 }}
                 className="hover:text-orange-900 dark:hover:text-orange-100 ml-0.5"
                 aria-label="Hapus filter kategori"
@@ -686,7 +828,12 @@ export function ProductCatalogView({
           <strong className="text-slate-900 dark:text-white">
             {filteredProducts.length}
           </strong>{" "}
-          produk di Kota Serang
+          {selectedBusinessType === "service"
+            ? "layanan jasa"
+            : selectedBusinessType === "product"
+              ? "produk fisik"
+              : "produk & layanan"}{" "}
+          di Kota Serang
           {searchQuery && (
             <span>
               {" "}
@@ -723,12 +870,18 @@ export function ProductCatalogView({
             <Package className="w-7 h-7" aria-hidden="true" />
           </div>
           <h2 className="mb-2 font-bold font-slab text-slate-900 dark:text-white text-lg">
-            Tidak Ada Produk Ditemukan
+            {selectedBusinessType === "service"
+              ? "Tidak Ada Layanan Jasa Ditemukan"
+              : "Tidak Ada Produk Ditemukan"}
           </h2>
           <p className="mx-auto mb-6 max-w-md text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
             {searchQuery
-              ? `Tidak ada produk yang sesuai dengan pencarian "${searchQuery}". Silakan coba kata kunci lain atau reset filter pencarian.`
-              : "Belum ada produk yang sesuai dengan filter yang Anda pilih."}
+              ? `Tidak ada ${
+                  selectedBusinessType === "service"
+                    ? "layanan jasa"
+                    : "produk"
+                } yang sesuai dengan pencarian "${searchQuery}". Silakan coba kata kunci lain atau reset filter pencarian.`
+              : "Belum ada produk atau layanan yang sesuai dengan filter yang Anda pilih."}
           </p>
           <button
             type="button"

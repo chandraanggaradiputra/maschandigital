@@ -321,24 +321,36 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
             <div className="space-y-1 bg-brand-50/70 dark:bg-brand-950/40 p-4 sm:p-5 border border-brand-100 dark:border-brand-900/60 rounded-2xl">
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-brand-800 dark:text-brand-300 text-xs uppercase tracking-wider">
-                  Harga Resmi Vendor
+                  {product.business_type === "service"
+                    ? "Skema Tarif Layanan"
+                    : "Harga Resmi Vendor"}
                 </span>
-                {isVariableProduct && (
+                {product.business_type === "service" ? (
+                  <span className="text-[11px] font-semibold bg-sky-100 dark:bg-sky-900/80 text-sky-800 dark:text-sky-200 px-2.5 py-0.5 rounded-full">
+                    🛠️ Layanan Jasa
+                  </span>
+                ) : isVariableProduct ? (
                   <span className="text-[11px] font-semibold bg-brand-100 dark:bg-brand-900/80 text-brand-800 dark:text-brand-200 px-2 py-0.5 rounded-full">
                     Pilihan Varian
                   </span>
-                )}
+                ) : null}
               </div>
               <div className="flex flex-wrap items-baseline gap-3">
                 <span className="sr-only">Harga: </span>
                 <span className="font-slab font-black text-brand-900 dark:text-brand-400 text-2xl sm:text-3xl">
-                  {isVariableProduct && priceRange && priceRange.min > 0
-                    ? priceRange.min === priceRange.max
-                      ? formatRupiah(priceRange.min)
-                      : `${formatRupiah(priceRange.min)} - ${formatRupiah(priceRange.max)}`
-                    : formatRupiah(currentPrice)}
+                  {product.business_type === "service"
+                    ? product.price_model === "consultation"
+                      ? "Konsultasi Tarif"
+                      : product.price_model === "starting_at"
+                        ? `Mulai dari ${formatRupiah(currentPrice)}`
+                        : formatRupiah(currentPrice)
+                    : isVariableProduct && priceRange && priceRange.min > 0
+                      ? priceRange.min === priceRange.max
+                        ? formatRupiah(priceRange.min)
+                        : `${formatRupiah(priceRange.min)} - ${formatRupiah(priceRange.max)}`
+                      : formatRupiah(currentPrice)}
                 </span>
-                {!isVariableProduct && hasSale && (
+                {product.business_type !== "service" && !isVariableProduct && hasSale && (
                   <>
                     <span className="sr-only">Harga asli: </span>
                     <del className="text-slate-400 text-sm sm:text-base line-through">
@@ -348,10 +360,33 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
                 )}
               </div>
               <p className="pt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                * Transaksi langsung dengan penjual, tanpa biaya admin atau
-                potongan gateway.
+                {product.business_type === "service"
+                  ? "* Konsultasi dan kesepakatan jadwal langsung dengan penyedia jasa via WhatsApp."
+                  : "* Transaksi langsung dengan penjual, tanpa biaya admin atau potongan gateway."}
               </p>
             </div>
+
+            {/* Service Areas Badge Section (Jika Layanan Jasa) */}
+            {product.business_type === "service" &&
+              product.service_areas &&
+              product.service_areas.length > 0 && (
+                <div className="p-4 bg-sky-50/60 dark:bg-sky-950/30 border border-sky-100 dark:border-sky-900/40 rounded-2xl space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-sky-900 dark:text-sky-200">
+                    <MapPin className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                    <span>Wilayah Jangkauan Layanan di Kota Serang:</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {product.service_areas.map((area) => (
+                      <span
+                        key={area}
+                        className="px-2.5 py-1 bg-white dark:bg-slate-800 border border-sky-200 dark:border-sky-800 text-sky-900 dark:text-sky-200 rounded-lg text-xs font-semibold shadow-2xs"
+                      >
+                        📍 Kec. {area}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
             {/* Store Status + Order Actions (Client Component — lihat komentar di OrderSection.tsx) */}
             <OrderSection
@@ -372,6 +407,10 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
               vendorSlug={product.vendor?.slug}
               isVariable={isVariableProduct}
               variations={product.variations}
+              businessType={product.business_type}
+              priceModel={product.price_model}
+              serviceAction={product.service_action}
+              serviceAreas={product.service_areas}
             />
 
             {/* Layanan Direct WhatsApp Chat Drawer Toko */}

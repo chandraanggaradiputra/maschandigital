@@ -412,12 +412,54 @@ function maschan_format_product_data($product_id) {
     if ((empty($raw_regular_price) || $raw_regular_price === '0') && $price_range) {
         $raw_regular_price = (string)$price_range['min'];
     }
+    $business_type = get_post_meta($product_id, '_maschan_business_type', true);
+    $price_model = get_post_meta($product_id, '_maschan_price_model', true);
+    $service_areas_meta = get_post_meta($product_id, '_maschan_service_areas', true);
+    $service_action = get_post_meta($product_id, '_maschan_service_action', true);
+
+    $vendor_store_name = strtolower($vendor_info['store_name'] ?? '');
+    $vendor_slug_lower = strtolower($vendor_info['slug'] ?? '');
+    $is_known_service_vendor = false;
+    $service_vendor_keywords = ['central kanopi', 'prima truss', 'nalaruna', 'fajarcomp'];
+    foreach ($service_vendor_keywords as $kw) {
+        if (strpos($vendor_store_name, $kw) !== false || strpos($vendor_slug_lower, $kw) !== false) {
+            $is_known_service_vendor = true;
+            break;
+        }
+    }
+
+    if (empty($business_type)) {
+        $business_type = $is_known_service_vendor ? 'service' : 'product';
+    }
+    if (empty($price_model)) {
+        $price_model = $business_type === 'service' ? 'starting_at' : 'fixed';
+    }
+    if (empty($service_action)) {
+        $service_action = 'consultation';
+    }
+
+    $service_areas = [];
+    if (!empty($service_areas_meta)) {
+        if (is_array($service_areas_meta)) {
+            $service_areas = $service_areas_meta;
+        } else {
+            $decoded = json_decode($service_areas_meta, true);
+            if (is_array($decoded)) $service_areas = $decoded;
+        }
+    }
+    if (empty($service_areas) && $business_type === 'service') {
+        $service_areas = ['Serang', 'Cipocok Jaya', 'Kasemen', 'Curug', 'Taktakan', 'Walantaka'];
+    }
 
     return [
         'id'                => (int)$product_id,
         'name'              => get_the_title($product_id),
         'slug'              => get_post_field('post_name', $product_id),
         'type'              => $is_external ? 'affiliate' : ($is_var_flag ? 'variable' : 'simple'),
+        'business_type'     => $business_type,
+        'price_model'       => $price_model,
+        'service_areas'     => $service_areas,
+        'service_action'    => $service_action,
         'is_variable'       => $is_var_flag,
         'variations'        => $variations,
         'price_range'       => $price_range,
@@ -452,6 +494,358 @@ function maschan_format_product_data($product_id) {
         ],
         'created_at'        => get_the_date('c', $product_id),
     ];
+}
+
+// 5A-2. MIGRASI OTOMATIS VENDOR JASA EKSISTING
+function maschan_migrate_service_vendors() {
+    if (get_option('maschan_service_vendors_migrated_v1')) {
+        return;
+    }
+
+    $target_vendor_names = [
+        'central kanopi',
+        'prima truss',
+        'nalaruna',
+        'fajarcomp'
+    ];
+
+    $users = get_users(['number' => 200]);
+    $target_user_ids = [];
+    foreach ($users as $user) {
+        $store_name = strtolower(trim(get_user_meta($user->ID, 'store_name', true) ?: (get_user_meta($user->ID, 'wcfmmp_store_name', true) ?: $user->display_name)));
+        $nicename = strtolower(trim($user->user_nicename));
+        $login = strtolower(trim($user->user_login));
+
+        foreach ($target_vendor_names as $target) {
+            if (strpos($store_name, $target) !== false || strpos($nicename, $target) !== false || strpos($login, $target) !== false) {
+                $target_user_ids[] = $user->ID;
+                break;
+            }
+        }
+    }
+
+    if (!empty($target_user_ids)) {
+        $products = get_posts([
+            'post_type'      => 'product',
+            'author__in'     => $target_user_ids,
+            'posts_per_page' => -1,
+            'post_status'    => ['publish', 'draft'],
+            'fields'         => 'ids',
+        ]);
+
+        $serang_districts = ['Serang', 'Cipocok Jaya', 'Kasemen', 'Curug', 'Taktakan', 'Walantaka'];
+
+        foreach ($products as $p_id) {
+            update_post_meta($p_id, '_maschan_business_type', 'service');
+            $curr_pm = get_post_meta($p_id, '_maschan_price_model', true);
+            if (empty($curr_pm)) {
+                update_post_meta($p_id, '_maschan_price_model', 'starting_at');
+            }
+            $curr_act = get_post_meta($p_id, '_maschan_service_action', true);
+            if (empty($curr_act)) {
+                update_post_meta($p_id, '_maschan_service_action', 'consultation');
+            }
+            $curr_areas = get_post_meta($p_id, '_maschan_service_areas', true);
+            if (empty($curr_areas)) {
+                update_post_meta($p_id, '_maschan_service_areas', $serang_districts);
+            }
+        }
+    }
+
+    update_option('maschan_service_vendors_migrated_v1', 1);
+}
+add_action('init', 'maschan_migrate_service_vendors');
+
+// 5A-3. PENGATURAN BISNIS MAS CHAN DIGITAL (OPTIONS PAGE NATIVE)
+function maschan_get_business_settings() {
+    $defaults = [
+        'cs_whatsapp'      => '0822-9814-8474',
+        'cs_email'         => 'admin@maschandigital.id',
+        'address'          => 'Banten Indah Permai Blok E1 No.12A, Kelurahan Unyur, Kota Serang, Banten 42111, Indonesia',
+        'top_announcement' => 'Pusat Direktori & Marketplace UMKM Resmi Kota Serang, Banten',
+        'bank_accounts'    => [
+            [
+                'bank'           => 'BCA (Bank Central Asia)',
+                'account_number' => '2450871123',
+                'holder_name'    => 'Chandra Anggara Diputra',
+            ],
+            [
+                'bank'           => 'Bank Banten',
+                'account_number' => '0100123456',
+                'holder_name'    => 'Mas Chan Digital',
+            ],
+        ],
+        'social_media'     => [
+            ['platform' => 'Instagram', 'url' => 'https://instagram.com/maschandigital'],
+            ['platform' => 'TikTok', 'url' => 'https://tiktok.com/@maschandigital'],
+            ['platform' => 'Facebook', 'url' => 'https://facebook.com/maschandigital'],
+        ],
+        'faqs'             => [
+            [
+                'question' => 'Apakah transaksi di Mas Chan Digital dikenakan potongan biaya?',
+                'answer'   => 'Tidak sama sekali. Mas Chan Digital menghubungkan pembeli langsung ke WhatsApp resmi penjual tanpa biaya admin atau potongan gateway.',
+            ],
+            [
+                'question' => 'Bagaimana cara mendaftar sebagai vendor atau penyedia jasa lokal?',
+                'answer'   => 'Klik tombol Daftar Mitra Toko di bagian atas atau bawah situs, isi formulir profil usaha Anda, dan Anda langsung mendapatkan kuota toko gratis seumur hidup.',
+            ],
+        ],
+    ];
+
+    $saved = get_option('maschan_business_settings');
+    if (!is_array($saved) || empty($saved)) {
+        return $defaults;
+    }
+
+    return wp_parse_args($saved, $defaults);
+}
+
+add_action('admin_menu', function () {
+    add_menu_page(
+        'Pengaturan Mas Chan',
+        'Pengaturan Mas Chan',
+        'manage_options',
+        'maschan-settings',
+        'maschan_render_settings_page',
+        'dashicons-admin-generic',
+        30
+    );
+});
+
+function maschan_render_settings_page() {
+    if (!current_user_can('manage_options')) {
+        wp_die(__('Anda tidak memiliki akses ke halaman ini.'));
+    }
+
+    $message = '';
+    if (isset($_POST['maschan_settings_submit']) && check_admin_referer('maschan_settings_save', 'maschan_settings_nonce')) {
+        $cs_whatsapp = sanitize_text_field($_POST['cs_whatsapp'] ?? '');
+        $cs_email    = sanitize_email($_POST['cs_email'] ?? '');
+        $address     = sanitize_textarea_field($_POST['address'] ?? '');
+        $top_ann     = sanitize_text_field($_POST['top_announcement'] ?? '');
+
+        // Bank Accounts Repeater
+        $bank_accounts = [];
+        if (!empty($_POST['bank_name']) && is_array($_POST['bank_name'])) {
+            $count = count($_POST['bank_name']);
+            for ($i = 0; $i < $count; $i++) {
+                $b_name = sanitize_text_field($_POST['bank_name'][$i] ?? '');
+                $b_acc  = sanitize_text_field($_POST['bank_acc'][$i] ?? '');
+                $b_hold = sanitize_text_field($_POST['bank_holder'][$i] ?? '');
+                if (!empty($b_name) || !empty($b_acc)) {
+                    $bank_accounts[] = [
+                        'bank'           => $b_name,
+                        'account_number' => $b_acc,
+                        'holder_name'    => $b_hold,
+                    ];
+                }
+            }
+        }
+
+        // Social Media Repeater
+        $social_media = [];
+        if (!empty($_POST['social_platform']) && is_array($_POST['social_platform'])) {
+            $count = count($_POST['social_platform']);
+            for ($i = 0; $i < $count; $i++) {
+                $platform = sanitize_text_field($_POST['social_platform'][$i] ?? '');
+                $url      = esc_url_raw($_POST['social_url'][$i] ?? '');
+                if (!empty($platform) || !empty($url)) {
+                    $social_media[] = [
+                        'platform' => $platform,
+                        'url'      => $url,
+                    ];
+                }
+            }
+        }
+
+        // FAQs Repeater
+        $faqs = [];
+        if (!empty($_POST['faq_question']) && is_array($_POST['faq_question'])) {
+            $count = count($_POST['faq_question']);
+            for ($i = 0; $i < $count; $i++) {
+                $q = sanitize_text_field($_POST['faq_question'][$i] ?? '');
+                $a = sanitize_textarea_field($_POST['faq_answer'][$i] ?? '');
+                if (!empty($q) || !empty($a)) {
+                    $faqs[] = [
+                        'question' => $q,
+                        'answer'   => $a,
+                    ];
+                }
+            }
+        }
+
+        $new_settings = [
+            'cs_whatsapp'      => $cs_whatsapp,
+            'cs_email'         => $cs_email,
+            'address'          => $address,
+            'top_announcement' => $top_ann,
+            'bank_accounts'    => $bank_accounts,
+            'social_media'     => $social_media,
+            'faqs'             => $faqs,
+        ];
+
+        update_option('maschan_business_settings', $new_settings);
+        $message = 'Pengaturan berhasil disimpan.';
+    }
+
+    $settings = maschan_get_business_settings();
+    ?>
+    <div class="wrap" style="max-width: 960px;">
+        <h1 style="font-size: 24px; font-weight: 700; margin-bottom: 16px;">Pengaturan Bisnis Mas Chan Digital</h1>
+        <?php if (!empty($message)): ?>
+            <div class="notice notice-success is-dismissible" style="margin-bottom: 20px;"><p><strong><?php echo esc_html($message); ?></strong></p></div>
+        <?php endif; ?>
+
+        <form method="POST" action="">
+            <?php wp_nonce_field('maschan_settings_save', 'maschan_settings_nonce'); ?>
+
+            <div style="background: #fff; padding: 24px; border-radius: 8px; border: 1px solid #ccd0d4; margin-bottom: 24px; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
+                <h2 style="margin-top: 0; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 10px;">Kontak & Alamat Resmi</h2>
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th scope="row"><label for="cs_whatsapp">WhatsApp CS Resmi</label></th>
+                        <td>
+                            <input name="cs_whatsapp" type="text" id="cs_whatsapp" value="<?php echo esc_attr($settings['cs_whatsapp']); ?>" class="regular-text" placeholder="0822-9814-8474" />
+                            <p class="description">Format lokal atau internasional. Digunakan pada footer dan bantuan pelanggan.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="cs_email">Email Resmi Mas Chan</label></th>
+                        <td>
+                            <input name="cs_email" type="email" id="cs_email" value="<?php echo esc_attr($settings['cs_email']); ?>" class="regular-text" placeholder="admin@maschandigital.id" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="address">Alamat Kantor / Studio</label></th>
+                        <td>
+                            <textarea name="address" id="address" rows="3" class="large-text"><?php echo esc_textarea($settings['address']); ?></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="top_announcement">Pengumuman Header (Bar Atas)</label></th>
+                        <td>
+                            <input name="top_announcement" type="text" id="top_announcement" value="<?php echo esc_attr($settings['top_announcement'] ?? ''); ?>" class="large-text" placeholder="Pusat Direktori & Marketplace UMKM Resmi Kota Serang, Banten" />
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div style="background: #fff; padding: 24px; border-radius: 8px; border: 1px solid #ccd0d4; margin-bottom: 24px; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
+                <h2 style="margin-top: 0; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 10px;">Daftar Rekening Bank & Pembayaran</h2>
+                <table class="widefat fixed striped" id="table-bank-accounts" style="margin-bottom: 12px;">
+                    <thead>
+                        <tr>
+                            <th style="width: 30%;">Nama Bank / E-Wallet</th>
+                            <th style="width: 35%;">Nomor Rekening</th>
+                            <th style="width: 25%;">Atas Nama</th>
+                            <th style="width: 10%;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($settings['bank_accounts'])): foreach ($settings['bank_accounts'] as $b): ?>
+                            <tr>
+                                <td><input type="text" name="bank_name[]" value="<?php echo esc_attr($b['bank']); ?>" style="width: 100%;" placeholder="Contoh: BCA / Mandiri" /></td>
+                                <td><input type="text" name="bank_acc[]" value="<?php echo esc_attr($b['account_number']); ?>" style="width: 100%;" placeholder="Nomor Rekening" /></td>
+                                <td><input type="text" name="bank_holder[]" value="<?php echo esc_attr($b['holder_name']); ?>" style="width: 100%;" placeholder="Nama Pemilik" /></td>
+                                <td><button type="button" class="button button-link-delete" onclick="this.closest('tr').remove();">Hapus</button></td>
+                            </tr>
+                        <?php endforeach; else: ?>
+                            <tr>
+                                <td><input type="text" name="bank_name[]" value="" style="width: 100%;" placeholder="BCA" /></td>
+                                <td><input type="text" name="bank_acc[]" value="" style="width: 100%;" placeholder="Nomor Rekening" /></td>
+                                <td><input type="text" name="bank_holder[]" value="" style="width: 100%;" placeholder="Nama Pemilik" /></td>
+                                <td><button type="button" class="button button-link-delete" onclick="this.closest('tr').remove();">Hapus</button></td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+                <button type="button" class="button" id="btn-add-bank">+ Tambah Rekening</button>
+            </div>
+
+            <div style="background: #fff; padding: 24px; border-radius: 8px; border: 1px solid #ccd0d4; margin-bottom: 24px; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
+                <h2 style="margin-top: 0; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 10px;">Tautan Media Sosial</h2>
+                <table class="widefat fixed striped" id="table-social-media" style="margin-bottom: 12px;">
+                    <thead>
+                        <tr>
+                            <th style="width: 35%;">Platform</th>
+                            <th style="width: 55%;">Tautan Profil / URL</th>
+                            <th style="width: 10%;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($settings['social_media'])): foreach ($settings['social_media'] as $s): ?>
+                            <tr>
+                                <td><input type="text" name="social_platform[]" value="<?php echo esc_attr($s['platform']); ?>" style="width: 100%;" placeholder="Instagram / TikTok" /></td>
+                                <td><input type="url" name="social_url[]" value="<?php echo esc_attr($s['url']); ?>" style="width: 100%;" placeholder="https://instagram.com/..." /></td>
+                                <td><button type="button" class="button button-link-delete" onclick="this.closest('tr').remove();">Hapus</button></td>
+                            </tr>
+                        <?php endforeach; endif; ?>
+                    </tbody>
+                </table>
+                <button type="button" class="button" id="btn-add-social">+ Tambah Media Sosial</button>
+            </div>
+
+            <div style="background: #fff; padding: 24px; border-radius: 8px; border: 1px solid #ccd0d4; margin-bottom: 24px; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
+                <h2 style="margin-top: 0; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 10px;">FAQ (Tanya Jawab Umum)</h2>
+                <table class="widefat fixed striped" id="table-faqs" style="margin-bottom: 12px;">
+                    <thead>
+                        <tr>
+                            <th style="width: 40%;">Pertanyaan</th>
+                            <th style="width: 50%;">Jawaban</th>
+                            <th style="width: 10%;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($settings['faqs'])): foreach ($settings['faqs'] as $f): ?>
+                            <tr>
+                                <td><input type="text" name="faq_question[]" value="<?php echo esc_attr($f['question']); ?>" style="width: 100%;" placeholder="Pertanyaan..." /></td>
+                                <td><textarea name="faq_answer[]" rows="2" style="width: 100%;" placeholder="Jawaban..."><?php echo esc_textarea($f['answer']); ?></textarea></td>
+                                <td><button type="button" class="button button-link-delete" onclick="this.closest('tr').remove();">Hapus</button></td>
+                            </tr>
+                        <?php endforeach; endif; ?>
+                    </tbody>
+                </table>
+                <button type="button" class="button" id="btn-add-faq">+ Tambah FAQ</button>
+            </div>
+
+            <p class="submit">
+                <input type="submit" name="maschan_settings_submit" id="submit" class="button button-primary button-large" value="Simpan Seluruh Pengaturan">
+            </p>
+        </form>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('btn-add-bank')?.addEventListener('click', function() {
+            var tbody = document.querySelector('#table-bank-accounts tbody');
+            var tr = document.createElement('tr');
+            tr.innerHTML = '<td><input type="text" name="bank_name[]" style="width:100%;" placeholder="Bank" /></td>' +
+                           '<td><input type="text" name="bank_acc[]" style="width:100%;" placeholder="Nomor Rekening" /></td>' +
+                           '<td><input type="text" name="bank_holder[]" style="width:100%;" placeholder="Nama Pemilik" /></td>' +
+                           '<td><button type="button" class="button button-link-delete" onclick="this.closest(\'tr\').remove();">Hapus</button></td>';
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('btn-add-social')?.addEventListener('click', function() {
+            var tbody = document.querySelector('#table-social-media tbody');
+            var tr = document.createElement('tr');
+            tr.innerHTML = '<td><input type="text" name="social_platform[]" style="width:100%;" placeholder="Platform" /></td>' +
+                           '<td><input type="url" name="social_url[]" style="width:100%;" placeholder="https://..." /></td>' +
+                           '<td><button type="button" class="button button-link-delete" onclick="this.closest(\'tr\').remove();">Hapus</button></td>';
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('btn-add-faq')?.addEventListener('click', function() {
+            var tbody = document.querySelector('#table-faqs tbody');
+            var tr = document.createElement('tr');
+            tr.innerHTML = '<td><input type="text" name="faq_question[]" style="width:100%;" placeholder="Pertanyaan..." /></td>' +
+                           '<td><textarea name="faq_answer[]" rows="2" style="width:100%;" placeholder="Jawaban..."></textarea></td>' +
+                           '<td><button type="button" class="button button-link-delete" onclick="this.closest(\'tr\').remove();">Hapus</button></td>';
+            tbody.appendChild(tr);
+        });
+    });
+    </script>
+    <?php
 }
 
 // 5B. SISTEM LANGGANAN VENDOR (SUBSCRIPTION / BILLING)
@@ -1520,6 +1914,22 @@ add_action('rest_api_init', function () {
                 if (!empty($params['seo']['meta_description'])) update_post_meta($post_id, 'rank_math_description', sanitize_textarea_field($params['seo']['meta_description']));
             }
 
+            $business_type = in_array(($params['business_type'] ?? ''), ['product', 'service'], true) ? $params['business_type'] : 'product';
+            $price_model = in_array(($params['price_model'] ?? ''), ['fixed', 'starting_at', 'consultation'], true) ? $params['price_model'] : 'fixed';
+            $service_action = in_array(($params['service_action'] ?? ''), ['appointment', 'reservation', 'consultation'], true) ? $params['service_action'] : 'consultation';
+            $service_areas = isset($params['service_areas']) && is_array($params['service_areas']) ? array_values(array_map('sanitize_text_field', $params['service_areas'])) : [];
+
+            update_post_meta($post_id, '_maschan_business_type', $business_type);
+            update_post_meta($post_id, '_maschan_price_model', $price_model);
+            update_post_meta($post_id, '_maschan_service_action', $service_action);
+            update_post_meta($post_id, '_maschan_service_areas', $service_areas);
+
+            if ($business_type === 'service' && $price_model === 'consultation') {
+                update_post_meta($post_id, '_price', '0');
+                update_post_meta($post_id, '_regular_price', '0');
+                delete_post_meta($post_id, '_sale_price');
+            }
+
             wc_delete_product_transients($post_id);
             wp_cache_flush();
 
@@ -1668,6 +2078,31 @@ add_action('rest_api_init', function () {
                 if (isset($params['seo']['focus_keyword'])) update_post_meta($post_id, 'rank_math_focus_keyword', sanitize_text_field($params['seo']['focus_keyword']));
                 if (isset($params['seo']['meta_title'])) update_post_meta($post_id, 'rank_math_title', sanitize_text_field($params['seo']['meta_title']));
                 if (isset($params['seo']['meta_description'])) update_post_meta($post_id, 'rank_math_description', sanitize_textarea_field($params['seo']['meta_description']));
+            }
+
+            if (isset($params['business_type'])) {
+                $business_type = in_array($params['business_type'], ['product', 'service'], true) ? $params['business_type'] : 'product';
+                update_post_meta($post_id, '_maschan_business_type', $business_type);
+            }
+            if (isset($params['price_model'])) {
+                $price_model = in_array($params['price_model'], ['fixed', 'starting_at', 'consultation'], true) ? $params['price_model'] : 'fixed';
+                update_post_meta($post_id, '_maschan_price_model', $price_model);
+            }
+            if (isset($params['service_action'])) {
+                $service_action = in_array($params['service_action'], ['appointment', 'reservation', 'consultation'], true) ? $params['service_action'] : 'consultation';
+                update_post_meta($post_id, '_maschan_service_action', $service_action);
+            }
+            if (isset($params['service_areas']) && is_array($params['service_areas'])) {
+                $service_areas = array_values(array_map('sanitize_text_field', $params['service_areas']));
+                update_post_meta($post_id, '_maschan_service_areas', $service_areas);
+            }
+
+            $current_bt = get_post_meta($post_id, '_maschan_business_type', true);
+            $current_pm = get_post_meta($post_id, '_maschan_price_model', true);
+            if ($current_bt === 'service' && $current_pm === 'consultation') {
+                update_post_meta($post_id, '_price', '0');
+                update_post_meta($post_id, '_regular_price', '0');
+                delete_post_meta($post_id, '_sale_price');
             }
 
             wc_delete_product_transients($post_id);
@@ -2542,6 +2977,23 @@ add_action('rest_api_init', function () {
             }
 
             return rest_ensure_response($results);
+        },
+        'permission_callback' => '__return_true',
+    ]);
+
+    // ENDPOINT PENGATURAN BISNIS & KONTAK RESMI (OPTIONS PAGE NATIVE)
+    register_rest_route('maschan/v1', '/settings', [
+        'methods'  => 'GET',
+        'callback' => function () {
+            nocache_headers();
+            header('Cache-Control: no-cache, no-store, must-revalidate, max-age=0');
+            header('Pragma: no-cache');
+            header('Expires: 0');
+            if (!defined('DONOTCACHEPAGE')) define('DONOTCACHEPAGE', true);
+            if (!defined('LSCACHE_NO_CACHE')) define('LSCACHE_NO_CACHE', true);
+
+            $settings = maschan_get_business_settings();
+            return rest_ensure_response($settings);
         },
         'permission_callback' => '__return_true',
     ]);

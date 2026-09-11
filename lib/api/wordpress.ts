@@ -8,6 +8,10 @@ import {
   BlogPost,
   GetBlogPostsParams,
   GetBlogPostsResult,
+  BusinessType,
+  PriceModel,
+  ServiceAction,
+  SiteSettings,
 } from "@/types";
 import { getVendorSession } from "@/lib/api/auth";
 import { resolveVendorDistrict } from "@/lib/utils";
@@ -59,7 +63,7 @@ async function fetchGraphQL(
     if (!res.ok) return null;
     const json = await res.json();
     return json.data || null;
-  } catch (err: unknown) {
+  } catch {
     return null;
   }
 }
@@ -280,6 +284,69 @@ function formatGraphQLProduct(
       ? String(rawRegularPrice)
       : finalPrice;
 
+  // Service Commerce & Classification
+  let parsedServiceAreas: string[] = [];
+  const rawServiceAreas =
+    node.service_areas ||
+    node._maschan_service_areas ||
+    node.meta?._maschan_service_areas;
+  if (Array.isArray(rawServiceAreas)) {
+    parsedServiceAreas = rawServiceAreas.map((a: unknown) => String(a));
+  } else if (
+    typeof rawServiceAreas === "string" &&
+    rawServiceAreas.trim().length > 0
+  ) {
+    try {
+      const decoded = JSON.parse(rawServiceAreas);
+      if (Array.isArray(decoded)) {
+        parsedServiceAreas = decoded.map((a: unknown) => String(a));
+      }
+    } catch {
+      parsedServiceAreas = rawServiceAreas
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+  }
+
+  const isServiceCategory = categories.some(
+    (c) =>
+      c.name.toLowerCase().includes("jasa") ||
+      c.slug.toLowerCase().includes("jasa"),
+  );
+  const rawBusinessType =
+    node.business_type ||
+    node._maschan_business_type ||
+    node.meta?._maschan_business_type;
+  const businessType: BusinessType =
+    rawBusinessType === "service" || rawBusinessType === "product"
+      ? rawBusinessType
+      : isServiceCategory
+        ? "service"
+        : "product";
+
+  const rawPriceModel =
+    node.price_model ||
+    node._maschan_price_model ||
+    node.meta?._maschan_price_model;
+  const priceModel: PriceModel =
+    rawPriceModel === "starting_at" ||
+    rawPriceModel === "consultation" ||
+    rawPriceModel === "fixed"
+      ? rawPriceModel
+      : "fixed";
+
+  const rawServiceAction =
+    node.service_action ||
+    node._maschan_service_action ||
+    node.meta?._maschan_service_action;
+  const serviceAction: ServiceAction =
+    rawServiceAction === "appointment" ||
+    rawServiceAction === "reservation" ||
+    rawServiceAction === "consultation"
+      ? rawServiceAction
+      : "consultation";
+
   return {
     id: finalId,
     name: node.name || "Madu Akasia",
@@ -289,6 +356,10 @@ function formatGraphQLProduct(
       : isVariableProduct
         ? "variable"
         : "simple",
+    business_type: businessType,
+    price_model: priceModel,
+    service_areas: parsedServiceAreas,
+    service_action: serviceAction,
     status: "publish",
     is_variable: isVariableProduct,
     variations: parsedVariations.length > 0 ? parsedVariations : undefined,
@@ -1200,7 +1271,7 @@ export async function trackProductView(productId: number): Promise<void> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     });
-  } catch (err: unknown) {
+  } catch {
     // Background telemetry non-blocking
   }
 }
@@ -1215,7 +1286,7 @@ export async function trackWhatsAppClick(productId?: number): Promise<void> {
         headers: { "Content-Type": "application/json" },
       },
     );
-  } catch (err: unknown) {
+  } catch {
     // Background telemetry non-blocking
   }
 }
@@ -1599,6 +1670,112 @@ export function estimateReadingTime(contentHtml: string): number {
   const words = stripped.split(/\s+/).filter(Boolean).length;
   const minutes = Math.ceil(words / 200);
   return Math.max(1, minutes);
+}
+
+export const DEFAULT_SITE_SETTINGS: SiteSettings = {
+  cs_whatsapp: "6282298148474",
+  cs_email: "admin@maschandigital.id",
+  address:
+    "Banten Indah Permai Blok E1 No.12A, Kelurahan Unyur, Kota Serang, Banten 42111, Indonesia",
+  top_announcement: "Pusat Direktori & Marketplace UMKM Resmi Kota Serang, Banten.",
+  bank_accounts: [
+    {
+      bank: "BCA",
+      account_number: "5410987654",
+      holder_name: "Chandra Anggara Diputra",
+    },
+    {
+      bank: "BSI",
+      account_number: "7123456789",
+      holder_name: "Mas Chan Digital",
+    },
+    {
+      bank: "QRIS / DANA / OVO",
+      account_number: "082298148474",
+      holder_name: "Mas Chan Digital",
+    },
+  ],
+  social_media: [
+    {
+      platform: "Instagram",
+      url: "https://instagram.com/maschandigital.id",
+    },
+    {
+      platform: "TikTok",
+      url: "https://tiktok.com/@maschandigital.id",
+    },
+    {
+      platform: "Facebook",
+      url: "https://facebook.com/maschandigital",
+    },
+    {
+      platform: "YouTube",
+      url: "https://youtube.com/@maschandigital",
+    },
+  ],
+  faqs: [
+    {
+      question: "Apa itu Mas Chan Digital?",
+      answer:
+        "Mas Chan Digital adalah platform marketplace dan direktori UMKM lokal terintegrasi untuk memajukan produk kuliner, kriya, fashion, serta layanan jasa di Kota Serang, Banten.",
+    },
+    {
+      question: "Bagaimana cara mendaftarkan toko/jasa UMKM saya?",
+      answer:
+        "Anda dapat mendaftar dengan menekan tombol 'Daftar Mitra UMKM' pada menu navigasi, mengisi formulir profil toko, atau langsung menghubungi WhatsApp resmi Mas Chan Digital.",
+    },
+    {
+      question: "Apakah pembeli dapat bertransaksi langsung via WhatsApp?",
+      answer:
+        "Ya, pembeli dapat menghubungi penjual atau penyedia jasa langsung melalui fitur Direct WhatsApp resmi yang sudah terhubung dengan format pesan pesanan otomatis.",
+    },
+  ],
+};
+
+/**
+ * Mengambil pengaturan bisnis & profil resmi dari WP Options via REST API
+ */
+export async function getSiteSettings(): Promise<SiteSettings> {
+  try {
+    const res = await fetch(`${WP_API_URL}/wp-json/maschan/v1/settings`, {
+      next: { revalidate: 3600 }, // ISR 1 jam
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      return DEFAULT_SITE_SETTINGS;
+    }
+
+    const data = await res.json();
+    if (!data || typeof data !== "object") {
+      return DEFAULT_SITE_SETTINGS;
+    }
+
+    return {
+      cs_whatsapp: data.cs_whatsapp || DEFAULT_SITE_SETTINGS.cs_whatsapp,
+      cs_email: data.cs_email || DEFAULT_SITE_SETTINGS.cs_email,
+      address: data.address || DEFAULT_SITE_SETTINGS.address,
+      top_announcement:
+        data.top_announcement || DEFAULT_SITE_SETTINGS.top_announcement,
+      bank_accounts:
+        Array.isArray(data.bank_accounts) && data.bank_accounts.length > 0
+          ? data.bank_accounts
+          : DEFAULT_SITE_SETTINGS.bank_accounts,
+      social_media:
+        Array.isArray(data.social_media) && data.social_media.length > 0
+          ? data.social_media
+          : DEFAULT_SITE_SETTINGS.social_media,
+      faqs:
+        Array.isArray(data.faqs) && data.faqs.length > 0
+          ? data.faqs
+          : DEFAULT_SITE_SETTINGS.faqs,
+    };
+  } catch (error) {
+    console.error("Gagal mengambil site settings:", error);
+    return DEFAULT_SITE_SETTINGS;
+  }
 }
 
 
