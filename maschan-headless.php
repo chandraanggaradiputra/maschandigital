@@ -370,7 +370,8 @@ function maschan_format_product_data($product_id) {
     $ext_url     = $is_external ? get_post_meta($product_id, '_product_url', true) : '';
     $button_text = $is_external ? get_post_meta($product_id, '_button_text', true) : '';
 
-    $is_variable = (bool) get_post_meta($product_id, '_maschan_is_variable', true);
+    $is_variable_meta = get_post_meta($product_id, '_maschan_is_variable', true);
+    $is_variable = ($is_variable_meta === 'yes' || $is_variable_meta === true || $is_variable_meta === 1 || $is_variable_meta === '1');
     $variations_meta = get_post_meta($product_id, '_maschan_variations', true);
     $variations = [];
     if (!empty($variations_meta)) {
@@ -384,18 +385,47 @@ function maschan_format_product_data($product_id) {
         }
     }
 
+    $is_var_flag = $is_variable || !empty($variations) || $product->is_type('variable');
+
+    $price_range = null;
+    if ($is_var_flag && !empty($variations)) {
+        $prices = array_values(array_filter(array_map(function($v) {
+            return (isset($v['price']) && is_numeric($v['price']) && floatval($v['price']) > 0) ? floatval($v['price']) : null;
+        }, $variations), function($p) {
+            return !is_null($p);
+        }));
+
+        if (!empty($prices)) {
+            $price_range = [
+                'min' => min($prices),
+                'max' => max($prices),
+            ];
+        }
+    }
+
+    $raw_price = (string)$product->get_price();
+    if ((empty($raw_price) || $raw_price === '0') && $price_range) {
+        $raw_price = (string)$price_range['min'];
+    }
+
+    $raw_regular_price = (string)$product->get_regular_price();
+    if ((empty($raw_regular_price) || $raw_regular_price === '0') && $price_range) {
+        $raw_regular_price = (string)$price_range['min'];
+    }
+
     return [
         'id'                => (int)$product_id,
         'name'              => get_the_title($product_id),
         'slug'              => get_post_field('post_name', $product_id),
-        'type'              => $is_external ? 'affiliate' : (!empty($is_variable) ? 'variable' : 'simple'),
-        'is_variable'       => $is_variable || !empty($variations),
+        'type'              => $is_external ? 'affiliate' : ($is_var_flag ? 'variable' : 'simple'),
+        'is_variable'       => $is_var_flag,
         'variations'        => $variations,
+        'price_range'       => $price_range,
         'status'            => get_post_status($product_id),
         'description'       => get_post_field('post_content', $product_id),
         'short_description' => get_post_field('post_excerpt', $product_id),
-        'price'             => (string)$product->get_price(),
-        'regular_price'     => (string)$product->get_regular_price(),
+        'price'             => $raw_price,
+        'regular_price'     => $raw_regular_price,
         'sale_price'        => (string)$product->get_sale_price(),
         'on_sale'           => $product->is_on_sale(),
         'images'            => $images,
@@ -1383,7 +1413,16 @@ add_action('rest_api_init', function () {
                 return new WP_Error('subscription_limit', $reason, ['status' => 403]);
             }
 
-            $type = ($params['type'] ?? '') === 'affiliate' ? 'external' : 'simple';
+            $is_variable = !empty($params['is_variable']) || (($params['type'] ?? '') === 'variable');
+            $is_affiliate = (($params['type'] ?? '') === 'affiliate');
+
+            if ($is_affiliate) {
+                $product_type = 'external';
+            } elseif ($is_variable) {
+                $product_type = 'variable';
+            } else {
+                $product_type = 'simple';
+            }
 
             $post_id = wp_insert_post([
                 'post_title'   => $name,
@@ -1396,22 +1435,57 @@ add_action('rest_api_init', function () {
 
             if (is_wp_error($post_id)) return $post_id;
 
-            wp_set_object_terms($post_id, $type, 'product_type');
+            wp_set_object_terms($post_id, $product_type, 'product_type');
 
-            $regular_price = sanitize_text_field($params['regular_price'] ?? ($params['price'] ?? '0'));
-            $sale_price    = sanitize_text_field($params['sale_price'] ?? '');
-            $on_sale       = !empty($params['on_sale']) && !empty($sale_price);
+            if ($is_variable) {
+                update_post_meta($post_id, '_maschan_is_variable', 'yes');
+                $variations = $params['variations'] ?? [];
+                $variations_data = is_string($variations) ? json_decode($variations, true) : $variations;
+                if (!is_array($variations_data)) $variations_data = [];
 
-            update_post_meta($post_id, '_regular_price', $regular_price);
-            if ($on_sale) {
-                update_post_meta($post_id, '_sale_price', $sale_price);
-                update_post_meta($post_id, '_price', $sale_price);
-            } else {
+                $clean_variations = [];
+                foreach ($variations_data as $idx => $v) {
+                    if (!is_array($v)) continue;
+                    $clean_variations[] = [
+                        'id'            => sanitize_text_field($v['id'] ?? ('var-' . $post_id . '-' . ($idx + 1))),
+                        'name'          => sanitize_text_field($v['name'] ?? ''),
+                        'price'         => floatval($v['price'] ?? 0),
+                        'regular_price' => isset($v['regular_price']) ? floatval($v['regular_price']) : floatval($v['price'] ?? 0),
+                        'sale_price'    => isset($v['sale_price']) && $v['sale_price'] !== '' ? floatval($v['sale_price']) : null,
+                        'stock_status'  => ($v['stock_status'] ?? 'instock') === 'outofstock' ? 'outofstock' : 'instock',
+                    ];
+                }
+                update_post_meta($post_id, '_maschan_variations', $clean_variations);
+
+                $var_prices = array_values(array_filter(array_map(function($v) {
+                    return (isset($v['price']) && is_numeric($v['price']) && floatval($v['price']) > 0) ? floatval($v['price']) : null;
+                }, $clean_variations), function($p) { return !is_null($p); }));
+
+                $base_price = !empty($var_prices) ? (string)min($var_prices) : '0';
+                update_post_meta($post_id, '_regular_price', $base_price);
+                update_post_meta($post_id, '_price', $base_price);
                 delete_post_meta($post_id, '_sale_price');
-                update_post_meta($post_id, '_price', $regular_price);
+            } else {
+                update_post_meta($post_id, '_maschan_is_variable', 'no');
+                if (isset($params['variations']) && empty($params['variations'])) {
+                    delete_post_meta($post_id, '_maschan_variations');
+                }
+
+                $regular_price = sanitize_text_field($params['regular_price'] ?? ($params['price'] ?? '0'));
+                $sale_price    = sanitize_text_field($params['sale_price'] ?? '');
+                $on_sale       = !empty($params['on_sale']) && !empty($sale_price);
+
+                update_post_meta($post_id, '_regular_price', $regular_price);
+                if ($on_sale) {
+                    update_post_meta($post_id, '_sale_price', $sale_price);
+                    update_post_meta($post_id, '_price', $sale_price);
+                } else {
+                    delete_post_meta($post_id, '_sale_price');
+                    update_post_meta($post_id, '_price', $regular_price);
+                }
             }
 
-            if ($type === 'external') {
+            if ($product_type === 'external') {
                 update_post_meta($post_id, '_product_url', esc_url_raw($params['external_url'] ?? ''));
                 update_post_meta($post_id, '_button_text', sanitize_text_field($params['button_text'] ?? 'Beli via Link'));
             }
@@ -1446,14 +1520,6 @@ add_action('rest_api_init', function () {
                 if (!empty($params['seo']['meta_description'])) update_post_meta($post_id, 'rank_math_description', sanitize_textarea_field($params['seo']['meta_description']));
             }
 
-            if (isset($params['is_variable'])) {
-                update_post_meta($post_id, '_maschan_is_variable', !empty($params['is_variable']) ? 1 : 0);
-            }
-            if (isset($params['variations'])) {
-                $variations_data = is_string($params['variations']) ? $params['variations'] : wp_json_encode($params['variations']);
-                update_post_meta($post_id, '_maschan_variations', $variations_data);
-            }
-
             wc_delete_product_transients($post_id);
             wp_cache_flush();
 
@@ -1462,6 +1528,23 @@ add_action('rest_api_init', function () {
                 'message' => 'Produk berhasil diterbitkan atas nama toko vendor Anda.',
                 'product' => maschan_format_product_data($post_id),
             ]);
+        },
+        'permission_callback' => '__return_true',
+    ]);
+
+    // GET SINGLE PRODUCT BY ID
+    register_rest_route('maschan/v1', '/products/(?P<id>\d+)', [
+        'methods'  => 'GET',
+        'callback' => function ($request) {
+            $post_id = intval($request['id']);
+            if (!$post_id || get_post_type($post_id) !== 'product') {
+                return new WP_Error('invalid_product', 'Produk tidak ditemukan.', ['status' => 404]);
+            }
+            $product = maschan_format_product_data($post_id);
+            if (!$product) {
+                return new WP_Error('invalid_product', 'Produk tidak ditemukan.', ['status' => 404]);
+            }
+            return rest_ensure_response($product);
         },
         'permission_callback' => '__return_true',
     ]);
@@ -1491,23 +1574,66 @@ add_action('rest_api_init', function () {
 
             wp_update_post($update_data);
 
-            if (!empty($params['type'])) {
-                $type = $params['type'] === 'affiliate' ? 'external' : 'simple';
-                wp_set_object_terms($post_id, $type, 'product_type');
+            $is_variable = !empty($params['is_variable']) || (($params['type'] ?? '') === 'variable');
+            $is_affiliate = (($params['type'] ?? '') === 'affiliate');
+
+            if ($is_affiliate) {
+                $product_type = 'external';
+            } elseif ($is_variable) {
+                $product_type = 'variable';
+            } else {
+                $product_type = 'simple';
             }
 
-            if (isset($params['regular_price'])) {
-                $regular_price = sanitize_text_field($params['regular_price']);
-                $sale_price    = sanitize_text_field($params['sale_price'] ?? '');
-                $on_sale       = !empty($params['on_sale']) && !empty($sale_price);
+            wp_set_object_terms($post_id, $product_type, 'product_type');
 
-                update_post_meta($post_id, '_regular_price', $regular_price);
-                if ($on_sale) {
-                    update_post_meta($post_id, '_sale_price', $sale_price);
-                    update_post_meta($post_id, '_price', $sale_price);
-                } else {
-                    delete_post_meta($post_id, '_sale_price');
-                    update_post_meta($post_id, '_price', $regular_price);
+            if ($is_variable) {
+                update_post_meta($post_id, '_maschan_is_variable', 'yes');
+                $variations = $params['variations'] ?? [];
+                $variations_data = is_string($variations) ? json_decode($variations, true) : $variations;
+                if (!is_array($variations_data)) $variations_data = [];
+
+                $clean_variations = [];
+                foreach ($variations_data as $idx => $v) {
+                    if (!is_array($v)) continue;
+                    $clean_variations[] = [
+                        'id'            => sanitize_text_field($v['id'] ?? ('var-' . $post_id . '-' . ($idx + 1))),
+                        'name'          => sanitize_text_field($v['name'] ?? ''),
+                        'price'         => floatval($v['price'] ?? 0),
+                        'regular_price' => isset($v['regular_price']) ? floatval($v['regular_price']) : floatval($v['price'] ?? 0),
+                        'sale_price'    => isset($v['sale_price']) && $v['sale_price'] !== '' ? floatval($v['sale_price']) : null,
+                        'stock_status'  => ($v['stock_status'] ?? 'instock') === 'outofstock' ? 'outofstock' : 'instock',
+                    ];
+                }
+                update_post_meta($post_id, '_maschan_variations', $clean_variations);
+
+                $var_prices = array_values(array_filter(array_map(function($v) {
+                    return (isset($v['price']) && is_numeric($v['price']) && floatval($v['price']) > 0) ? floatval($v['price']) : null;
+                }, $clean_variations), function($p) { return !is_null($p); }));
+
+                $base_price = !empty($var_prices) ? (string)min($var_prices) : '0';
+                update_post_meta($post_id, '_regular_price', $base_price);
+                update_post_meta($post_id, '_price', $base_price);
+                delete_post_meta($post_id, '_sale_price');
+            } else {
+                update_post_meta($post_id, '_maschan_is_variable', 'no');
+                if (isset($params['variations']) && empty($params['variations'])) {
+                    delete_post_meta($post_id, '_maschan_variations');
+                }
+
+                if (isset($params['regular_price'])) {
+                    $regular_price = sanitize_text_field($params['regular_price']);
+                    $sale_price    = sanitize_text_field($params['sale_price'] ?? '');
+                    $on_sale       = !empty($params['on_sale']) && !empty($sale_price);
+
+                    update_post_meta($post_id, '_regular_price', $regular_price);
+                    if ($on_sale) {
+                        update_post_meta($post_id, '_sale_price', $sale_price);
+                        update_post_meta($post_id, '_price', $sale_price);
+                    } else {
+                        delete_post_meta($post_id, '_sale_price');
+                        update_post_meta($post_id, '_price', $regular_price);
+                    }
                 }
             }
 
@@ -1542,14 +1668,6 @@ add_action('rest_api_init', function () {
                 if (isset($params['seo']['focus_keyword'])) update_post_meta($post_id, 'rank_math_focus_keyword', sanitize_text_field($params['seo']['focus_keyword']));
                 if (isset($params['seo']['meta_title'])) update_post_meta($post_id, 'rank_math_title', sanitize_text_field($params['seo']['meta_title']));
                 if (isset($params['seo']['meta_description'])) update_post_meta($post_id, 'rank_math_description', sanitize_textarea_field($params['seo']['meta_description']));
-            }
-
-            if (isset($params['is_variable'])) {
-                update_post_meta($post_id, '_maschan_is_variable', !empty($params['is_variable']) ? 1 : 0);
-            }
-            if (isset($params['variations'])) {
-                $variations_data = is_string($params['variations']) ? $params['variations'] : wp_json_encode($params['variations']);
-                update_post_meta($post_id, '_maschan_variations', $variations_data);
             }
 
             wc_delete_product_transients($post_id);

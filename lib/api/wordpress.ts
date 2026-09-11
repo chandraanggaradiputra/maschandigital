@@ -249,7 +249,16 @@ function formatGraphQLProduct(
     parsedVariations.length > 0;
 
   let priceRange: { min: number; max: number } | undefined = undefined;
-  if (parsedVariations.length > 0) {
+  if (
+    node.price_range &&
+    typeof node.price_range.min === "number" &&
+    typeof node.price_range.max === "number"
+  ) {
+    priceRange = {
+      min: Number(node.price_range.min),
+      max: Number(node.price_range.max),
+    };
+  } else if (parsedVariations.length > 0) {
     const validPrices = parsedVariations
       .map((v) => Number(v.price))
       .filter((p) => !isNaN(p) && p > 0);
@@ -260,6 +269,16 @@ function formatGraphQLProduct(
       };
     }
   }
+
+  const fallbackPrice = priceRange?.min ? String(priceRange.min) : "0";
+  const finalPrice =
+    rawPrice && rawPrice !== "0" && rawPrice !== ""
+      ? String(rawPrice)
+      : fallbackPrice;
+  const finalRegularPrice =
+    rawRegularPrice && rawRegularPrice !== "0" && rawRegularPrice !== ""
+      ? String(rawRegularPrice)
+      : finalPrice;
 
   return {
     id: finalId,
@@ -280,8 +299,8 @@ function formatGraphQLProduct(
       node.short_description ||
       ""
     ).replace(/<[^>]*>?/gm, ""),
-    price: String(rawPrice),
-    regular_price: String(rawRegularPrice),
+    price: finalPrice,
+    regular_price: finalRegularPrice,
     sale_price: String(rawSalePrice),
     on_sale: isSale,
     categories,
@@ -465,6 +484,11 @@ export async function getProducts(
             externalUrl
             buttonText
           }
+          ... on VariableProduct {
+            price(format: RAW)
+            regularPrice(format: RAW)
+            salePrice(format: RAW)
+          }
           image {
             databaseId
             sourceUrl
@@ -623,6 +647,24 @@ export async function getProductBySlug(
   const isNumeric = !isNaN(Number(clean));
   const idType = isNumeric ? "DATABASE_ID" : "SLUG";
 
+  // 1. Prioritaskan REST API resmi maschan/v1 (selalu fresh, memuat metadata variasi lengkap & price_range)
+  try {
+    const endpoint = isNumeric
+      ? `${WP_API_URL}/wp-json/maschan/v1/products/${encodeURIComponent(clean)}`
+      : `${WP_API_URL}/wp-json/maschan/v1/products?slug=${encodeURIComponent(clean)}`;
+
+    const res = await fetch(endpoint, { cache: "no-store" });
+    if (res.ok) {
+      const restData = await res.json();
+      const item = Array.isArray(restData) ? restData[0] : restData;
+      if (item && item.id) {
+        return formatGraphQLProduct(item);
+      }
+    }
+  } catch {
+    // Lanjutkan ke WPGraphQL di bawah jika terjadi kendala jaringan REST
+  }
+
   const query = `
     query GetProductBySlug($id: ID!, $idType: ProductIdTypeEnum!) {
       product(id: $id, idType: $idType) {
@@ -644,6 +686,11 @@ export async function getProductBySlug(
           salePrice(format: RAW)
           externalUrl
           buttonText
+        }
+        ... on VariableProduct {
+          price(format: RAW)
+          regularPrice(format: RAW)
+          salePrice(format: RAW)
         }
         image {
           databaseId
@@ -696,7 +743,36 @@ export async function getProductBySlug(
 
   const data = await fetchGraphQL(query, { id: clean, idType });
   if (data?.product) {
-    return formatGraphQLProduct(data.product);
+    const formatted = formatGraphQLProduct(data.product);
+
+    // Jika produk berstatus variable namun variasi belum termuat dari WPGraphQL, perkaya via REST API
+    if (
+      formatted.is_variable &&
+      (!formatted.variations || formatted.variations.length === 0)
+    ) {
+      try {
+        const res = await fetch(
+          `${WP_API_URL}/wp-json/maschan/v1/products/${formatted.id}`,
+          { cache: "no-store" },
+        );
+        if (res.ok) {
+          const restItem = await res.json();
+          if (restItem && restItem.variations) {
+            const enriched = formatGraphQLProduct(restItem);
+            return {
+              ...formatted,
+              is_variable: true,
+              variations: enriched.variations,
+              price_range: enriched.price_range,
+            };
+          }
+        }
+      } catch {
+        // Biarkan data formatted apa adanya
+      }
+    }
+
+    return formatted;
   }
 
   const all = await getProducts();
