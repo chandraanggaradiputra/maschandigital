@@ -105,6 +105,14 @@ export async function Footer() {
               </li>
               <li>
                 <Link
+                  href="/blog"
+                  className="focus-visible:outline-none hover:text-brand-300 focus-visible:underline transition-colors"
+                >
+                  Blog & Edukasi UMKM
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/tentang-kami"
                   className="focus-visible:outline-none hover:text-brand-300 focus-visible:underline transition-colors"
                 >

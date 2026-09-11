@@ -15,6 +15,22 @@ export default function robots(): MetadataRoute.Robots {
           '/register',
         ],
       },
+      {
+        userAgent: [
+          'Google-Extended',
+          'GPTBot',
+          'ClaudeBot',
+          'PerplexityBot',
+          'OAI-SearchBot',
+        ],
+        allow: '/',
+        disallow: [
+          '/dashboard/',
+          '/api/',
+          '/login',
+          '/register',
+        ],
+      },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
   };

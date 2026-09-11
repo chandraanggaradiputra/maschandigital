@@ -4,6 +4,9 @@ import {
   ProductCategory,
   ProductReviewsData,
   AdminReviewsResponse,
+  BlogPost,
+  GetBlogPostsParams,
+  GetBlogPostsResult,
 } from "@/types";
 import { getVendorSession } from "@/lib/api/auth";
 import { resolveVendorDistrict } from "@/lib/utils";
@@ -1227,5 +1230,210 @@ export async function performReviewAction(
     };
   }
 }
+
+// ---------------------------------------------------------------------
+// INTEGRASI REST API BLOG WORDPRESS (EDUKASI UMKM & GEO)
+// ---------------------------------------------------------------------
+
+/**
+ * Mengambil daftar artikel blog terbitan dari endpoint REST API WordPress
+ * /wp-json/wp/v2/posts?_embed dengan dukungan ISR revalidasi 3600 detik.
+ */
+export async function getBlogPosts(
+  params?: GetBlogPostsParams,
+): Promise<GetBlogPostsResult> {
+  const page = params?.page && params.page > 0 ? params.page : 1;
+  const perPage = params?.per_page && params.per_page > 0 ? params.per_page : 10;
+
+  const queryParams = new URLSearchParams();
+  queryParams.set("_embed", "true");
+  queryParams.set("page", String(page));
+  queryParams.set("per_page", String(perPage));
+  queryParams.set("status", "publish");
+
+  if (params?.search && params.search.trim()) {
+    queryParams.set("search", params.search.trim());
+  }
+
+  if (params?.category && params.category.trim()) {
+    queryParams.set("categories", params.category.trim());
+  }
+
+  try {
+    const res = await fetch(
+      `${WP_API_URL}/wp-json/wp/v2/posts?${queryParams.toString()}`,
+      {
+        next: { revalidate: 3600 },
+      },
+    );
+
+    if (!res.ok) {
+      return { posts: [], total: 0, totalPages: 0 };
+    }
+
+    const totalHeader = res.headers.get("x-wp-total");
+    const totalPagesHeader = res.headers.get("x-wp-totalpages");
+    const total = totalHeader ? parseInt(totalHeader, 10) : 0;
+    const totalPages = totalPagesHeader ? parseInt(totalPagesHeader, 10) : 0;
+
+    const data = await res.json();
+    if (!Array.isArray(data)) {
+      return { posts: [], total: 0, totalPages: 0 };
+    }
+
+    return {
+      posts: data as BlogPost[],
+      total: !isNaN(total) && total > 0 ? total : data.length,
+      totalPages: !isNaN(totalPages) && totalPages > 0 ? totalPages : 1,
+    };
+  } catch (err: unknown) {
+    console.error("Gagal mengambil daftar artikel blog:", err);
+    return { posts: [], total: 0, totalPages: 0 };
+  }
+}
+
+/**
+ * Mengambil satu artikel blog spesifik berdasarkan slug dari REST API WordPress
+ */
+export async function getBlogPostBySlug(
+  slug: string,
+): Promise<BlogPost | null> {
+  if (!slug || typeof slug !== "string") return null;
+  const cleanSlug = slug.trim().toLowerCase();
+  if (!cleanSlug) return null;
+
+  try {
+    const res = await fetch(
+      `${WP_API_URL}/wp-json/wp/v2/posts?slug=${encodeURIComponent(cleanSlug)}&_embed=true`,
+      {
+        next: { revalidate: 3600 },
+      },
+    );
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      return data[0] as BlogPost;
+    }
+    return null;
+  } catch (err: unknown) {
+    console.error(`Gagal mengambil artikel blog slug ${cleanSlug}:`, err);
+    return null;
+  }
+}
+
+/**
+ * Helper untuk mengekstrak URL Featured Image artikel dari payload _embed
+ */
+export function getPostFeaturedImage(post: BlogPost): {
+  url: string;
+  alt: string;
+  width?: number;
+  height?: number;
+} | null {
+  const mediaList = post._embedded?.["wp:featuredmedia"];
+  if (Array.isArray(mediaList) && mediaList.length > 0) {
+    const media = mediaList[0];
+    if (media?.source_url) {
+      return {
+        url: media.source_url,
+        alt:
+          media.alt_text ||
+          post.title?.rendered ||
+          "Gambar Artikel Mas Chan Digital",
+        width: media.media_details?.width,
+        height: media.media_details?.height,
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Helper untuk mengekstrak data penulis dari payload _embed
+ */
+export function getPostAuthor(post: BlogPost): {
+  name: string;
+  avatar?: string;
+  description?: string;
+} {
+  const authors = post._embedded?.author;
+  if (Array.isArray(authors) && authors.length > 0) {
+    const a = authors[0];
+    const avatarUrl =
+      a.avatar_urls?.["96"] ||
+      a.avatar_urls?.["48"] ||
+      a.avatar_urls?.["24"];
+    return {
+      name: a.name || "Mas Chan Digital",
+      avatar: avatarUrl,
+      description: a.description,
+    };
+  }
+  return {
+    name: "Mas Chan Digital",
+  };
+}
+
+/**
+ * Helper untuk mengekstrak daftar kategori dari payload _embed
+ */
+export function getPostCategories(post: BlogPost): {
+  id: number;
+  name: string;
+  slug: string;
+}[] {
+  const termsList = post._embedded?.["wp:term"];
+  if (Array.isArray(termsList) && termsList.length > 0) {
+    const categories = termsList[0];
+    if (Array.isArray(categories)) {
+      return categories
+        .filter((c) => Boolean(c && c.name))
+        .map((c) => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+        }));
+    }
+  }
+  return [];
+}
+
+/**
+ * Helper untuk membersihkan cuplikan ringkas (excerpt) dari tag HTML
+ */
+export function getCleanExcerpt(
+  renderedExcerpt: string,
+  maxLength: number = 160,
+): string {
+  if (!renderedExcerpt) return "";
+  const stripped = renderedExcerpt
+    .replace(/<[^>]*>?/gm, " ")
+    .replace(/&hellip;/g, "...")
+    .replace(/&amp;/g, "&")
+    .replace(/&#8217;/g, "'")
+    .replace(/&#8220;/g, '"')
+    .replace(/&#8221;/g, '"')
+    .replace(/&quot;/g, '"')
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (stripped.length <= maxLength) return stripped;
+  return stripped.substring(0, maxLength).trim() + "...";
+}
+
+/**
+ * Estimasi waktu baca artikel (estimasi 200 kata per menit)
+ */
+export function estimateReadingTime(contentHtml: string): number {
+  if (!contentHtml) return 1;
+  const stripped = contentHtml.replace(/<[^>]*>?/gm, " ").trim();
+  const words = stripped.split(/\s+/).filter(Boolean).length;
+  const minutes = Math.ceil(words / 200);
+  return Math.max(1, minutes);
+}
+
 
 

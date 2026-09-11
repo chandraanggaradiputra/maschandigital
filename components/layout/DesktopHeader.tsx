@@ -14,12 +14,11 @@ import {
   LogIn, 
   LogOut, 
   ShieldCheck, 
-  PlusCircle, 
   Phone,
-  Home
+  Home,
+  Newspaper
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
-import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { getVendorSession, logoutVendor, AuthSession } from '@/lib/api/auth';
 import { trackVendorRegisterClick } from '@/lib/analytics';
@@ -30,6 +29,7 @@ const MAIN_NAV_ITEMS = [
   { label: 'Produk', href: '/products', icon: ShoppingBag },
   { label: 'Kategori', href: '/categories', icon: Tag },
   { label: 'Vendor', href: '/vendors', icon: Store },
+  { label: 'Blog', href: '/blog', icon: Newspaper },
   { label: 'Panduan', href: '/panduan', icon: BookOpen },
   { label: 'Tentang Kami', href: '/tentang-kami', icon: Info },
 ];

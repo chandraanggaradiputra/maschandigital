@@ -1,5 +1,10 @@
 import type { MetadataRoute } from 'next';
-import { getProducts, getVendors, getCategories } from '@/lib/api/wordpress';
+import {
+  getProducts,
+  getVendors,
+  getCategories,
+  getBlogPosts,
+} from '@/lib/api/wordpress';
 
 export const revalidate = 3600; // Perbarui sitemap secara otomatis di latar belakang setiap 1 jam (ISR)
 
@@ -25,6 +30,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/blog`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.8,
     },
     {
       url: `${baseUrl}/categories`,
@@ -112,5 +123,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('Sitemap: Gagal mengambil data kategori:', error);
   }
 
-  return [...staticRoutes, ...productRoutes, ...vendorRoutes, ...categoryRoutes];
+  // 5. Rute Dinamis Artikel Blog (/blog/[slug])
+  let blogRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const blogResult = await getBlogPosts({ per_page: 100 });
+    if (Array.isArray(blogResult.posts)) {
+      blogRoutes = blogResult.posts
+        .filter((post) => Boolean(post && post.slug))
+        .map((post) => ({
+          url: `${baseUrl}/blog/${post.slug}`,
+          lastModified: post.modified ? new Date(post.modified) : new Date(),
+          changeFrequency: 'weekly',
+          priority: 0.7,
+        }));
+    }
+  } catch (error) {
+    console.error('Sitemap: Gagal mengambil data artikel blog:', error);
+  }
+
+  return [
+    ...staticRoutes,
+    ...productRoutes,
+    ...vendorRoutes,
+    ...categoryRoutes,
+    ...blogRoutes,
+  ];
 }
+

@@ -56,17 +56,59 @@ export function ProductJsonLd({
       itemCondition: "https://schema.org/NewCondition",
       seller: {
         "@type": "Store",
-        name: product.vendor?.store_name || "Vendor Mas Chan Digital",
-        url: `https://maschandigital.id/vendors/${product.vendor?.slug || "vendor"}`,
+        name: product.vendor?.store_name || "Mas Chan Digital",
+        url: product.vendor?.slug
+          ? `https://maschandigital.id/vendors/${product.vendor.slug}`
+          : "https://maschandigital.id",
         telephone: product.vendor?.whatsapp_number
           ? `+${product.vendor.whatsapp_number}`
           : "+6282298148474",
         address: {
           "@type": "PostalAddress",
-          addressLocality: product.vendor?.city || "Kota Serang",
+          streetAddress: "Banten Indah Permai Blok E1 No.12A, Kelurahan Unyur",
+          addressLocality: product.vendor?.location_district
+            ? `Kecamatan ${product.vendor.location_district}, Kota Serang`
+            : product.vendor?.city || "Kota Serang",
           addressRegion: "Banten",
           postalCode: "42111",
           addressCountry: "ID",
+        },
+      },
+      hasMerchantReturnPolicy: {
+        "@type": "MerchantReturnPolicy",
+        applicableCountry: "ID",
+        returnPolicyCategory:
+          "https://schema.org/MerchantReturnFiniteReturnWindow",
+        merchantReturnDays: 2,
+        returnMethod: "https://schema.org/ReturnByMail",
+        returnFees: "https://schema.org/FreeReturn",
+      },
+      shippingDetails: {
+        "@type": "OfferShippingDetails",
+        shippingRate: {
+          "@type": "MonetaryAmount",
+          value: 0,
+          currency: "IDR",
+        },
+        shippingDestination: {
+          "@type": "DefinedRegion",
+          addressCountry: "ID",
+          addressRegion: "Banten",
+        },
+        deliveryTime: {
+          "@type": "ShippingDeliveryTime",
+          handlingTime: {
+            "@type": "QuantitativeValue",
+            minValue: 0,
+            maxValue: 1,
+            unitCode: "d",
+          },
+          transitTime: {
+            "@type": "QuantitativeValue",
+            minValue: 1,
+            maxValue: 2,
+            unitCode: "d",
+          },
         },
       },
     },
