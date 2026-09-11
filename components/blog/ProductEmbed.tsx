@@ -35,7 +35,27 @@ export function ProductEmbed({
     return null;
   }
 
-  const primaryCategory = product.categories?.[0]?.name || "Produk UMKM";
+  // Cari kategori paling spesifik (bukan parent generik "Layanan Jasa" atau "Produk Fisik" jika ada subkategori)
+  const specificCategory =
+    product.categories?.find(
+      (c) =>
+        c.slug !== "layanan-jasa" &&
+        c.slug !== "jasa" &&
+        c.name.toLowerCase() !== "layanan jasa" &&
+        c.slug !== "produk-fisik" &&
+        c.name.toLowerCase() !== "produk fisik"
+    ) ||
+    product.categories?.[0];
+
+  const rawCategoryName = specificCategory?.name || "Produk UMKM";
+  const cleanedCategory = rawCategoryName.replace(/&amp;/g, "&").trim();
+
+  const isService = product.business_type === "service";
+  const shouldShowCategory = !(
+    isService &&
+    (cleanedCategory.toLowerCase() === "layanan jasa" || cleanedCategory.toLowerCase() === "jasa")
+  );
+
   const mainImage =
     product.images?.[0]?.src ||
     "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80";
@@ -67,7 +87,15 @@ export function ProductEmbed({
       : undefined);
 
   let displayedPrice = hasSale ? formattedSalePrice : formattedRegularPrice;
-  if (isVariable && priceRange && priceRange.min > 0) {
+  if (isService) {
+    if (product.price_model === "consultation") {
+      displayedPrice = "Konsultasi Tarif";
+    } else if (product.price_model === "starting_at") {
+      displayedPrice = `Mulai ${formatRupiah(product.regular_price || product.price)}`;
+    } else {
+      displayedPrice = formatRupiah(product.regular_price || product.price);
+    }
+  } else if (isVariable && priceRange && priceRange.min > 0) {
     if (priceRange.min === priceRange.max) {
       displayedPrice = formatRupiah(priceRange.min);
     } else {
@@ -110,14 +138,24 @@ export function ProductEmbed({
           <span>Rekomendasi Produk Mas Chan Digital</span>
         </div>
         <div className="flex items-center gap-1.5">
-          {isVariable && (
+          {isService ? (
+            <Badge variant="primary" className="bg-sky-600 text-white font-bold text-[10px] border-0">
+              🛠️ Layanan Jasa
+            </Badge>
+          ) : isVariable ? (
             <Badge variant="neutral" className="text-[11px] font-medium bg-blue-50 text-[#093c96] dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
               Pilihan Varian
             </Badge>
+          ) : hasSale ? (
+            <Badge variant="danger" className="text-[10px] font-bold">
+              PROMO
+            </Badge>
+          ) : null}
+          {shouldShowCategory && (
+            <Badge variant="primary" className="text-[11px] font-medium">
+              {cleanedCategory}
+            </Badge>
           )}
-          <Badge variant="primary" className="text-[11px] font-medium">
-            {primaryCategory}
-          </Badge>
         </div>
       </div>
 
@@ -154,7 +192,7 @@ export function ProductEmbed({
             <span className="text-lg font-extrabold text-brand-700 dark:text-brand-400">
               {displayedPrice}
             </span>
-            {!isVariable && hasSale && (
+            {!isVariable && !isService && hasSale && (
               <span className="text-xs text-slate-400 line-through">
                 {formattedRegularPrice}
               </span>
@@ -181,7 +219,19 @@ export function ProductEmbed({
 
           {/* Tombol Aksi Ramah Jempol */}
           <div className="mt-3.5 flex flex-wrap items-center gap-2.5">
-            {isVariable ? (
+            {isService ? (
+              <a
+                href={waUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={handleWhatsAppClick}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-subtle hover:shadow transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.98]"
+                aria-label={`Konsultasi ${product.name} via WhatsApp`}
+              >
+                <MessageCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span>Konsultasi Jasa</span>
+              </a>
+            ) : isVariable ? (
               <Link
                 href={`/products/${product.slug}`}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-brand-600 hover:bg-brand-700 text-white shadow-subtle hover:shadow transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 active:scale-[0.98]"

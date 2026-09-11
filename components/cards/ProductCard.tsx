@@ -35,7 +35,27 @@ export function ProductCard({
   vendorStoreStatus,
   initialStoreStatus,
 }: ProductCardProps) {
-  const primaryCategory = product.categories?.[0]?.name || "Umum";
+  // Cari kategori paling spesifik (bukan parent generik "Layanan Jasa" atau "Produk Fisik" jika ada subkategori)
+  const specificCategory =
+    product.categories?.find(
+      (c) =>
+        c.slug !== "layanan-jasa" &&
+        c.slug !== "jasa" &&
+        c.name.toLowerCase() !== "layanan jasa" &&
+        c.slug !== "produk-fisik" &&
+        c.name.toLowerCase() !== "produk fisik"
+    ) ||
+    product.categories?.[0];
+
+  const rawCategoryName = specificCategory?.name || "Umum";
+  const cleanedCategory = rawCategoryName.replace(/&amp;/g, "&").trim();
+
+  // Sembunyikan kategori jika namanya sama persis dengan "Layanan Jasa" saat badge layanan jasa sudah aktif
+  const shouldShowCategory = !(
+    product.business_type === "service" &&
+    (cleanedCategory.toLowerCase() === "layanan jasa" || cleanedCategory.toLowerCase() === "jasa")
+  );
+
   const mainImage =
     product.images?.[0]?.src ||
     "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80";
@@ -168,50 +188,11 @@ export function ProductCard({
           />
         </Link>
 
-        {/* Category Badge */}
-        <figcaption className="top-3 left-3 z-10 absolute">
-          <Badge
-            variant="primary"
-            className="bg-white/90 dark:bg-slate-900/90 shadow-sm backdrop-blur-md"
-          >
-            <Tag className="mr-1 w-3 h-3" aria-hidden="true" />
-            <span>{primaryCategory}</span>
-          </Badge>
-        </figcaption>
-
-        {/* Status Promo / Libur / Tutup / Varian Badge */}
+        {/* Single Priority Badge di Pojok Kanan Atas Foto */}
         <div
-          className="top-3 right-3 z-10 absolute flex flex-col items-end gap-1"
+          className="top-3 right-3 z-10 absolute"
           suppressHydrationWarning
         >
-          {storeStatus.isVacation ? (
-            <Badge
-              variant="danger"
-              className="bg-rose-600/90 shadow-sm font-bold text-white"
-              suppressHydrationWarning
-            >
-              <XCircle className="mr-1 w-3 h-3" />
-              <span>LIBUR</span>
-            </Badge>
-          ) : !storeStatus.isOpen ? (
-            <Badge
-              variant="neutral"
-              className="bg-slate-800/90 shadow-sm font-bold text-white"
-              suppressHydrationWarning
-            >
-              <Lock className="mr-1 w-3 h-3" />
-              <span>TUTUP</span>
-            </Badge>
-          ) : hasSale && !isVariable ? (
-            <Badge
-              variant="danger"
-              className="shadow-sm font-bold"
-              suppressHydrationWarning
-            >
-              <span>PROMO</span>
-            </Badge>
-          ) : null}
-
           {product.business_type === "service" ? (
             <Badge
               variant="primary"
@@ -227,6 +208,14 @@ export function ProductCard({
               suppressHydrationWarning
             >
               <span>PILIHAN VARIAN</span>
+            </Badge>
+          ) : hasSale ? (
+            <Badge
+              variant="danger"
+              className="shadow-sm font-bold text-[10px]"
+              suppressHydrationWarning
+            >
+              <span>PROMO</span>
             </Badge>
           ) : null}
         </div>
@@ -293,9 +282,17 @@ export function ProductCard({
             </span>
           </div>
 
+          {/* Baris 2: Label Kategori Elegan di Atas Judul */}
+          {shouldShowCategory && (
+            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-1 truncate">
+              <Tag className="w-3 h-3 text-slate-400 shrink-0" aria-hidden="true" />
+              <span className="truncate">{cleanedCategory}</span>
+            </p>
+          )}
+
           <h3
             id={`product-title-${product.id}`}
-            className="mt-1 font-slab font-bold text-slate-900 dark:group-hover:text-brand-400 dark:text-white group-hover:text-brand-800 text-sm @[300px]:text-base line-clamp-2 leading-snug transition-colors"
+            className="font-slab font-bold text-slate-900 dark:group-hover:text-brand-400 dark:text-white group-hover:text-brand-800 text-sm @[300px]:text-base line-clamp-2 leading-snug transition-colors"
           >
             <Link
               href={`/products/${product.slug}`}
