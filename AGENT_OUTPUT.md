@@ -93,6 +93,7 @@ Seluruh data artikel ditarik secara real-time dari REST API resmi headless WordP
 | **HTTP GET /robots.txt** | `fetch('http://localhost:3001/robots.txt')` | **200 OK** | Rule perayap AI (`Google-Extended`, `GPTBot`, `ClaudeBot`, `PerplexityBot`, `OAI-SearchBot`) aktif |
 | **HTTP GET /sitemap.xml** | `fetch('http://localhost:3001/sitemap.xml')` | **200 OK** | Memuat URL `/blog` dan `/blog/hello-world` |
 | **Product Rich Result** | Live Product Test | **PASS** | Skema alamat Banten Indah Permai & InStock tervalidasi |
+| **Format Rupiah Harga** | Live Blog Detail Test | **PASS** | Harga mentah (200000, 75000, 16000) terkonversi rapi ke format Rupiah (`Rp 200.000`, `Rp 75.000`, `Rp 16.000`) |
 
 ---
 
