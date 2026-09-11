@@ -24,7 +24,7 @@ import {
   getProducts,
   getProductBySlug,
 } from "@/lib/api/wordpress";
-import { formatIndonesianDate } from "@/lib/utils";
+import { formatIndonesianDate, formatRupiah } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 import { BlogContentRenderer } from "@/components/blog/BlogContentRenderer";
 import { BlogJsonLd } from "@/components/seo/BlogJsonLd";
@@ -358,11 +358,18 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
                           <h5 className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate group-hover:text-brand-600 transition-colors">
                             {prod.name}
                           </h5>
-                          <p className="text-xs text-brand-700 dark:text-brand-400 font-bold mt-0.5">
-                            {prod.on_sale && prod.sale_price
-                              ? prod.sale_price
-                              : prod.price}
-                          </p>
+                          <div className="flex items-baseline gap-1.5 mt-0.5">
+                            <span className="text-xs text-brand-700 dark:text-brand-400 font-bold">
+                              {prod.on_sale && prod.sale_price
+                                ? formatRupiah(prod.sale_price)
+                                : formatRupiah(prod.price || prod.regular_price)}
+                            </span>
+                            {prod.on_sale && prod.sale_price && (
+                              <span className="text-[10px] text-slate-400 line-through">
+                                {formatRupiah(prod.regular_price || prod.price)}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[10px] text-slate-400 truncate">
                             {prod.vendor?.store_name}
                           </p>
