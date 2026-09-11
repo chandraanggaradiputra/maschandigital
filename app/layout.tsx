@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { DesktopHeader } from "@/components/layout/DesktopHeader";
+import { MobileHeader } from "@/components/layout/MobileHeader";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { Footer } from "@/components/layout/Footer";
 import { MarketplaceJsonLd } from "@/components/seo/MarketplaceJsonLd";
@@ -151,6 +152,9 @@ export default function RootLayout({
           >
             Lewati ke konten utama
           </a>
+
+          {/* Mobile Header (Sticky Top Bar on Mobile) */}
+          <MobileHeader />
 
           {/* Desktop Header */}
           <DesktopHeader />
