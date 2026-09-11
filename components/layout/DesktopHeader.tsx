@@ -306,7 +306,7 @@ export function DesktopHeader() {
                             className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-700 dark:hover:text-rose-300 transition-colors"
                           >
                             <ShieldCheck className="h-4 w-4 text-rose-600 dark:text-rose-400 shrink-0" />
-                            <span>🛡️ Pusat Kendali Moderasi</span>
+                            <span>🛡️ Pusat Kendali Admin</span>
                           </Link>
                           <Link
                             href="/vendors"

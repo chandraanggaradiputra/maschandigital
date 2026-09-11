@@ -2,6 +2,7 @@ import {
   Product,
   ProductVariation,
   Vendor,
+  AdminVendorItem,
   ProductCategory,
   ProductReviewsData,
   AdminReviewsResponse,
@@ -1777,6 +1778,46 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     return DEFAULT_SITE_SETTINGS;
   }
 }
+
+/**
+ * Mengambil direktori seluruh vendor dengan detail status langganan & sisa hari aktif untuk Super Admin
+ */
+export async function getAdminVendors(token: string): Promise<AdminVendorItem[]> {
+  if (!token) return [];
+
+  try {
+    const res = await fetch(`${WP_API_URL}/wp-json/maschan/v1/admin/vendors`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        return data;
+      }
+    }
+  } catch (err) {
+    console.error("Gagal fetch /admin/vendors:", err);
+  }
+
+  // Fallback: Ambil vendor dari getVendors() umum dan format sebagai AdminVendorItem
+  try {
+    const publicVendors = await getVendors();
+    return publicVendors.map((v) => ({
+      ...v,
+      subscription: null,
+      remaining_days: null,
+      status_label: "Starter (Permanen)",
+      is_exempt: false,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 
 
 

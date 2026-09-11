@@ -274,6 +274,27 @@ export interface BillingInvoice {
   created_at: string;
 }
 
+export interface AdminBillingInvoice extends BillingInvoice {
+  store_name?: string;
+  store_slug?: string;
+  owner_name?: string;
+  vendor_email?: string;
+  whatsapp_number?: string;
+  plan_name?: string;
+}
+
+export interface AdminInvoicesResponse {
+  pending_count: number;
+  invoices: AdminBillingInvoice[];
+}
+
+export interface AdminVendorItem extends Vendor {
+  subscription?: VendorSubscription | null;
+  remaining_days?: number | null;
+  status_label?: string;
+  is_exempt?: boolean;
+}
+
 export interface ProductReview {
   id: number;
   author_name: string;

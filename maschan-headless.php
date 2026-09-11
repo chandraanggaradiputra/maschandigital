@@ -2117,12 +2117,29 @@ add_action('rest_api_init', function () {
         'permission_callback' => '__return_true',
     ]);
 
-    // DELETE PRODUCT
+    // DELETE PRODUCT (DAPAT DIHAPUS OLEH SUPER ADMIN ATAU PEMILIK PRODUK)
     register_rest_route('maschan/v1', '/products/(?P<id>\d+)', [
         'methods'  => 'DELETE',
         'callback' => function ($request) {
+            $user_id = maschan_get_current_user_from_request($request);
             $post_id = intval($request['id']);
             if (!$post_id) return new WP_Error('invalid_id', 'ID produk tidak valid.', ['status' => 400]);
+
+            $post = get_post($post_id);
+            if (!$post || $post->post_type !== 'product') {
+                return new WP_Error('not_found', 'Produk tidak ditemukan.', ['status' => 404]);
+            }
+
+            $is_admin = $user_id && user_can($user_id, 'manage_options');
+            if (!$is_admin && $user_id) {
+                $is_admin = (maschan_get_authenticated_admin_id($request) > 0);
+            }
+            $is_owner = $user_id && ((int)$post->post_author === (int)$user_id);
+
+            if (!$is_admin && !$is_owner) {
+                return new WP_Error('forbidden', 'Akses ditolak. Anda tidak memiliki izin menghapus produk ini.', ['status' => 403]);
+            }
+
             $deleted = wp_delete_post($post_id, true);
             return rest_ensure_response(['success' => (bool)$deleted]);
         },
@@ -2700,6 +2717,169 @@ add_action('rest_api_init', function () {
                 'message' => 'Bukti pembayaran berhasil dikirim. Menunggu verifikasi Admin.',
                 'invoice' => maschan_format_invoice($invoice_id),
             ]);
+        },
+        'permission_callback' => '__return_true',
+    ]);
+
+    // GET ADMIN BILLING INVOICES (DAFTAR TAGIHAN PERLU PERSETUJUAN & RIWAYAT)
+    register_rest_route('maschan/v1', '/admin/billing/invoices', [
+        'methods'  => 'GET',
+        'callback' => function ($request) {
+            $admin_id = maschan_get_authenticated_admin_id($request);
+            if (!$admin_id) {
+                return new WP_Error('forbidden', 'Hanya Administrator yang boleh melihat daftar tagihan.', ['status' => 403]);
+            }
+
+            $status_param = sanitize_text_field($request->get_param('status') ?: 'pending_approval');
+
+            // Hitung invoice berstatus waiting_approval (pending approval) secara independen
+            $pending_query = new WP_Query([
+                'post_type'      => 'maschan_invoice',
+                'post_status'    => 'any',
+                'posts_per_page' => -1,
+                'fields'         => 'ids',
+                'meta_query'     => [
+                    [
+                        'key'     => 'invoice_status',
+                        'value'   => 'waiting_approval',
+                        'compare' => '=',
+                    ],
+                ],
+            ]);
+            $pending_count = (int)$pending_query->found_posts;
+
+            $args = [
+                'post_type'      => 'maschan_invoice',
+                'post_status'    => 'any',
+                'posts_per_page' => 100,
+                'orderby'        => 'date',
+                'order'          => 'DESC',
+            ];
+
+            if ($status_param === 'pending_approval' || $status_param === 'waiting_approval') {
+                $args['meta_query'] = [
+                    [
+                        'key'     => 'invoice_status',
+                        'value'   => 'waiting_approval',
+                        'compare' => '=',
+                    ],
+                ];
+            } elseif ($status_param !== 'all' && in_array($status_param, maschan_invoice_valid_statuses(), true)) {
+                $args['meta_query'] = [
+                    [
+                        'key'     => 'invoice_status',
+                        'value'   => $status_param,
+                        'compare' => '=',
+                    ],
+                ];
+            }
+
+            $query = new WP_Query($args);
+            $invoices = [];
+
+            if ($query->have_posts()) {
+                foreach ($query->posts as $post) {
+                    $formatted = maschan_format_invoice($post->ID);
+                    if (!$formatted) continue;
+
+                    $vendor_id = $formatted['vendor_id'];
+                    $vendor = maschan_extract_full_vendor($vendor_id);
+                    $plan = maschan_get_plan($formatted['plan_id']);
+
+                    $formatted['store_name']      = $vendor['store_name'] ?? 'Toko Mitra';
+                    $formatted['store_slug']      = $vendor['slug'] ?? '';
+                    $formatted['owner_name']      = $vendor['owner_name'] ?? '';
+                    $formatted['vendor_email']    = $vendor['email'] ?? '';
+                    $formatted['whatsapp_number'] = $vendor['whatsapp_number'] ?? '';
+                    $formatted['plan_name']       = $plan['name'] ?? $formatted['plan_id'];
+
+                    $invoices[] = $formatted;
+                }
+            }
+
+            return rest_ensure_response([
+                'pending_count' => $pending_count,
+                'invoices'       => $invoices,
+            ]);
+        },
+        'permission_callback' => '__return_true',
+    ]);
+
+    // GET ADMIN VENDORS DIRECTORY & SUBSCRIPTION MONITOR
+    register_rest_route('maschan/v1', '/admin/vendors', [
+        'methods'  => 'GET',
+        'callback' => function ($request) {
+            $admin_id = maschan_get_authenticated_admin_id($request);
+            if (!$admin_id) {
+                return new WP_Error('forbidden', 'Hanya Administrator yang boleh mengakses direktori vendor.', ['status' => 403]);
+            }
+
+            $users = get_users([
+                'role__in' => ['wcfm_vendor', 'seller', 'administrator'],
+                'number'   => 150,
+            ]);
+
+            $vendors = [];
+            $now_ts = current_time('timestamp');
+
+            foreach ($users as $user) {
+                $vendor_info = maschan_extract_full_vendor($user->ID);
+                if (!$vendor_info) continue;
+
+                $subscription = maschan_get_vendor_subscription($user->ID);
+                $is_exempt    = maschan_is_subscription_exempt($user->ID);
+
+                $remaining_days = null;
+                $status_label   = 'Aktif';
+
+                if ($is_exempt) {
+                    $status_label = 'Internal / Demo';
+                } elseif ($subscription) {
+                    if (!empty($subscription['end_date'])) {
+                        $end_ts = strtotime($subscription['end_date']);
+                        $remaining_days = (int)ceil(($end_ts - $now_ts) / 86400);
+
+                        if ($remaining_days <= 0) {
+                            $status_label = 'Masa Tenggang';
+                        } elseif ($remaining_days <= 7) {
+                            $status_label = 'Perlu Perpanjangan';
+                        } else {
+                            $status_label = 'Aktif';
+                        }
+                    } else {
+                        $status_label = 'Starter (Permanen)';
+                    }
+
+                    if ($subscription['status'] === 'pending_approval') {
+                        $status_label = 'Menunggu Konfirmasi Bayar';
+                    } elseif ($subscription['status'] === 'payment_rejected') {
+                        $status_label = 'Pembayaran Ditolak';
+                    }
+                }
+
+                $vendors[] = [
+                    'id'                   => (int)$user->ID,
+                    'store_name'           => $vendor_info['store_name'],
+                    'slug'                 => $vendor_info['slug'],
+                    'owner_name'           => $vendor_info['owner_name'],
+                    'email'                => $vendor_info['email'],
+                    'whatsapp_number'      => $vendor_info['whatsapp_number'],
+                    'location_district'    => $vendor_info['location_district'] ?? 'Serang',
+                    'avatar'               => $vendor_info['avatar'] ?? '',
+                    'banner'               => $vendor_info['banner'] ?? '',
+                    'description'          => $vendor_info['description'] ?? '',
+                    'is_verified'          => true,
+                    'products_count'       => (int)($vendor_info['products_count'] ?? 0),
+                    'views_count'          => (int)($vendor_info['views_count'] ?? 0),
+                    'joined_date'          => $vendor_info['joined_date'] ?? '',
+                    'subscription'         => $subscription,
+                    'remaining_days'       => $remaining_days,
+                    'status_label'         => $status_label,
+                    'is_exempt'            => $is_exempt,
+                ];
+            }
+
+            return rest_ensure_response($vendors);
         },
         'permission_callback' => '__return_true',
     ]);

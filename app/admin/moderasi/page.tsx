@@ -2,59 +2,98 @@
 
 import React, { useState, useEffect, useCallback, useId } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ShieldCheck,
   Star,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Loader2,
-  AlertCircle,
-  ExternalLink,
+  CreditCard,
+  Package,
   Store,
+  Settings,
   RefreshCw,
-  X,
   Lock,
-  MessageSquareQuote,
-  Check,
-  Trash2,
-  ZoomIn,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { getVendorSession } from "@/lib/api/auth";
-import { getAdminReviews, performReviewAction } from "@/lib/api/wordpress";
-import { AdminReviewItem } from "@/types";
-import { formatIndonesianDate } from "@/lib/utils";
-import { ReviewVideoEmbed } from "@/components/ui/ReviewVideoEmbed";
+import {
+  getAdminReviews,
+  performReviewAction,
+  getProducts,
+  deleteProduct,
+  getAdminVendors,
+  getSiteSettings,
+} from "@/lib/api/wordpress";
+import {
+  getAdminInvoices,
+  approveAdminInvoice,
+  rejectAdminInvoice,
+} from "@/lib/api/billing";
+import {
+  AdminReviewItem,
+  AdminBillingInvoice,
+  Product,
+  AdminVendorItem,
+  SiteSettings,
+} from "@/types";
+
+import { AdminReviewsTab } from "@/components/admin/AdminReviewsTab";
+import { AdminBillingTab } from "@/components/admin/AdminBillingTab";
+import { AdminProductsTab } from "@/components/admin/AdminProductsTab";
+import { AdminVendorsTab } from "@/components/admin/AdminVendorsTab";
+import { AdminSettingsTab } from "@/components/admin/AdminSettingsTab";
+
+type MainTab = "reviews" | "billing" | "products" | "vendors" | "settings";
 
 export default function AdminModerasiPage() {
   const router = useRouter();
-  const rejectModalId = useId();
+  const rejectReviewModalId = useId();
+  const rejectInvoiceModalId = useId();
 
   const [token, setToken] = useState<string>("");
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
-  const [activeTab, setActiveTab] = useState<"pending" | "approved">("pending");
+  const [activeMainTab, setActiveMainTab] = useState<MainTab>("reviews");
+
+  // Tab 1: Reviews State
+  const [reviewSubTab, setReviewSubTab] = useState<"pending" | "approved">("pending");
   const [reviews, setReviews] = useState<AdminReviewItem[]>([]);
-  const [pendingCount, setPendingCount] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [pendingReviewsCount, setPendingReviewsCount] = useState<number>(0);
+  const [reviewsLoading, setReviewsLoading] = useState<boolean>(true);
+  const [rejectingReview, setRejectingReview] = useState<AdminReviewItem | null>(null);
+  const [rejectReviewReason, setRejectReviewReason] = useState<string>("");
+  const [deletingReview, setDeletingReview] = useState<AdminReviewItem | null>(null);
+  const [isDeletingReview, setIsDeletingReview] = useState<boolean>(false);
+
+  // Tab 2: Billing Invoices State
+  const [billingSubTab, setBillingSubTab] = useState<"waiting_approval" | "all" | "approved">("waiting_approval");
+  const [invoices, setInvoices] = useState<AdminBillingInvoice[]>([]);
+  const [pendingBillingCount, setPendingBillingCount] = useState<number>(0);
+  const [billingLoading, setBillingLoading] = useState<boolean>(false);
+  const [rejectingInvoice, setRejectingInvoice] = useState<AdminBillingInvoice | null>(null);
+  const [rejectInvoiceReason, setRejectInvoiceReason] = useState<string>("");
+
+  // Tab 3: Products State
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState<boolean>(false);
+
+  // Tab 4: Vendors State
+  const [vendors, setVendors] = useState<AdminVendorItem[]>([]);
+  const [vendorsLoading, setVendorsLoading] = useState<boolean>(false);
+
+  // Tab 5: Settings State
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [settingsLoading, setSettingsLoading] = useState<boolean>(false);
+
+  // Action loading & Universal Modals
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
-
-  // State Modal Penolakan
-  const [rejectingReview, setRejectingReview] = useState<AdminReviewItem | null>(
-    null,
-  );
-  const [rejectReason, setRejectReason] = useState<string>("");
-
-  // State Modal Hapus Permanen
-  const [deletingReview, setDeletingReview] = useState<AdminReviewItem | null>(null);
-  const [isDeleting, setIsDeleting] = useState<boolean>(false);
-
-  // State Modal Zoom Foto Testimoni (Lightbox)
-  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   const showToast = (type: "success" | "error", text: string) => {
     setToastMessage({ type, text });
@@ -63,24 +102,74 @@ export default function AdminModerasiPage() {
     }, 3000);
   };
 
-  // Muat Data Ulasan dari REST API
-  const fetchReviews = useCallback(
-    async (authToken: string, status: string) => {
-      setIsLoading(true);
-      try {
-        const res = await getAdminReviews(authToken, status);
-        setPendingCount(res.pending_count);
-        setReviews(res.reviews);
-      } catch {
-        showToast("error", "Gagal memuat ulasan. Periksa koneksi server.");
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [],
-  );
+  // 1. Fetch Reviews
+  const fetchReviewsData = useCallback(async (authToken: string, status: string) => {
+    setReviewsLoading(true);
+    try {
+      const res = await getAdminReviews(authToken, status);
+      setPendingReviewsCount(res.pending_count);
+      setReviews(res.reviews);
+    } catch {
+      showToast("error", "Gagal memuat ulasan. Periksa koneksi server.");
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, []);
 
-  // Cek Autentikasi Admin & Muat Data
+  // 2. Fetch Invoices
+  const fetchInvoicesData = useCallback(async (authToken: string, status: string) => {
+    setBillingLoading(true);
+    try {
+      const res = await getAdminInvoices(authToken, status);
+      setPendingBillingCount(res.pending_count);
+      setInvoices(res.invoices);
+    } catch {
+      showToast("error", "Gagal memuat data tagihan.");
+    } finally {
+      setBillingLoading(false);
+    }
+  }, []);
+
+  // 3. Fetch Products
+  const fetchProductsData = useCallback(async () => {
+    setProductsLoading(true);
+    try {
+      const prods = await getProducts();
+      setProducts(prods);
+    } catch {
+      showToast("error", "Gagal memuat katalog produk.");
+    } finally {
+      setProductsLoading(false);
+    }
+  }, []);
+
+  // 4. Fetch Vendors
+  const fetchVendorsData = useCallback(async (authToken: string) => {
+    setVendorsLoading(true);
+    try {
+      const vends = await getAdminVendors(authToken);
+      setVendors(vends);
+    } catch {
+      showToast("error", "Gagal memuat direktori vendor.");
+    } finally {
+      setVendorsLoading(false);
+    }
+  }, []);
+
+  // 5. Fetch Settings
+  const fetchSettingsData = useCallback(async () => {
+    setSettingsLoading(true);
+    try {
+      const sett = await getSiteSettings();
+      setSettings(sett);
+    } catch {
+      showToast("error", "Gagal memuat pengaturan bisnis.");
+    } finally {
+      setSettingsLoading(false);
+    }
+  }, []);
+
+  // Inisialisasi Autentikasi Admin & Fetch Data Awal
   useEffect(() => {
     let isMounted = true;
 
@@ -95,13 +184,18 @@ export default function AdminModerasiPage() {
         (session.user.role && session.user.role !== "admin")
       ) {
         setIsAuthorized(false);
-        setIsLoading(false);
+        setReviewsLoading(false);
         return;
       }
 
       setToken(session.token);
       setIsAuthorized(true);
-      fetchReviews(session.token, activeTab);
+
+      // Fetch tab ulasan default dan invoice count untuk header badge
+      fetchReviewsData(session.token, reviewSubTab);
+      getAdminInvoices(session.token, "waiting_approval").then((res) => {
+        if (isMounted) setPendingBillingCount(res.pending_count);
+      }).catch(() => {});
     };
 
     initAuthAndFetch();
@@ -109,26 +203,44 @@ export default function AdminModerasiPage() {
     return () => {
       isMounted = false;
     };
-  }, [activeTab, fetchReviews]);
+  }, [fetchReviewsData, reviewSubTab]);
 
-  // Handle Tab Switch
-  const handleTabChange = (tab: "pending" | "approved") => {
-    setActiveTab(tab);
-    if (token) {
-      fetchReviews(token, tab);
+  // Handle Perubahan Main Tab (Lazy Data Fetching)
+  const handleMainTabSwitch = (tab: MainTab) => {
+    setActiveMainTab(tab);
+    if (!token) return;
+
+    if (tab === "reviews" && reviews.length === 0) {
+      fetchReviewsData(token, reviewSubTab);
+    } else if (tab === "billing") {
+      fetchInvoicesData(token, billingSubTab);
+    } else if (tab === "products" && products.length === 0) {
+      fetchProductsData();
+    } else if (tab === "vendors" && vendors.length === 0) {
+      fetchVendorsData(token);
+    } else if (tab === "settings" && !settings) {
+      fetchSettingsData();
     }
   };
 
-  // Handle Setujui Ulasan (Instant 1-Tap)
-  const handleApprove = async (review: AdminReviewItem) => {
+  // Tombol Refresh Global
+  const handleGlobalRefresh = () => {
+    if (!token) return;
+    if (activeMainTab === "reviews") fetchReviewsData(token, reviewSubTab);
+    else if (activeMainTab === "billing") fetchInvoicesData(token, billingSubTab);
+    else if (activeMainTab === "products") fetchProductsData();
+    else if (activeMainTab === "vendors") fetchVendorsData(token);
+    else if (activeMainTab === "settings") fetchSettingsData();
+  };
+
+  // === HANDLERS TAB 1: ULASAN ===
+  const handleApproveReview = async (review: AdminReviewItem) => {
     if (!token) return;
     setActionLoadingId(review.id);
-
     try {
       const res = await performReviewAction(token, review.id, "approve");
       if (res.success) {
         showToast("success", `Ulasan oleh ${review.author_name} telah disetujui!`);
-
         fetch("/api/web-push/send", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -139,10 +251,8 @@ export default function AdminModerasiPage() {
             url: `/products/${review.product_slug}`,
           }),
         }).catch(() => {});
-
-        // Update optimistik
         setReviews((prev) => prev.filter((r) => r.id !== review.id));
-        setPendingCount((prev) => Math.max(0, prev - 1));
+        setPendingReviewsCount((prev) => Math.max(0, prev - 1));
       } else {
         showToast("error", res.message || "Gagal menyetujui ulasan.");
       }
@@ -153,45 +263,21 @@ export default function AdminModerasiPage() {
     }
   };
 
-  // Buka Modal Penolakan
-  const handleOpenRejectModal = (review: AdminReviewItem) => {
-    setRejectingReview(review);
-    setRejectReason("");
-  };
-
-  // Konfirmasi Tolak Ulasan
-  const handleConfirmReject = async () => {
+  const handleConfirmRejectReview = async () => {
     if (!token || !rejectingReview) return;
     setActionLoadingId(rejectingReview.id);
-
     try {
       const res = await performReviewAction(
         token,
         rejectingReview.id,
         "reject",
-        rejectReason.trim(),
+        rejectReviewReason.trim()
       );
       if (res.success) {
-        showToast(
-          "success",
-          `Ulasan oleh ${rejectingReview.author_name} telah ditolak.`,
-        );
-
-        fetch("/api/web-push/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            targetRole: "vendor",
-            title: "ℹ️ Status Moderasi Testimoni",
-            body: `Testimoni untuk "${rejectingReview.product_name}" belum dapat disetujui${rejectReason ? ": " + rejectReason.trim() : "."}`,
-            url: "/dashboard/products",
-          }),
-        }).catch(() => {});
-
-        // Update optimistik
+        showToast("success", `Ulasan oleh ${rejectingReview.author_name} telah ditolak.`);
         setReviews((prev) => prev.filter((r) => r.id !== rejectingReview.id));
         if (rejectingReview.status === "pending") {
-          setPendingCount((prev) => Math.max(0, prev - 1));
+          setPendingReviewsCount((prev) => Math.max(0, prev - 1));
         }
         setRejectingReview(null);
       } else {
@@ -204,32 +290,96 @@ export default function AdminModerasiPage() {
     }
   };
 
-  // Konfirmasi Hapus Permanen Ulasan
-  const handleConfirmDelete = async () => {
+  const handleConfirmDeleteReview = async () => {
     if (!deletingReview || !token) return;
-
-    setIsDeleting(true);
+    setIsDeletingReview(true);
     try {
       const res = await performReviewAction(token, deletingReview.id, "delete");
       if (res.success) {
-        showToast(
-          "success",
-          `Testimoni dari "${deletingReview.author_name}" berhasil dihapus permanen.`,
-        );
-
-        // Pembaruan Optimistik
+        showToast("success", `Testimoni berhasil dihapus permanen.`);
         setReviews((prev) => prev.filter((r) => r.id !== deletingReview.id));
         if (deletingReview.status === "pending") {
-          setPendingCount((prev) => Math.max(0, prev - 1));
+          setPendingReviewsCount((prev) => Math.max(0, prev - 1));
         }
         setDeletingReview(null);
       } else {
         showToast("error", res.message || "Gagal menghapus testimoni.");
       }
     } catch {
-      showToast("error", "Terjadi kesalahan jaringan saat menghapus ulasan.");
+      showToast("error", "Terjadi kesalahan jaringan.");
     } finally {
-      setIsDeleting(false);
+      setIsDeletingReview(false);
+    }
+  };
+
+  // === HANDLERS TAB 2: BILLING INVOICES ===
+  const handleApproveBilling = async (inv: AdminBillingInvoice) => {
+    if (!token) return;
+    setActionLoadingId(inv.id);
+    try {
+      const res = await approveAdminInvoice(token, inv.id);
+      if (res.success) {
+        showToast("success", `Pembayaran paket ${inv.store_name} (${inv.invoice_number}) disetujui!`);
+        fetch("/api/web-push/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            targetRole: "vendor",
+            title: "🎉 Pembayaran Paket Telah Diverifikasi!",
+            body: `Pembayaran ${inv.plan_name || "paket"} toko Anda telah disetujui Admin. Masa aktif telah diperpanjang!`,
+            url: `/dashboard/billing`,
+          }),
+        }).catch(() => {});
+        setInvoices((prev) => prev.filter((i) => i.id !== inv.id));
+        setPendingBillingCount((prev) => Math.max(0, prev - 1));
+      } else {
+        showToast("error", res.message || "Gagal menyetujui pembayaran tagihan.");
+      }
+    } catch {
+      showToast("error", "Terjadi kesalahan jaringan.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleConfirmRejectBilling = async () => {
+    if (!token || !rejectingInvoice) return;
+    setActionLoadingId(rejectingInvoice.id);
+    try {
+      const res = await rejectAdminInvoice(
+        token,
+        rejectingInvoice.id,
+        rejectInvoiceReason.trim()
+      );
+      if (res.success) {
+        showToast("success", `Tagihan ${rejectingInvoice.invoice_number} berhasil ditolak.`);
+        setInvoices((prev) => prev.filter((i) => i.id !== rejectingInvoice.id));
+        setPendingBillingCount((prev) => Math.max(0, prev - 1));
+        setRejectingInvoice(null);
+      } else {
+        showToast("error", res.message || "Gagal menolak tagihan.");
+      }
+    } catch {
+      showToast("error", "Terjadi kesalahan jaringan.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // === HANDLERS TAB 3: PRODUCTS ===
+  const handleDeleteProduct = async (productId: number, productName: string): Promise<boolean> => {
+    try {
+      const ok = await deleteProduct(productId);
+      if (ok) {
+        showToast("success", `Produk "${productName}" berhasil di-takedown dari platform.`);
+        setProducts((prev) => prev.filter((p) => p.id !== productId));
+        return true;
+      }
+      showToast("error", "Gagal menghapus produk dari server.");
+      return false;
+    } catch {
+      showToast("error", "Terjadi kesalahan saat menghapus produk.");
+      return false;
     }
   };
 
@@ -245,8 +395,7 @@ export default function AdminModerasiPage() {
             Akses Terbatas Super Admin
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-            Halaman pusat kendali moderasi ini hanya dapat diakses oleh akun Super
-            Administrator Mas Chan Digital.
+            Halaman pusat kendali ini hanya dapat diakses oleh akun Super Administrator Mas Chan Digital.
           </p>
           <div className="pt-2 flex flex-col gap-2">
             <button
@@ -267,6 +416,8 @@ export default function AdminModerasiPage() {
       </main>
     );
   }
+
+  const isAnyLoading = reviewsLoading || billingLoading || productsLoading || vendorsLoading || settingsLoading;
 
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-slate-950/50 pb-28 md:pb-14">
@@ -289,9 +440,9 @@ export default function AdminModerasiPage() {
         </div>
       )}
 
-      {/* Header Khusus Smartphone */}
+      {/* Header Sticky Mobile Command Center */}
       <header className="bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-20 backdrop-blur-md bg-white/90 dark:bg-slate-900/90">
-        <div className="max-w-2xl mx-auto px-4 py-3.5 sm:py-4">
+        <div className="max-w-3xl mx-auto px-4 py-3.5">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-9 h-9 rounded-xl bg-brand-800/10 dark:bg-brand-800/20 text-brand-800 dark:text-blue-400 flex items-center justify-center shrink-0">
@@ -299,444 +450,387 @@ export default function AdminModerasiPage() {
               </div>
               <div className="min-w-0">
                 <h1 className="font-slab font-bold text-base sm:text-lg text-slate-900 dark:text-white truncate">
-                  Pusat Kendali Moderasi
+                  Pusat Kendali Admin
                 </h1>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                  Super Admin • Kota Serang
+                  Super Admin Mobile Command Center • Kota Serang
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {/* Lencana Status Pending */}
-              {pendingCount > 0 ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-500 text-white text-[11px] font-bold rounded-full shadow-sm animate-pulse">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                  <span>{pendingCount} Perlu Tindakan</span>
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-[11px] font-medium rounded-full">
-                  <CheckCircle2 className="w-3 h-3" />
-                  <span>Semua Bersih</span>
-                </span>
-              )}
-
-              {/* Tombol Refresh */}
+              {/* Tombol Segarkan */}
               <button
                 type="button"
-                onClick={() => token && fetchReviews(token, activeTab)}
-                disabled={isLoading}
-                aria-label="Segarkan data ulasan"
+                onClick={handleGlobalRefresh}
+                disabled={isAnyLoading}
+                aria-label="Segarkan data saat ini"
                 className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
               >
                 <RefreshCw
-                  className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+                  className={`w-4 h-4 ${isAnyLoading ? "animate-spin" : ""}`}
                   aria-hidden="true"
                 />
               </button>
             </div>
           </div>
 
-          {/* Tab Filter */}
-          <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+          {/* Navigasi Tab Segmented Horizontal (Ramah Jempol) */}
+          <nav aria-label="Menu Pusat Kendali" className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 overflow-x-auto pb-1 no-scrollbar">
             <button
               type="button"
-              onClick={() => handleTabChange("pending")}
-              className={`flex-1 py-2 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === "pending"
+              onClick={() => handleMainTabSwitch("reviews")}
+              className={`py-2 px-3 text-xs font-bold rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 ${
+                activeMainTab === "reviews"
                   ? "bg-brand-800 text-white shadow-sm"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200/70"
+                  : "bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200/60"
               }`}
             >
-              <Clock className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>Menunggu Verifikasi</span>
-              {pendingCount > 0 && (
+              <Star className="w-3.5 h-3.5" />
+              <span>Ulasan</span>
+              {pendingReviewsCount > 0 && (
                 <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                    activeTab === "pending"
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                    activeMainTab === "reviews"
                       ? "bg-white text-brand-800"
-                      : "bg-rose-500 text-white"
+                      : "bg-rose-500 text-white animate-pulse"
                   }`}
                 >
-                  {pendingCount}
+                  {pendingReviewsCount}
                 </span>
               )}
             </button>
 
             <button
               type="button"
-              onClick={() => handleTabChange("approved")}
-              className={`flex-1 py-2 px-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === "approved"
+              onClick={() => handleMainTabSwitch("billing")}
+              className={`py-2 px-3 text-xs font-bold rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 ${
+                activeMainTab === "billing"
                   ? "bg-brand-800 text-white shadow-sm"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200/70"
+                  : "bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200/60"
               }`}
             >
-              <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>Riwayat Disetujui</span>
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>Pembayaran Paket</span>
+              {pendingBillingCount > 0 && (
+                <span
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                    activeMainTab === "billing"
+                      ? "bg-white text-brand-800"
+                      : "bg-rose-500 text-white animate-pulse"
+                  }`}
+                >
+                  {pendingBillingCount}
+                </span>
+              )}
             </button>
-          </div>
+
+            <button
+              type="button"
+              onClick={() => handleMainTabSwitch("products")}
+              className={`py-2 px-3 text-xs font-bold rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 ${
+                activeMainTab === "products"
+                  ? "bg-brand-800 text-white shadow-sm"
+                  : "bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200/60"
+              }`}
+            >
+              <Package className="w-3.5 h-3.5" />
+              <span>Seluruh Produk</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleMainTabSwitch("vendors")}
+              className={`py-2 px-3 text-xs font-bold rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 ${
+                activeMainTab === "vendors"
+                  ? "bg-brand-800 text-white shadow-sm"
+                  : "bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200/60"
+              }`}
+            >
+              <Store className="w-3.5 h-3.5" />
+              <span>Direktori Vendor</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleMainTabSwitch("settings")}
+              className={`py-2 px-3 text-xs font-bold rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 ${
+                activeMainTab === "settings"
+                  ? "bg-brand-800 text-white shadow-sm"
+                  : "bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200/60"
+              }`}
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>Pengaturan</span>
+            </button>
+          </nav>
         </div>
       </header>
 
-      {/* Konten Daftar Ulasan */}
-      <section className="max-w-2xl mx-auto px-4 py-4 space-y-3.5">
-        {isLoading ? (
-          <div className="py-16 text-center space-y-3">
-            <Loader2
-              className="w-8 h-8 mx-auto animate-spin text-brand-800 dark:text-blue-400"
-              aria-hidden="true"
-            />
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Memuat data ulasan pembeli...
-            </p>
-          </div>
-        ) : reviews.length === 0 ? (
-          <div className="text-center py-16 px-4 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 space-y-3">
-            <div className="w-12 h-12 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center">
-              <MessageSquareQuote className="w-6 h-6" aria-hidden="true" />
-            </div>
-            <h2 className="font-slab font-bold text-base text-slate-800 dark:text-slate-200">
-              {activeTab === "pending"
-                ? "Tidak Ada Ulasan Pending"
-                : "Belum Ada Riwayat Ulasan"}
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
-              {activeTab === "pending"
-                ? "Alhamdulillah, seluruh ulasan produk dari pembeli telah diverifikasi dan disetujui."
-                : "Belum ada ulasan yang disetujui dalam catatan sistem."}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3.5">
-            {reviews.map((review) => (
-              <article
-                key={review.id}
-                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 sm:p-5 shadow-sm space-y-3.5 transition-all"
-              >
-                {/* Header Kartu: Info Produk & Toko */}
-                <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800/70 pb-3">
-                  <div className="min-w-0">
-                    <Link
-                      href={`/products/${review.product_slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-slab font-bold text-xs sm:text-sm text-slate-900 dark:text-white hover:text-brand-800 dark:hover:text-blue-400 inline-flex items-center gap-1 group"
-                    >
-                      <span className="truncate">{review.product_name}</span>
-                      <ExternalLink
-                        className="w-3 h-3 text-slate-400 group-hover:text-brand-800 shrink-0"
-                        aria-hidden="true"
-                      />
-                    </Link>
-                    <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      <Store className="w-3 h-3 text-brand-800 shrink-0" />
-                      <span className="truncate">{review.vendor_name}</span>
-                    </div>
-                  </div>
-
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
-                      review.status === "approved"
-                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
-                        : review.status === "rejected"
-                        ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800"
-                        : "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
-                    }`}
-                  >
-                    {review.status === "approved"
-                      ? "Disetujui"
-                      : review.status === "rejected"
-                      ? "Ditolak"
-                      : "Pending"}
-                  </span>
-                </div>
-
-                {/* Info Pengulas & Skor Bintang */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-full bg-brand-800/10 dark:bg-brand-800/20 text-brand-800 dark:text-blue-400 flex items-center justify-center font-slab font-bold text-xs shrink-0">
-                      {review.author_name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 block truncate">
-                        {review.author_name}
-                      </span>
-                      <time className="text-[10px] text-slate-400 dark:text-slate-500 block">
-                        {formatIndonesianDate(review.created_at)}
-                      </time>
-                    </div>
-                  </div>
-
-                  {/* Bintang Rating */}
-                  <div
-                    className="flex items-center gap-0.5 shrink-0"
-                    aria-label={`Rating ${review.rating} dari 5 bintang`}
-                  >
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star
-                        key={s}
-                        className={`w-3.5 h-3.5 ${
-                          s <= review.rating
-                            ? "fill-amber-400 text-amber-400"
-                            : "text-slate-300 dark:text-slate-700"
-                        }`}
-                        aria-hidden="true"
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Teks Ulasan */}
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 leading-relaxed break-words">
-                  &ldquo;{review.content}&rdquo;
-                </div>
-
-                {/* Pratinjau Foto Bukti Ulasan */}
-                {review.images && review.images.length > 0 && (
-                  <div className="space-y-1.5 pt-1">
-                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block">
-                      Foto Bukti ({review.images.length}/5):
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {review.images.map((img, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => setZoomedImage(img)}
-                          className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-brand-800 group cursor-zoom-in transition-all shadow-2xs"
-                          title="Klik untuk memperbesar bukti foto"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={img} alt={`Bukti ulasan ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                          <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
-                            <ZoomIn className="w-4 h-4" />
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Pemutar Video Sematan Review */}
-                {review.video_url && (
-                  <ReviewVideoEmbed url={review.video_url} authorName={review.author_name} />
-                )}
-
-                {/* Blok Tombol Aksi Kartu Ulasan (Pending & Approved) */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
-                  {/* Tombol Hapus Permanen (Tersedia di Tab Pending maupun Approved) */}
-                  <button
-                    type="button"
-                    onClick={() => setDeletingReview(review)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl border border-rose-200 dark:border-rose-900/50 transition-colors shrink-0"
-                    title="Hapus testimoni ini secara permanen"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span className="hidden sm:inline">Hapus</span>
-                  </button>
-
-                  {/* Tombol Aksi Moderasi Khusus Tab Pending */}
-                  {activeTab === "pending" && (
-                    <div className="flex items-center gap-2 flex-1 justify-end min-w-[200px]">
-                      {/* Tombol Tolak (Merah) */}
-                      <button
-                        type="button"
-                        onClick={() => handleOpenRejectModal(review)}
-                        disabled={actionLoadingId === review.id}
-                        className="flex-1 sm:flex-initial py-2 px-3 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-bold rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
-                      >
-                        <X className="w-3.5 h-3.5" aria-hidden="true" />
-                        <span>✕ Tolak</span>
-                      </button>
-
-                      {/* Tombol Setujui (Hijau) */}
-                      <button
-                        type="button"
-                        onClick={() => handleApprove(review)}
-                        disabled={actionLoadingId === review.id}
-                        className="flex-1 sm:flex-initial py-2 px-3.5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-xs font-bold rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                      >
-                        {actionLoadingId === review.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                        )}
-                        <span>✓ Setujui</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
+      {/* Konten Tab Aktif */}
+      <div className="max-w-3xl mx-auto px-4 py-4">
+        {activeMainTab === "reviews" && (
+          <AdminReviewsTab
+            reviews={reviews}
+            pendingCount={pendingReviewsCount}
+            isLoading={reviewsLoading}
+            activeSubTab={reviewSubTab}
+            onSubTabChange={(sub) => {
+              setReviewSubTab(sub);
+              if (token) fetchReviewsData(token, sub);
+            }}
+            onApprove={handleApproveReview}
+            onOpenRejectModal={(r) => {
+              setRejectingReview(r);
+              setRejectReviewReason("");
+            }}
+            onOpenDeleteModal={(r) => setDeletingReview(r)}
+            actionLoadingId={actionLoadingId}
+            onZoomImage={(url) => setZoomedImage(url)}
+            onRefresh={() => token && fetchReviewsData(token, reviewSubTab)}
+          />
         )}
-      </section>
 
-      {/* Modal Pop-up Input Alasan Penolakan */}
-      {rejectingReview && (
+        {activeMainTab === "billing" && (
+          <AdminBillingTab
+            invoices={invoices}
+            pendingCount={pendingBillingCount}
+            isLoading={billingLoading}
+            activeSubTab={billingSubTab}
+            onSubTabChange={(sub) => {
+              setBillingSubTab(sub);
+              if (token) fetchInvoicesData(token, sub);
+            }}
+            onApprove={handleApproveBilling}
+            onOpenRejectModal={(inv) => {
+              setRejectingInvoice(inv);
+              setRejectInvoiceReason("");
+            }}
+            actionLoadingId={actionLoadingId}
+            onZoomImage={(url) => setZoomedImage(url)}
+            onRefresh={() => token && fetchInvoicesData(token, billingSubTab)}
+          />
+        )}
+
+        {activeMainTab === "products" && (
+          <AdminProductsTab
+            products={products}
+            isLoading={productsLoading}
+            onDeleteProduct={handleDeleteProduct}
+            onRefresh={fetchProductsData}
+          />
+        )}
+
+        {activeMainTab === "vendors" && (
+          <AdminVendorsTab
+            vendors={vendors}
+            isLoading={vendorsLoading}
+            onRefresh={() => token && fetchVendorsData(token)}
+          />
+        )}
+
+        {activeMainTab === "settings" && (
+          <AdminSettingsTab
+            settings={settings}
+            isLoading={settingsLoading}
+            onRefresh={fetchSettingsData}
+          />
+        )}
+      </div>
+
+      {/* Modal Universal: Lightbox Zoom Foto (Ulasan & Struk Transfer) */}
+      {zoomedImage && (
         <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={rejectModalId}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setZoomedImage(null)}
         >
           <div
-            className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4 animate-in zoom-in-95 duration-200"
+            className="relative max-w-2xl w-full max-h-[85vh] flex flex-col items-center justify-center p-2"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-rose-600">
-                <XCircle className="w-5 h-5 shrink-0" aria-hidden="true" />
-                <h3
-                  id={rejectModalId}
-                  className="font-slab font-bold text-sm sm:text-base text-slate-900 dark:text-white"
-                >
-                  Konfirmasi Penolakan
-                </h3>
-              </div>
+            <button
+              type="button"
+              onClick={() => setZoomedImage(null)}
+              className="absolute -top-10 right-0 p-2 text-white/80 hover:text-white rounded-full transition-colors"
+              aria-label="Tutup foto"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <div className="relative w-full h-[70vh] rounded-2xl overflow-hidden shadow-2xl bg-black">
+              <Image
+                src={zoomedImage}
+                alt="Foto bukti"
+                fill
+                className="object-contain"
+                sizes="(max-width: 768px) 100vw, 800px"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Penolakan Ulasan */}
+      {rejectingReview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="font-slab font-bold text-base text-slate-900 dark:text-white">
+                Tolak Testimoni Pembeli
+              </h3>
               <button
                 type="button"
                 onClick={() => setRejectingReview(null)}
-                aria-label="Tutup form penolakan"
-                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              Tolak testimoni dari pengulas{" "}
-              <strong className="text-slate-900 dark:text-white">
-                {rejectingReview.author_name}
-              </strong>{" "}
-              untuk produk &ldquo;{rejectingReview.product_name}&rdquo;?
+              Tuliskan alasan penolakan testimoni dari &ldquo;{rejectingReview.author_name}&rdquo;.
             </p>
 
-            <div className="space-y-1.5">
-              <label
-                htmlFor="admin-reject-reason"
-                className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
-              >
-                Alasan Penolakan (Opsional):
+            <div className="space-y-1">
+              <label htmlFor={rejectReviewModalId} className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block">
+                Alasan Penolakan:
               </label>
               <textarea
-                id="admin-reject-reason"
+                id={rejectReviewModalId}
+                value={rejectReviewReason}
+                onChange={(e) => setRejectReviewReason(e.target.value)}
+                placeholder="Contoh: Mengandung kata tidak pantas, foto tidak relevan..."
                 rows={3}
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="Misal: Mengandung spam, kata tidak pantas, atau ulasan tidak relevan..."
-                className="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500 resize-none"
+                className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-800"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="flex items-center gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setRejectingReview(null)}
-                disabled={actionLoadingId === rejectingReview.id}
-                className="w-full py-2 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/70 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-xl transition-colors"
+                className="flex-1 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 rounded-xl"
               >
                 Batal
               </button>
               <button
                 type="button"
-                onClick={handleConfirmReject}
+                onClick={handleConfirmRejectReview}
                 disabled={actionLoadingId === rejectingReview.id}
-                className="w-full py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all flex items-center justify-center gap-1 disabled:opacity-60"
+                className="flex-1 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 {actionLoadingId === rejectingReview.id ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <span>Konfirmasi Tolak</span>
+                  <X className="w-4 h-4" />
                 )}
+                <span>Konfirmasi Tolak</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Konfirmasi Hapus Permanen */}
-      {deletingReview && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
-        >
-          <div
-            className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4 animate-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-                <Trash2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-slab font-bold text-base text-slate-900 dark:text-white">
-                  Hapus Testimoni?
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Tindakan ini permanen dan tidak dapat dibatalkan.
-                </p>
-              </div>
+      {/* Modal Penolakan Pembayaran Tagihan Paket */}
+      {rejectingInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="font-slab font-bold text-base text-slate-900 dark:text-white">
+                Tolak Bukti Pembayaran
+              </h3>
+              <button
+                type="button"
+                onClick={() => setRejectingInvoice(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
-              Ulasan dari <strong>{deletingReview.author_name}</strong> untuk produk <em>&ldquo;{deletingReview.product_name}&rdquo;</em> akan dihapus sepenuhnya dari database.
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Tolak tagihan <strong className="text-slate-800 dark:text-slate-200">{rejectingInvoice.invoice_number}</strong> ({rejectingInvoice.store_name}). Vendor akan menerima notifikasi untuk mengunggah ulang bukti bayar yang benar.
             </p>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="space-y-1">
+              <label htmlFor={rejectInvoiceModalId} className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block">
+                Alasan Penolakan:
+              </label>
+              <textarea
+                id={rejectInvoiceModalId}
+                value={rejectInvoiceReason}
+                onChange={(e) => setRejectInvoiceReason(e.target.value)}
+                placeholder="Contoh: Nominal transfer tidak sesuai kode unik, foto struk buram/tidak terbaca..."
+                rows={3}
+                className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-800"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setRejectingInvoice(null)}
+                className="flex-1 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 rounded-xl"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRejectBilling}
+                disabled={actionLoadingId === rejectingInvoice.id}
+                className="flex-1 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {actionLoadingId === rejectingInvoice.id ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <X className="w-4 h-4" />
+                )}
+                <span>Konfirmasi Tolak</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Hapus Permanen Ulasan */}
+      {deletingReview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="w-12 h-12 rounded-full bg-rose-50 dark:bg-rose-950/50 text-rose-600 flex items-center justify-center mx-auto">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="font-slab font-bold text-base text-slate-900 dark:text-white">
+                Hapus Testimoni Permanen?
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Ulasan dari &ldquo;<strong className="text-slate-700 dark:text-slate-300">{deletingReview.author_name}</strong>&rdquo; akan dihapus permanen dari database.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setDeletingReview(null)}
-                disabled={isDeleting}
-                className="px-3.5 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                disabled={isDeletingReview}
+                className="flex-1 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 rounded-xl"
               >
                 Batal
               </button>
               <button
                 type="button"
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl shadow-sm disabled:opacity-50 transition-all"
+                onClick={handleConfirmDeleteReview}
+                disabled={isDeletingReview}
+                className="flex-1 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Menghapus...</span>
-                  </>
+                {isDeletingReview ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <span>Ya, Hapus Permanen</span>
+                  <AlertCircle className="w-4 h-4" />
                 )}
+                <span>Ya, Hapus</span>
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Zoom Foto Ulasan (Lightbox) */}
-      {zoomedImage && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setZoomedImage(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
-        >
-          <div className="relative max-w-2xl max-h-[85vh] w-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              onClick={() => setZoomedImage(null)}
-              aria-label="Tutup pratinjau foto"
-              className="absolute -top-10 right-0 p-2 text-white/80 hover:text-white rounded-full transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={zoomedImage}
-              alt="Foto bukti ulasan resolusi penuh"
-              className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl border border-slate-700"
-            />
           </div>
         </div>
       )}

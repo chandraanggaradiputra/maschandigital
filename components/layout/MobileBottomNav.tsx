@@ -160,13 +160,13 @@ export function MobileBottomNav() {
               <Link
                 href="/admin/moderasi"
                 className="flex flex-col items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded-full group"
-                aria-label="Pusat Kendali Moderasi"
+                aria-label="Pusat Kendali Admin"
               >
                 <div className="w-12 h-12 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-lg shadow-rose-900/30 group-hover:bg-rose-700 transition-all group-hover:scale-105 active:scale-95">
                   <ShieldCheck className="w-6 h-6" aria-hidden="true" />
                 </div>
                 <span className="text-[10px] mt-1 font-bold text-rose-600 dark:text-rose-400">
-                  Moderasi
+                  Kendali
                 </span>
               </Link>
             ) : isVendor ? (
@@ -610,7 +610,7 @@ export function MobileBottomNav() {
                           >
                             <div className="flex items-center gap-2.5 text-rose-700 dark:text-rose-300 font-medium text-xs">
                               <ShieldCheck className="h-4 w-4" />
-                              <span>🛡️ Pusat Kendali Moderasi</span>
+                              <span>🛡️ Pusat Kendali Admin</span>
                             </div>
                             <ChevronRight className="h-4 w-4 text-slate-400" />
                           </Link>

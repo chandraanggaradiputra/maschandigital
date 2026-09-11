@@ -3,6 +3,7 @@ import {
   SubscriptionPlan,
   VendorSubscription,
   BillingInvoice,
+  AdminInvoicesResponse,
   PlanId,
 } from "@/types";
 
@@ -169,3 +170,122 @@ export async function cancelInvoice(invoiceId: number): Promise<ActionResult> {
     };
   }
 }
+
+/**
+ * Mengambil daftar invoice tagihan paket untuk Super Admin
+ */
+export async function getAdminInvoices(
+  token: string,
+  status: string = "pending_approval"
+): Promise<AdminInvoicesResponse> {
+  if (!token) {
+    return { pending_count: 0, invoices: [] };
+  }
+
+  try {
+    const res = await fetch(
+      `${WP_API_URL}/wp-json/maschan/v1/admin/billing/invoices?status=${encodeURIComponent(status)}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      }
+    );
+
+    if (!res.ok) {
+      return { pending_count: 0, invoices: [] };
+    }
+
+    const data = await res.json();
+    return {
+      pending_count: Number(data.pending_count) || 0,
+      invoices: Array.isArray(data.invoices) ? data.invoices : [],
+    };
+  } catch {
+    return { pending_count: 0, invoices: [] };
+  }
+}
+
+/**
+ * 1-Tap Approval: Super Admin menyetujui tagihan pembayaran paket vendor
+ */
+export async function approveAdminInvoice(
+  token: string,
+  invoiceId: number
+): Promise<{ success: boolean; message: string; subscription?: VendorSubscription }> {
+  if (!token || !invoiceId) {
+    return { success: false, message: "Token atau ID Tagihan tidak valid." };
+  }
+
+  try {
+    const res = await fetch(
+      `${WP_API_URL}/wp-json/maschan/v1/admin/billing/approve`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ invoice_id: invoiceId }),
+      }
+    );
+
+    const data = await res.json();
+    if (!res.ok) {
+      return {
+        success: false,
+        message: data.message || "Gagal menyetujui pembayaran paket.",
+      };
+    }
+    return data;
+  } catch (err) {
+    return {
+      success: false,
+      message: getErrorMessage(err, "Gagal menghubungi server."),
+    };
+  }
+}
+
+/**
+ * Penolakan Tagihan: Super Admin menolak pembayaran paket vendor dengan alasan
+ */
+export async function rejectAdminInvoice(
+  token: string,
+  invoiceId: number,
+  reason: string
+): Promise<{ success: boolean; message: string }> {
+  if (!token || !invoiceId) {
+    return { success: false, message: "Token atau ID Tagihan tidak valid." };
+  }
+
+  try {
+    const res = await fetch(
+      `${WP_API_URL}/wp-json/maschan/v1/admin/billing/reject`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          invoice_id: invoiceId,
+          reason: reason || "Bukti transfer tidak valid atau tidak terbaca.",
+        }),
+      }
+    );
+
+    const data = await res.json();
+    if (!res.ok) {
+      return {
+        success: false,
+        message: data.message || "Gagal menolak tagihan pembayaran.",
+      };
+    }
+    return data;
+  } catch (err) {
+    return {
+      success: false,
+      message: getErrorMessage(err, "Gagal menghubungi server."),
+    };
+  }
+}
+
