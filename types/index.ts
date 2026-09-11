@@ -37,7 +37,16 @@ export interface VendorSummary {
   vacation_mode?: VacationMode;
 }
 
-export type ProductType = "simple" | "external" | "affiliate";
+export interface ProductVariation {
+  id: string | number;
+  name: string;
+  price: number;
+  regular_price?: number;
+  sale_price?: number;
+  stock_status?: "instock" | "outofstock";
+}
+
+export type ProductType = "simple" | "external" | "affiliate" | "variable";
 
 export interface Product {
   id: number;
@@ -47,6 +56,9 @@ export interface Product {
   type: ProductType;
   status: "publish" | "draft" | "pending";
   featured?: boolean;
+  is_variable?: boolean;
+  variations?: ProductVariation[];
+  price_range?: { min: number; max: number };
   views?: number;
   view_count?: number;
   total_views?: number;

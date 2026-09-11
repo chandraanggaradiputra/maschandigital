@@ -46,6 +46,35 @@ export function ProductEmbed({
     product.regular_price || product.price,
   );
 
+  const isVariable = Boolean(
+    product.is_variable || (product.variations && product.variations.length > 0),
+  );
+  const priceRange =
+    product.price_range ||
+    (product.variations && product.variations.length > 0
+      ? {
+          min: Math.min(
+            ...product.variations
+              .map((v) => Number(v.price))
+              .filter((p) => !isNaN(p) && p > 0),
+          ),
+          max: Math.max(
+            ...product.variations
+              .map((v) => Number(v.price))
+              .filter((p) => !isNaN(p) && p > 0),
+          ),
+        }
+      : undefined);
+
+  let displayedPrice = hasSale ? formattedSalePrice : formattedRegularPrice;
+  if (isVariable && priceRange && priceRange.min > 0) {
+    if (priceRange.min === priceRange.max) {
+      displayedPrice = formatRupiah(priceRange.min);
+    } else {
+      displayedPrice = `${formatRupiah(priceRange.min)} - ${formatRupiah(priceRange.max)}`;
+    }
+  }
+
   const vendorDistrict = resolveVendorDistrict(product.vendor);
   const vendorStoreName = product.vendor?.store_name || "Vendor Mas Chan Digital";
   const vendorSlug = product.vendor?.slug || "vendor";
@@ -80,9 +109,16 @@ export function ProductEmbed({
           <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
           <span>Rekomendasi Produk Mas Chan Digital</span>
         </div>
-        <Badge variant="primary" className="text-[11px] font-medium">
-          {primaryCategory}
-        </Badge>
+        <div className="flex items-center gap-1.5">
+          {isVariable && (
+            <Badge variant="neutral" className="text-[11px] font-medium bg-blue-50 text-[#093c96] dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+              Pilihan Varian
+            </Badge>
+          )}
+          <Badge variant="primary" className="text-[11px] font-medium">
+            {primaryCategory}
+          </Badge>
+        </div>
       </div>
 
       {/* Konten Kartu Sematan */}
@@ -113,19 +149,13 @@ export function ProductEmbed({
             </Link>
           </h4>
 
-          {/* Harga Rupiah Pas */}
+          {/* Harga Rupiah */}
           <div className="mt-1 flex items-baseline gap-2">
-            {hasSale ? (
-              <>
-                <span className="text-lg font-extrabold text-brand-700 dark:text-brand-400">
-                  {formattedSalePrice}
-                </span>
-                <span className="text-xs text-slate-400 line-through">
-                  {formattedRegularPrice}
-                </span>
-              </>
-            ) : (
-              <span className="text-lg font-extrabold text-brand-700 dark:text-brand-400">
+            <span className="text-lg font-extrabold text-brand-700 dark:text-brand-400">
+              {displayedPrice}
+            </span>
+            {!isVariable && hasSale && (
+              <span className="text-xs text-slate-400 line-through">
                 {formattedRegularPrice}
               </span>
             )}
@@ -151,17 +181,28 @@ export function ProductEmbed({
 
           {/* Tombol Aksi Ramah Jempol */}
           <div className="mt-3.5 flex flex-wrap items-center gap-2.5">
-            <a
-              href={waUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={handleWhatsAppClick}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-whatsapp-500 hover:bg-whatsapp-600 text-white shadow-subtle hover:shadow transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp-500 active:scale-[0.98]"
-              aria-label={`Pesan ${product.name} via WhatsApp`}
-            >
-              <MessageCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
-              <span>Pesan via WhatsApp</span>
-            </a>
+            {isVariable ? (
+              <Link
+                href={`/products/${product.slug}`}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-brand-600 hover:bg-brand-700 text-white shadow-subtle hover:shadow transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 active:scale-[0.98]"
+                aria-label={`Pilih varian produk ${product.name}`}
+              >
+                <ShoppingBag className="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span>Pilih Varian</span>
+              </Link>
+            ) : (
+              <a
+                href={waUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={handleWhatsAppClick}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-whatsapp-500 hover:bg-whatsapp-600 text-white shadow-subtle hover:shadow transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp-500 active:scale-[0.98]"
+                aria-label={`Pesan ${product.name} via WhatsApp`}
+              >
+                <MessageCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span>Pesan via WhatsApp</span>
+              </a>
+            )}
 
             <Link
               href={`/products/${product.slug}`}

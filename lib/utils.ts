@@ -48,8 +48,9 @@ export function generateWhatsAppProductUrl(params: {
   price?: string | number;
   productUrl?: string;
   vendorName?: string;
+  selectedVariation?: string;
 }): string {
-  const { whatsappNumber, productName, price, productUrl, vendorName } = params;
+  const { whatsappNumber, productName, price, productUrl, vendorName, selectedVariation } = params;
   const normalizedPhone = normalizeWhatsAppNumber(whatsappNumber);
 
   let formattedPrice = "";
@@ -58,9 +59,10 @@ export function generateWhatsAppProductUrl(params: {
   }
 
   const siteName = "Mas Chan Digital - Marketplace Lokal Serang";
+  const variationText = selectedVariation ? `\n🏷️ *Pilihan Varian:* ${selectedVariation}` : "";
   const text =
     `Halo ${vendorName ? vendorName : "Admin"}, saya tertarik untuk memesan produk ini dari *${siteName}*:\n\n` +
-    `📦 *Produk:* ${productName}${formattedPrice}\n` +
+    `📦 *Produk:* ${productName}${formattedPrice}${variationText}\n` +
     (productUrl ? `🔗 *Link Produk:* ${productUrl}\n\n` : "\n") +
     `Mohon info ketersediaan stok dan cara transaksi lanjutannya. Terima kasih!`;
 
@@ -133,6 +135,7 @@ export function generateWhatsAppOrderUrl(params: {
   whatsappNumber: string;
   vendorName: string;
   productName: string;
+  selectedVariation?: string;
   unitPrice: number;
   qty: number;
   buyerName: string;
@@ -145,6 +148,7 @@ export function generateWhatsAppOrderUrl(params: {
     whatsappNumber,
     vendorName,
     productName,
+    selectedVariation,
     unitPrice,
     qty,
     buyerName,
@@ -157,10 +161,15 @@ export function generateWhatsAppOrderUrl(params: {
   const normalizedPhone = normalizeWhatsAppNumber(whatsappNumber);
   const subtotal = unitPrice * qty;
 
+  const variationLine = selectedVariation?.trim()
+    ? `• Varian: ${selectedVariation.trim()}\n`
+    : "";
+
   const text =
     `Halo ${vendorName || "Admin Toko"}, saya ingin memesan produk dari Mas Chan Digital:\n\n` +
     `🛒 *RINCIAN PESANAN:*\n` +
     `• Produk: ${productName}\n` +
+    variationLine +
     `• Harga Satuan: ${formatRupiah(unitPrice)}\n` +
     `• Jumlah: ${qty} pcs\n` +
     `• Estimasi Total: ${formatRupiah(subtotal)}\n\n` +

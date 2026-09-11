@@ -13,7 +13,7 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { checkStoreStatus, type StoreStatus } from "@/lib/storeStatus";
-import type { StoreHours, VacationMode } from "@/types";
+import type { StoreHours, VacationMode, ProductVariation } from "@/types";
 import { WhatsAppOrderModal } from "./WhatsAppOrderModal";
 import { trackWhatsAppClick } from "@/lib/analytics";
 import { formatRupiah } from "@/lib/utils";
@@ -32,6 +32,8 @@ export interface OrderSectionProps {
   affiliateButtonText?: string;
   productId?: number;
   vendorSlug?: string;
+  isVariable?: boolean;
+  variations?: ProductVariation[];
 }
 
 export function OrderSection({
@@ -48,10 +50,33 @@ export function OrderSection({
   affiliateButtonText,
   productId,
   vendorSlug,
+  isVariable,
+  variations,
 }: OrderSectionProps) {
   const [storeStatus, setStoreStatus] =
     useState<StoreStatus>(initialStoreStatus);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const hasVariations = Boolean(
+    isVariable && variations && variations.length > 0,
+  );
+  const [selectedVariantId, setSelectedVariantId] = useState<
+    string | number | null
+  >(() => {
+    if (!hasVariations || !variations || variations.length === 0) return null;
+    const firstInStock = variations.find(
+      (v) => v.stock_status !== "outofstock",
+    );
+    return (firstInStock || variations[0]).id;
+  });
+
+  const activeVariation =
+    hasVariations && variations
+      ? variations.find((v) => v.id === selectedVariantId) || variations[0]
+      : null;
+
+  const effectivePrice = activeVariation ? activeVariation.price : unitPrice;
+  const isOutOfStock = activeVariation?.stock_status === "outofstock";
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -66,7 +91,7 @@ export function OrderSection({
       : cleanPhone;
 
   const directWaUrl = `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(
-    `Halo ${vendorName || "Admin"}, saya ingin bertanya mengenai produk ini dari *Mas Chan Digital*:\n\n📦 *Produk:* ${productName}\n🔗 *Link:* ${productUrl}\n\nTerima kasih!`,
+    `Halo ${vendorName || "Admin"}, saya ingin bertanya mengenai produk ini dari *Mas Chan Digital*:\n\n📦 *Produk:* ${productName}${activeVariation ? `\n🏷️ *Varian:* ${activeVariation.name}\n💰 *Harga:* ${formatRupiah(effectivePrice)}` : ""}\n🔗 *Link:* ${productUrl}\n\nTerima kasih!`,
   )}`;
 
   return (
@@ -105,6 +130,55 @@ export function OrderSection({
           </div>
         </div>
       ) : null}
+
+      {/* Pilihan Varian Produk (Variable Products) */}
+      {hasVariations && variations && variations.length > 0 && (
+        <div className="space-y-3 bg-slate-50/80 dark:bg-slate-900/60 p-4 border border-slate-200 dark:border-slate-800 rounded-2xl">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">
+              Pilihan Varian Produk:
+            </span>
+            {activeVariation && (
+              <span className="text-xs font-bold text-brand-700 dark:text-brand-400">
+                {formatRupiah(activeVariation.price)}
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {variations.map((v) => {
+              const isSelected = v.id === activeVariation?.id;
+              const isOut = v.stock_status === "outofstock";
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => !isOut && setSelectedVariantId(v.id)}
+                  disabled={isOut}
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 border ${
+                    isSelected
+                      ? "border-[#093c96] bg-blue-50 text-[#093c96] dark:bg-blue-950/60 dark:border-blue-500 dark:text-blue-300 ring-2 ring-[#093c96]/20 shadow-xs"
+                      : isOut
+                        ? "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-slate-400 cursor-not-allowed line-through opacity-60"
+                        : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
+                  }`}
+                  aria-pressed={isSelected}
+                  aria-disabled={isOut}
+                >
+                  <span>{v.name}</span>
+                  <span className="text-[11px] opacity-80">
+                    {isOut ? "(Habis)" : formatRupiah(v.price)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {isOutOfStock && (
+            <p className="text-xs text-rose-500 font-medium">
+              * Varian yang Anda pilih sedang habis stoknya. Silakan pilih varian lain.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Action Buttons: Conditional based on Store Status */}
       <div className="space-y-3 pt-2">
@@ -202,8 +276,20 @@ export function OrderSection({
               </a>
             )}
           </>
+        ) : isOutOfStock ? (
+          /* 2. VARIAN HABIS */
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            fullWidth
+            disabled
+            className="bg-slate-100 dark:bg-slate-900 opacity-80 py-4 border-slate-300 dark:border-slate-800 font-bold text-slate-500 text-sm sm:text-base cursor-not-allowed"
+          >
+            <span>Varian Ini Sedang Habis</span>
+          </Button>
         ) : (
-          /* 2. PRODUK DIRECT WHATSAPP */
+          /* 3. PRODUK DIRECT WHATSAPP */
           <Button
             type="button"
             variant="whatsapp"
@@ -230,7 +316,8 @@ export function OrderSection({
           whatsappNumber={whatsappNumber}
           vendorName={vendorName}
           productName={productName}
-          unitPrice={unitPrice}
+          selectedVariation={activeVariation ? activeVariation.name : undefined}
+          unitPrice={effectivePrice}
           productUrl={productUrl}
           productId={productId}
         />
@@ -309,7 +396,7 @@ export function OrderSection({
                     >
                       <div className="flex flex-col items-start leading-none text-left">
                         <span className="text-[10px] opacity-90 block">Beli via Link</span>
-                        <span className="text-xs sm:text-sm font-bold block mt-0.5">{formatRupiah(unitPrice)}</span>
+                        <span className="text-xs sm:text-sm font-bold block mt-0.5">{formatRupiah(effectivePrice)}</span>
                       </div>
                       <ExternalLink className="w-5 h-5 ml-2" aria-hidden="true" />
                     </Button>
@@ -338,12 +425,22 @@ export function OrderSection({
                     >
                       <div className="flex flex-col items-start leading-none text-left">
                         <span className="text-[10px] opacity-90 block">Tanya WA</span>
-                        <span className="text-xs sm:text-sm font-bold block mt-0.5">{formatRupiah(unitPrice)}</span>
+                        <span className="text-xs sm:text-sm font-bold block mt-0.5">{formatRupiah(effectivePrice)}</span>
                       </div>
                       <MessageCircle className="w-5 h-5 ml-2 fill-white" aria-hidden="true" />
                     </Button>
                   </a>
                 ) : null
+              ) : isOutOfStock ? (
+                <Button
+                  variant="outline"
+                  size="md"
+                  fullWidth
+                  disabled
+                  className="bg-slate-100 dark:bg-slate-900 opacity-80 border-slate-300 dark:border-slate-800 font-bold text-slate-500 text-xs sm:text-sm py-2.5 h-auto cursor-not-allowed"
+                >
+                  <span>Stok Varian Habis</span>
+                </Button>
               ) : (
                 <Button
                   type="button"
@@ -354,10 +451,12 @@ export function OrderSection({
                   className="font-bold text-xs sm:text-sm py-2.5 h-auto shadow-sm flex items-center justify-between px-3 w-full"
                 >
                   <div className="flex flex-col items-start leading-none text-left">
-                    <span className="text-[10px] opacity-90 block">Beli via WA</span>
-                    <span className="text-xs sm:text-sm font-bold block mt-0.5">{formatRupiah(unitPrice)}</span>
+                    <span className="text-[10px] opacity-90 block truncate max-w-[110px]">
+                      {activeVariation ? activeVariation.name : "Beli via WA"}
+                    </span>
+                    <span className="text-xs sm:text-sm font-bold block mt-0.5">{formatRupiah(effectivePrice)}</span>
                   </div>
-                  <MessageCircle className="fill-white w-5 h-5 ml-2" aria-hidden="true" />
+                  <MessageCircle className="fill-white w-5 h-5 ml-2 shrink-0" aria-hidden="true" />
                 </Button>
               )}
             </div>

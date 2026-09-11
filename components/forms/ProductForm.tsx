@@ -10,8 +10,11 @@ import {
   FolderPlus,
   AlertCircle,
   Check,
+  Plus,
+  Trash2,
+  Layers,
 } from "lucide-react";
-import { Product, ProductType, ProductCategory } from "@/types";
+import { Product, ProductType, ProductCategory, ProductVariation } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { MediaUploader } from "@/components/forms/MediaUploader";
 import {
@@ -82,6 +85,49 @@ export function ProductForm({
   );
   const [onSale, setOnSale] = useState(Boolean(initialData?.on_sale));
   const [salePrice, setSalePrice] = useState(initialData?.sale_price || "");
+
+  // Variable Product
+  const [isVariable, setIsVariable] = useState<boolean>(
+    Boolean(
+      initialData?.is_variable ||
+        (initialData?.variations && initialData.variations.length > 0),
+    ),
+  );
+  const [variations, setVariations] = useState<ProductVariation[]>(() => {
+    if (initialData?.variations && initialData.variations.length > 0) {
+      return initialData.variations;
+    }
+    return [
+      { id: "var-1", name: "", price: 0, stock_status: "instock" },
+      { id: "var-2", name: "", price: 0, stock_status: "instock" },
+    ];
+  });
+
+  const handleAddVariation = () => {
+    const newId = `var-${Date.now()}-${variations.length + 1}`;
+    setVariations((prev) => [
+      ...prev,
+      { id: newId, name: "", price: 0, stock_status: "instock" },
+    ]);
+  };
+
+  const handleRemoveVariation = (indexToRemove: number) => {
+    if (variations.length <= 2) {
+      alert("Produk variasi wajib memiliki minimal 2 pilihan varian.");
+      return;
+    }
+    setVariations((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const handleVariationChange = (
+    index: number,
+    field: keyof ProductVariation,
+    value: unknown,
+  ) => {
+    setVariations((prev) =>
+      prev.map((v, idx) => (idx === index ? { ...v, [field]: value } : v)),
+    );
+  };
 
   // Affiliate
   const [externalUrl, setExternalUrl] = useState(
@@ -193,12 +239,47 @@ export function ProductForm({
     setSuccessMessage("");
     setErrorMessage("");
 
+    if (isVariable) {
+      if (variations.length < 2) {
+        setErrorMessage("Produk variasi wajib memiliki minimal 2 pilihan varian.");
+        setIsSubmitting(false);
+        return;
+      }
+      for (let i = 0; i < variations.length; i++) {
+        const v = variations[i];
+        if (!v.name || !v.name.trim()) {
+          setErrorMessage(`Nama pada Varian #${i + 1} wajib diisi.`);
+          setIsSubmitting(false);
+          return;
+        }
+        if (typeof v.price !== "number" || isNaN(v.price) || v.price <= 0) {
+          setErrorMessage(
+            `Harga pada Varian "${v.name}" wajib diisi lebih dari Rp 0.`,
+          );
+          setIsSubmitting(false);
+          return;
+        }
+      }
+    }
+
+    const minVarPrice =
+      isVariable && variations.length > 0
+        ? Math.min(...variations.map((v) => Number(v.price) || 0))
+        : 0;
+
     const payload = {
       name,
-      type: productType,
-      regular_price: regularPrice,
-      sale_price: onSale ? salePrice : "",
-      on_sale: onSale,
+      type:
+        productType === "affiliate"
+          ? "affiliate"
+          : isVariable
+            ? "variable"
+            : "simple",
+      is_variable: isVariable,
+      variations: isVariable ? variations : [],
+      regular_price: isVariable ? String(minVarPrice) : regularPrice,
+      sale_price: isVariable ? "" : onSale ? salePrice : "",
+      on_sale: isVariable ? false : onSale,
       short_description: shortDesc,
       description,
       category_ids: selectedCategoryIds,
@@ -541,54 +622,187 @@ export function ProductForm({
         </header>
 
         <div className="space-y-4">
-          <div className="gap-4 grid grid-cols-1 sm:grid-cols-2">
-            <div>
-              <label
-                htmlFor="regular-price"
-                className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm"
-              >
-                Harga Normal (Rp) <span className="text-rose-500">*</span>
-              </label>
-              <input
-                id="regular-price"
-                type="number"
-                required
-                value={regularPrice}
-                onChange={(e) => setRegularPrice(e.target.value)}
-                placeholder="Contoh: 150000"
-                className="bg-slate-50 dark:bg-slate-900 px-4 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm"
-              />
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label
-                  htmlFor="sale-price"
-                  className="block font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm"
-                >
-                  Harga Diskon / Promo (Rp)
-                </label>
-                <label className="inline-flex items-center gap-1.5 text-brand-700 dark:text-brand-400 text-xs cursor-pointer">
+          {productType !== "affiliate" && (
+            <div className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <label
+                    htmlFor="is-variable-toggle"
+                    className="font-slab font-bold text-slate-900 dark:text-white text-xs sm:text-sm cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Layers className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+                    <span>Produk Memiliki Pilihan Varian?</span>
+                  </label>
+                  <p className="text-slate-500 dark:text-slate-400 text-xs">
+                    Aktifkan jika produk memiliki variasi ukuran, berat, atau rasa dengan harga berbeda.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
                   <input
+                    id="is-variable-toggle"
                     type="checkbox"
-                    checked={onSale}
-                    onChange={(e) => setOnSale(e.target.checked)}
-                    className="rounded focus:ring-brand-500 text-brand-800"
+                    checked={isVariable}
+                    onChange={(e) => setIsVariable(e.target.checked)}
+                    className="sr-only peer"
                   />
-                  <span>Aktifkan Diskon</span>
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-brand-600"></div>
                 </label>
               </div>
-              <input
-                id="sale-price"
-                type="number"
-                disabled={!onSale}
-                value={salePrice}
-                onChange={(e) => setSalePrice(e.target.value)}
-                placeholder="Contoh: 120000"
-                className="bg-slate-50 dark:bg-slate-900 disabled:opacity-40 px-4 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm"
-              />
+
+              {/* Dynamic Variations Repeater */}
+              {isVariable && (
+                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Daftar Pilihan Varian (Minimal 2):
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      {variations.length} varian ditambahkan
+                    </span>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {variations.map((variant, idx) => (
+                      <div
+                        key={variant.id}
+                        className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5"
+                      >
+                        <div className="w-6 text-center text-xs font-bold text-slate-400 shrink-0">
+                          #{idx + 1}
+                        </div>
+                        <div className="flex-1 min-w-[140px]">
+                          <input
+                            type="text"
+                            required={isVariable}
+                            value={variant.name}
+                            onChange={(e) =>
+                              handleVariationChange(idx, "name", e.target.value)
+                            }
+                            placeholder="Nama Varian (mis. 250gr, Ukuran L, Cokelat)"
+                            className="w-full bg-slate-50 dark:bg-slate-900 px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs outline-none focus:border-brand-500 text-slate-900 dark:text-white"
+                          />
+                        </div>
+                        <div className="w-full sm:w-36">
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-1.5 text-[10px] text-slate-400">
+                              Rp
+                            </span>
+                            <input
+                              type="number"
+                              required={isVariable}
+                              min={1}
+                              value={variant.price || ""}
+                              onChange={(e) =>
+                                handleVariationChange(
+                                  idx,
+                                  "price",
+                                  Number(e.target.value) || 0,
+                                )
+                              }
+                              placeholder="Harga"
+                              className="w-full bg-slate-50 dark:bg-slate-900 pl-8 pr-2.5 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs outline-none focus:border-brand-500 text-slate-900 dark:text-white"
+                            />
+                          </div>
+                        </div>
+                        <div className="w-full sm:w-28">
+                          <select
+                            value={variant.stock_status || "instock"}
+                            onChange={(e) =>
+                              handleVariationChange(
+                                idx,
+                                "stock_status",
+                                e.target.value,
+                              )
+                            }
+                            className="w-full bg-slate-50 dark:bg-slate-900 px-2 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs outline-none cursor-pointer text-slate-900 dark:text-white"
+                          >
+                            <option value="instock">Tersedia</option>
+                            <option value="outofstock">Habis</option>
+                          </select>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveVariation(idx)}
+                          disabled={variations.length <= 2}
+                          aria-label={`Hapus varian ${variant.name || idx + 1}`}
+                          className="p-2 text-slate-400 hover:text-rose-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors self-end sm:self-center"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddVariation}
+                      className="text-xs self-start"
+                    >
+                      <Plus className="mr-1 w-3.5 h-3.5" />
+                      <span>Tambah Varian Baru</span>
+                    </Button>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      * Harga di etalase akan otomatis menampilkan rentang harga.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
+
+          {!isVariable && (
+            <div className="gap-4 grid grid-cols-1 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="regular-price"
+                  className="block mb-1.5 font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm"
+                >
+                  Harga Normal (Rp) <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  id="regular-price"
+                  type="number"
+                  required={!isVariable}
+                  value={regularPrice}
+                  onChange={(e) => setRegularPrice(e.target.value)}
+                  placeholder="Contoh: 150000"
+                  className="bg-slate-50 dark:bg-slate-900 px-4 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label
+                    htmlFor="sale-price"
+                    className="block font-slab font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm"
+                  >
+                    Harga Diskon / Promo (Rp)
+                  </label>
+                  <label className="inline-flex items-center gap-1.5 text-brand-700 dark:text-brand-400 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={onSale}
+                      onChange={(e) => setOnSale(e.target.checked)}
+                      className="rounded focus:ring-brand-500 text-brand-800"
+                    />
+                    <span>Aktifkan Diskon</span>
+                  </label>
+                </div>
+                <input
+                  id="sale-price"
+                  type="number"
+                  disabled={!onSale}
+                  value={salePrice}
+                  onChange={(e) => setSalePrice(e.target.value)}
+                  placeholder="Contoh: 120000"
+                  className="bg-slate-50 dark:bg-slate-900 disabled:opacity-40 px-4 py-2.5 border border-slate-200 focus:border-brand-500 dark:border-slate-800 rounded-xl outline-none w-full text-slate-900 dark:text-white text-sm"
+                />
+              </div>
+            </div>
+          )}
 
           {productType === "affiliate" && (
             <div className="space-y-4 bg-brand-50/60 dark:bg-brand-950/40 p-4 border border-brand-100 dark:border-brand-900 rounded-2xl">

@@ -35,6 +35,7 @@ export interface WhatsAppOrderModalProps {
   whatsappNumber: string;
   vendorName: string;
   productName: string;
+  selectedVariation?: string;
   unitPrice: number;
   productUrl: string;
   productId?: number; // Tambahan aman untuk pelacak klik WA
@@ -46,6 +47,7 @@ export function WhatsAppOrderModal({
   whatsappNumber,
   vendorName,
   productName,
+  selectedVariation,
   unitPrice,
   productUrl,
   productId,
@@ -118,6 +120,7 @@ export function WhatsAppOrderModal({
       whatsappNumber,
       vendorName,
       productName,
+      selectedVariation,
       unitPrice,
       qty,
       buyerName: buyerName.trim(),
@@ -190,6 +193,18 @@ export function WhatsAppOrderModal({
         </header>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 pb-2">
+          {/* Selected Variation Badge */}
+          {selectedVariation && (
+            <div className="flex items-center justify-between p-3 bg-brand-50/80 dark:bg-brand-950/50 rounded-xl border border-brand-100 dark:border-brand-900/60 text-xs">
+              <span className="text-slate-600 dark:text-slate-400 font-medium">
+                Varian yang Dipilih:
+              </span>
+              <span className="font-bold text-brand-900 dark:text-brand-300 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-md border border-brand-200 dark:border-brand-800 shadow-2xs">
+                {selectedVariation}
+              </span>
+            </div>
+          )}
+
           {/* Qty */}
           <div>
             <label

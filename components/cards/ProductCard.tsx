@@ -44,10 +44,39 @@ export function ProductCard({
   const isAffiliate =
     product.type === "affiliate" && Boolean(product.external_url);
 
+  const isVariable = Boolean(
+    product.is_variable || (product.variations && product.variations.length > 0),
+  );
+  const priceRange =
+    product.price_range ||
+    (product.variations && product.variations.length > 0
+      ? {
+          min: Math.min(
+            ...product.variations
+              .map((v) => Number(v.price))
+              .filter((p) => !isNaN(p) && p > 0),
+          ),
+          max: Math.max(
+            ...product.variations
+              .map((v) => Number(v.price))
+              .filter((p) => !isNaN(p) && p > 0),
+          ),
+        }
+      : undefined);
+
   const formattedSalePrice = hasSale ? formatRupiah(product.sale_price) : "";
   const formattedRegularPrice = formatRupiah(
     product.regular_price || product.price,
   );
+
+  let displayedPrice = hasSale ? formattedSalePrice : formattedRegularPrice;
+  if (isVariable && priceRange && priceRange.min > 0) {
+    if (priceRange.min === priceRange.max) {
+      displayedPrice = formatRupiah(priceRange.min);
+    } else {
+      displayedPrice = `${formatRupiah(priceRange.min)} - ${formatRupiah(priceRange.max)}`;
+    }
+  }
 
   // Evaluasi Status Jam Buka & Libur Toko Vendor (Hydration-Safe Time Pattern)
   const initialStatus =
@@ -142,7 +171,7 @@ export function ProductCard({
           </Badge>
         </figcaption>
 
-        {/* Status Promo / Libur / Tutup Badge */}
+        {/* Status Promo / Libur / Tutup / Varian Badge */}
         <div
           className="top-3 right-3 z-10 absolute flex flex-col items-end gap-1"
           suppressHydrationWarning
@@ -165,7 +194,7 @@ export function ProductCard({
               <Lock className="mr-1 w-3 h-3" />
               <span>TUTUP</span>
             </Badge>
-          ) : hasSale ? (
+          ) : hasSale && !isVariable ? (
             <Badge
               variant="danger"
               className="shadow-sm font-bold"
@@ -174,6 +203,16 @@ export function ProductCard({
               <span>PROMO</span>
             </Badge>
           ) : null}
+
+          {isVariable && (
+            <Badge
+              variant="primary"
+              className="bg-[#093c96] shadow-sm font-bold text-white text-[10px]"
+              suppressHydrationWarning
+            >
+              <span>PILIHAN VARIAN</span>
+            </Badge>
+          )}
         </div>
       </figure>
 
@@ -259,9 +298,9 @@ export function ProductCard({
           <div className="flex items-baseline gap-2">
             <span className="sr-only">Harga saat ini:</span>
             <span className="font-slab font-black text-brand-800 dark:text-brand-400 text-base @[300px]:text-lg">
-              {hasSale ? formattedSalePrice : formattedRegularPrice}
+              {displayedPrice}
             </span>
-            {hasSale && (
+            {!isVariable && hasSale && (
               <>
                 <span className="sr-only">Harga sebelum diskon:</span>
                 <del className="text-slate-400 dark:text-slate-500 text-xs line-through">
@@ -319,6 +358,21 @@ export function ProductCard({
               />
               <span>Toko Sedang Tutup</span>
             </Button>
+          ) : isVariable ? (
+            <Link
+              href={`/products/${product.slug}`}
+              className="flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              aria-label={`Pilih varian produk ${product.name}`}
+            >
+              <Button
+                variant="primary"
+                size="sm"
+                fullWidth
+                className="text-xs font-bold"
+              >
+                <span>Pilih Varian</span>
+              </Button>
+            </Link>
           ) : (
             <>
               <a

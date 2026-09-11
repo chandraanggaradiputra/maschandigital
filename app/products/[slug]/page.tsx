@@ -124,6 +124,26 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
   const isAffiliate =
     product.type === "affiliate" && Boolean(product.external_url);
 
+  const isVariableProduct = Boolean(
+    product.is_variable || (product.variations && product.variations.length > 0),
+  );
+  const priceRange =
+    product.price_range ||
+    (product.variations && product.variations.length > 0
+      ? {
+          min: Math.min(
+            ...product.variations
+              .map((v) => Number(v.price))
+              .filter((p) => !isNaN(p) && p > 0),
+          ),
+          max: Math.max(
+            ...product.variations
+              .map((v) => Number(v.price))
+              .filter((p) => !isNaN(p) && p > 0),
+          ),
+        }
+      : undefined);
+
   const currentPrice = hasSale
     ? product.sale_price
     : product.regular_price || product.price;
@@ -299,15 +319,26 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
 
             {/* Price Box */}
             <div className="space-y-1 bg-brand-50/70 dark:bg-brand-950/40 p-4 sm:p-5 border border-brand-100 dark:border-brand-900/60 rounded-2xl">
-              <span className="font-semibold text-brand-800 dark:text-brand-300 text-xs uppercase tracking-wider">
-                Harga Resmi Vendor
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-brand-800 dark:text-brand-300 text-xs uppercase tracking-wider">
+                  Harga Resmi Vendor
+                </span>
+                {isVariableProduct && (
+                  <span className="text-[11px] font-semibold bg-brand-100 dark:bg-brand-900/80 text-brand-800 dark:text-brand-200 px-2 py-0.5 rounded-full">
+                    Pilihan Varian
+                  </span>
+                )}
+              </div>
               <div className="flex flex-wrap items-baseline gap-3">
                 <span className="sr-only">Harga: </span>
                 <span className="font-slab font-black text-brand-900 dark:text-brand-400 text-2xl sm:text-3xl">
-                  {formatRupiah(currentPrice)}
+                  {isVariableProduct && priceRange && priceRange.min > 0
+                    ? priceRange.min === priceRange.max
+                      ? formatRupiah(priceRange.min)
+                      : `${formatRupiah(priceRange.min)} - ${formatRupiah(priceRange.max)}`
+                    : formatRupiah(currentPrice)}
                 </span>
-                {hasSale && (
+                {!isVariableProduct && hasSale && (
                   <>
                     <span className="sr-only">Harga asli: </span>
                     <del className="text-slate-400 text-sm sm:text-base line-through">
@@ -339,6 +370,8 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
               affiliateButtonText={product.button_text}
               productId={product.id}
               vendorSlug={product.vendor?.slug}
+              isVariable={isVariableProduct}
+              variations={product.variations}
             />
 
             {/* Layanan Direct WhatsApp Chat Drawer Toko */}

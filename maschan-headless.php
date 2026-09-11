@@ -370,11 +370,27 @@ function maschan_format_product_data($product_id) {
     $ext_url     = $is_external ? get_post_meta($product_id, '_product_url', true) : '';
     $button_text = $is_external ? get_post_meta($product_id, '_button_text', true) : '';
 
+    $is_variable = (bool) get_post_meta($product_id, '_maschan_is_variable', true);
+    $variations_meta = get_post_meta($product_id, '_maschan_variations', true);
+    $variations = [];
+    if (!empty($variations_meta)) {
+        if (is_array($variations_meta)) {
+            $variations = $variations_meta;
+        } else {
+            $decoded = json_decode($variations_meta, true);
+            if (is_array($decoded)) {
+                $variations = $decoded;
+            }
+        }
+    }
+
     return [
         'id'                => (int)$product_id,
         'name'              => get_the_title($product_id),
         'slug'              => get_post_field('post_name', $product_id),
-        'type'              => $is_external ? 'affiliate' : 'simple',
+        'type'              => $is_external ? 'affiliate' : (!empty($is_variable) ? 'variable' : 'simple'),
+        'is_variable'       => $is_variable || !empty($variations),
+        'variations'        => $variations,
         'status'            => get_post_status($product_id),
         'description'       => get_post_field('post_content', $product_id),
         'short_description' => get_post_field('post_excerpt', $product_id),
@@ -1430,6 +1446,14 @@ add_action('rest_api_init', function () {
                 if (!empty($params['seo']['meta_description'])) update_post_meta($post_id, 'rank_math_description', sanitize_textarea_field($params['seo']['meta_description']));
             }
 
+            if (isset($params['is_variable'])) {
+                update_post_meta($post_id, '_maschan_is_variable', !empty($params['is_variable']) ? 1 : 0);
+            }
+            if (isset($params['variations'])) {
+                $variations_data = is_string($params['variations']) ? $params['variations'] : wp_json_encode($params['variations']);
+                update_post_meta($post_id, '_maschan_variations', $variations_data);
+            }
+
             wc_delete_product_transients($post_id);
             wp_cache_flush();
 
@@ -1518,6 +1542,14 @@ add_action('rest_api_init', function () {
                 if (isset($params['seo']['focus_keyword'])) update_post_meta($post_id, 'rank_math_focus_keyword', sanitize_text_field($params['seo']['focus_keyword']));
                 if (isset($params['seo']['meta_title'])) update_post_meta($post_id, 'rank_math_title', sanitize_text_field($params['seo']['meta_title']));
                 if (isset($params['seo']['meta_description'])) update_post_meta($post_id, 'rank_math_description', sanitize_textarea_field($params['seo']['meta_description']));
+            }
+
+            if (isset($params['is_variable'])) {
+                update_post_meta($post_id, '_maschan_is_variable', !empty($params['is_variable']) ? 1 : 0);
+            }
+            if (isset($params['variations'])) {
+                $variations_data = is_string($params['variations']) ? $params['variations'] : wp_json_encode($params['variations']);
+                update_post_meta($post_id, '_maschan_variations', $variations_data);
             }
 
             wc_delete_product_transients($post_id);

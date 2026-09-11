@@ -1,5 +1,6 @@
 import {
   Product,
+  ProductVariation,
   Vendor,
   ProductCategory,
   ProductReviewsData,
@@ -178,12 +179,101 @@ function formatGraphQLProduct(
   const viewsCount =
     Number(node.views_count) || Number(node.wcfm_product_views) || 0;
 
+  // Handle Product Variations
+  let parsedVariations: ProductVariation[] = [];
+  const rawVariations =
+    node.variations ||
+    node._maschan_variations ||
+    node.meta?._maschan_variations;
+
+  if (Array.isArray(rawVariations)) {
+    parsedVariations = rawVariations.map((v: RawApiNode, index: number) => ({
+      id: v.id || v.databaseId || `var-${finalId}-${index + 1}`,
+      name: String(v.name || v.variation_name || `Varian ${index + 1}`),
+      price: Number(v.price || v.sale_price || v.regular_price || 0),
+      regular_price:
+        v.regular_price !== undefined ? Number(v.regular_price) : undefined,
+      sale_price: v.sale_price !== undefined ? Number(v.sale_price) : undefined,
+      stock_status:
+        v.stock_status === "outofstock" ? "outofstock" : "instock",
+    }));
+  } else if (
+    typeof rawVariations === "string" &&
+    rawVariations.trim().length > 0
+  ) {
+    try {
+      const decoded = JSON.parse(rawVariations);
+      if (Array.isArray(decoded)) {
+        parsedVariations = decoded.map((v: RawApiNode, index: number) => ({
+          id: v.id || `var-${finalId}-${index + 1}`,
+          name: String(v.name || v.variation_name || `Varian ${index + 1}`),
+          price: Number(v.price || v.sale_price || v.regular_price || 0),
+          regular_price:
+            v.regular_price !== undefined ? Number(v.regular_price) : undefined,
+          sale_price:
+            v.sale_price !== undefined ? Number(v.sale_price) : undefined,
+          stock_status:
+            v.stock_status === "outofstock" ? "outofstock" : "instock",
+        }));
+      }
+    } catch {
+      // Ignore JSON parse error
+    }
+  }
+
+  // Support node.variations?.nodes (WPGraphQL format)
+  if (
+    parsedVariations.length === 0 &&
+    node.variations?.nodes &&
+    Array.isArray(node.variations.nodes)
+  ) {
+    parsedVariations = node.variations.nodes.map(
+      (v: RawApiNode, index: number) => ({
+        id: v.databaseId || v.id || `var-${finalId}-${index + 1}`,
+        name: String(v.name || `Varian ${index + 1}`),
+        price: Number(v.price || v.regularPrice || 0),
+        regular_price: v.regularPrice ? Number(v.regularPrice) : undefined,
+        sale_price: v.salePrice ? Number(v.salePrice) : undefined,
+        stock_status:
+          v.stockStatus === "OUT_OF_STOCK" || v.stock_status === "outofstock"
+            ? "outofstock"
+            : "instock",
+      }),
+    );
+  }
+
+  const isVariableProduct =
+    Boolean(node.is_variable) ||
+    node.type === "VARIABLE" ||
+    node.type === "variable" ||
+    parsedVariations.length > 0;
+
+  let priceRange: { min: number; max: number } | undefined = undefined;
+  if (parsedVariations.length > 0) {
+    const validPrices = parsedVariations
+      .map((v) => Number(v.price))
+      .filter((p) => !isNaN(p) && p > 0);
+    if (validPrices.length > 0) {
+      priceRange = {
+        min: Math.min(...validPrices),
+        max: Math.max(...validPrices),
+      };
+    }
+  }
+
   return {
     id: finalId,
     name: node.name || "Madu Akasia",
     slug: node.slug || `produk-${finalId}`,
-    type: isExternal ? "affiliate" : "simple",
+    type: isExternal
+      ? "affiliate"
+      : isVariableProduct
+        ? "variable"
+        : "simple",
     status: "publish",
+    is_variable: isVariableProduct,
+    variations: parsedVariations.length > 0 ? parsedVariations : undefined,
+    price_range: priceRange,
     description: (node.description || "").replace(/<[^>]*>?/gm, ""),
     short_description: (
       node.shortDescription ||
