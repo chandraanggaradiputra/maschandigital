@@ -11,7 +11,6 @@ import { ProductCard } from "@/components/cards/ProductCard";
 import { Button } from "@/components/ui/Button";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { OrderSection } from "@/components/product/OrderSection";
-import { VendorWhatsAppChat } from "@/components/chat/VendorWhatsAppChat";
 import { ProductReviewsSection } from "@/components/product/ProductReviewsSection";
 import { ProductJsonLd } from "@/components/seo/ProductJsonLd";
 import { ProductGallery } from "@/components/product/ProductGallery";
@@ -411,15 +410,6 @@ export default async function SingleProductPage({ params }: ProductPageProps) {
               priceModel={product.price_model}
               serviceAction={product.service_action}
               serviceAreas={product.service_areas}
-            />
-
-            {/* Layanan Direct WhatsApp Chat Drawer Toko */}
-            <VendorWhatsAppChat
-              whatsappNumber={vendor?.whatsapp_number || product.vendor?.whatsapp_number}
-              vendorName={vendor?.store_name || product.vendor?.store_name || "Penjual"}
-              productName={product.name}
-              productId={product.id}
-              kecamatan={vendor?.address?.city || vendor?.location_district || "Kota Serang"}
             />
 
             <ul className="flex justify-between items-center m-0 p-0 px-1 pt-2 text-slate-500 dark:text-slate-400 text-xs list-none">
