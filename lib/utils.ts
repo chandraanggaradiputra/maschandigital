@@ -327,3 +327,20 @@ export function formatIndonesianDate(dateStr?: string | null): string {
   return dateStr;
 }
 
+/**
+ * Decode entitas HTML umum (misal: &amp; -> &, &#039; -> ', &quot; -> ", &lt; -> <, &gt; -> >)
+ */
+export function decodeHtmlEntities(text?: string | null): string {
+  if (!text) return "";
+  return text
+    .replace(/&amp;/g, "&")
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ")
+    .trim();
+}
+
+

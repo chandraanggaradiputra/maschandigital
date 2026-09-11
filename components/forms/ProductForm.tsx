@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Sparkles,
   Save,
@@ -37,6 +38,8 @@ import {
   getCategories,
   createCategory,
 } from "@/lib/api/wordpress";
+import { getVendorSession } from "@/lib/api/auth";
+import { getBillingInfo } from "@/lib/api/billing";
 import { cn } from "@/lib/utils";
 import { WysiwygEditor } from "@/components/forms/WysiwygEditor";
 
@@ -86,6 +89,16 @@ export function ProductForm({
     initialData?.service_areas || [],
   );
 
+  // Status Langganan & Domisili Vendor untuk Gating Jasa
+  const [isStarterPlan, setIsStarterPlan] = useState<boolean>(true);
+  const [domicileDistrict, setDomicileDistrict] = useState<string>("Serang");
+
+  // Jangkauan Wilayah Efektif (Derivasi murni tanpa cascading render)
+  const effectiveServiceAreas =
+    businessType === "service" && isStarterPlan
+      ? [domicileDistrict]
+      : serviceAreas;
+
   // Hierarchical Categories State
   const [flatCategories, setFlatCategories] = useState<ProductCategory[]>([]);
   const [selectedParentId, setSelectedParentId] = useState<number | null>(null);
@@ -97,15 +110,39 @@ export function ProductForm({
 
   const categories = flatCategories;
 
-  // Kategori Utama (Parent Categories: yang tidak memiliki parent atau parent === 0)
-  const parentCategories = categories.filter(
-    (c) => Boolean(!c.parent || c.parent === 0),
+  // Helper identifikasi kategori Jasa
+  const isJasaCategory = (c: ProductCategory) =>
+    c.slug === "layanan-jasa" ||
+    c.slug === "jasa" ||
+    c.name.toLowerCase().includes("jasa");
+
+  const jasaParentCategory = flatCategories.find(
+    (c) => (!c.parent || c.parent === 0) && isJasaCategory(c),
   );
 
+  // Kategori Utama (Parent Categories)
+  const parentCategories = categories.filter((c) => {
+    if (c.parent && c.parent !== 0) return false;
+    if (businessType === "product") {
+      return !isJasaCategory(c);
+    }
+    return isJasaCategory(c);
+  });
+
   // Subkategori sesuai Kategori Utama yang dipilih
-  const subcategories = categories.filter(
-    (c) => Boolean(selectedParentId !== null && c.parent === selectedParentId),
-  );
+  const subcategories = categories.filter((c) => {
+    if (businessType === "service") {
+      if (jasaParentCategory) {
+        return c.parent === jasaParentCategory.id;
+      }
+      return selectedParentId !== null && c.parent === selectedParentId;
+    }
+    return Boolean(
+      selectedParentId !== null &&
+        c.parent === selectedParentId &&
+        !isJasaCategory(c),
+    );
+  });
 
   // Add Category Inline Form
   const [showAddCat, setShowAddCat] = useState(false);
@@ -193,6 +230,40 @@ export function ProductForm({
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
+  // Periksa Status Langganan & Domisili Vendor untuk Gating Jasa
+  useEffect(() => {
+    async function checkPlanAndLocation() {
+      try {
+        const session = getVendorSession();
+        if (session?.user?.district) {
+          const found = KECAMATAN_LIST.find((k) =>
+            session.user.district.toLowerCase().includes(k.toLowerCase()),
+          );
+          if (found) {
+            setDomicileDistrict(found);
+          }
+        }
+
+        const billingData = await getBillingInfo();
+        if (billingData?.subscription) {
+          const sub = billingData.subscription;
+          const isExempt = sub.plan_id === "exempt";
+          const isPaid =
+            !isExempt &&
+            sub.plan_id !== "free_forever" &&
+            (sub.status === "active" || sub.status === "trial");
+          setIsStarterPlan(!isExempt && !isPaid);
+        } else {
+          setIsStarterPlan(true);
+        }
+      } catch (err: unknown) {
+        console.error("Gagal memeriksa status paket atau domisili vendor:", err);
+        setIsStarterPlan(true);
+      }
+    }
+    checkPlanAndLocation();
+  }, []);
+
   useEffect(() => {
     async function loadCats() {
       const cats = await getCategories();
@@ -216,25 +287,62 @@ export function ProductForm({
             setSelectedParentId(activeCat.parent);
           }
         }
+      } else if (businessType === "service" && cats.length > 0) {
+        const jasaCat = cats.find(
+          (c) =>
+            (!c.parent || c.parent === 0) &&
+            (c.slug === "layanan-jasa" ||
+              c.slug === "jasa" ||
+              c.name.toLowerCase().includes("jasa")),
+        );
+        if (jasaCat) {
+          setSelectedParentId(jasaCat.id);
+          setSelectedCategoryIds((prev) =>
+            prev.includes(jasaCat.id) ? prev : [jasaCat.id, ...prev],
+          );
+        }
       }
     }
     loadCats();
-  }, [initialData?.categories]);
+  }, [initialData?.categories, businessType]);
 
   const handleSelectBusinessType = (type: BusinessType) => {
     setBusinessType(type);
     if (type === "service") {
       setIsVariable(false);
+      if (isStarterPlan) {
+        setServiceAreas([domicileDistrict]);
+      } else if (serviceAreas.length === 0) {
+        setServiceAreas([...KECAMATAN_LIST]);
+      }
       const jasaCategory = flatCategories.find(
         (c) =>
-          c.name.toLowerCase().includes("jasa") ||
-          c.slug.toLowerCase().includes("jasa"),
+          (!c.parent || c.parent === 0) &&
+          (c.slug === "layanan-jasa" ||
+            c.slug === "jasa" ||
+            c.name.toLowerCase().includes("jasa")),
       );
       if (jasaCategory) {
         setSelectedParentId(jasaCategory.id);
-        setSelectedCategoryIds((prev) =>
-          prev.includes(jasaCategory.id) ? prev : [...prev, jasaCategory.id],
-        );
+        setSelectedCategoryIds((prev) => {
+          const serviceSubIds = flatCategories
+            .filter((c) => c.parent === jasaCategory.id && prev.includes(c.id))
+            .map((c) => c.id);
+          return [jasaCategory.id, ...serviceSubIds];
+        });
+      }
+    } else {
+      // Kembali ke produk fisik: lepaskan penguncian kategori layanan jasa
+      const jasaCategory = flatCategories.find(
+        (c) =>
+          (!c.parent || c.parent === 0) &&
+          (c.slug === "layanan-jasa" ||
+            c.slug === "jasa" ||
+            c.name.toLowerCase().includes("jasa")),
+      );
+      if (jasaCategory && selectedParentId === jasaCategory.id) {
+        setSelectedParentId(null);
+        setSelectedCategoryIds([]);
       }
     }
   };
@@ -267,15 +375,22 @@ export function ProductForm({
     if (!newCatName.trim()) return;
     setIsAddingCat(true);
 
-    const res = await createCategory(newCatName.trim(), newCatParent);
+    const targetParent =
+      businessType === "service"
+        ? jasaParentCategory
+          ? jasaParentCategory.id
+          : newCatParent
+        : newCatParent;
+
+    const res = await createCategory(newCatName.trim(), targetParent);
     if (res.success && res.category) {
       const updatedCats = await getCategories();
       setFlatCategories(updatedCats);
       setSelectedCategoryIds((prev) => [...prev, res.category!.id]);
-      if (!newCatParent || newCatParent === 0) {
+      if (!targetParent || targetParent === 0) {
         setSelectedParentId(res.category!.id);
       } else {
-        setSelectedParentId(newCatParent);
+        setSelectedParentId(targetParent);
       }
       setNewCatName("");
       setShowAddCat(false);
@@ -347,13 +462,21 @@ export function ProductForm({
             ? salePrice
             : "";
 
+    const calculatedServiceAreas =
+      businessType === "service" ? effectiveServiceAreas : [];
+
+    const finalCategoryIds = [...selectedCategoryIds];
+    if (selectedParentId && !finalCategoryIds.includes(selectedParentId)) {
+      finalCategoryIds.push(selectedParentId);
+    }
+
     const payload = {
       name,
       business_type: businessType,
       price_model: businessType === "service" ? priceModel : "fixed",
       service_action:
         businessType === "service" ? serviceAction : "consultation",
-      service_areas: businessType === "service" ? serviceAreas : [],
+      service_areas: calculatedServiceAreas,
       type:
         productType === "affiliate"
           ? "affiliate"
@@ -369,7 +492,7 @@ export function ProductForm({
         businessType === "product" && !isVariable ? onSale : false,
       short_description: shortDesc,
       description,
-      category_ids: selectedCategoryIds,
+      category_ids: finalCategoryIds,
       images:
         imageUrl || galleryImages.length > 0
           ? [
@@ -666,42 +789,81 @@ export function ProductForm({
               <label className="block text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
                 Wilayah Cakupan Kerja di Kota Serang
               </label>
-              <button
-                type="button"
-                onClick={() => {
-                  if (serviceAreas.length === KECAMATAN_LIST.length) {
-                    setServiceAreas([]);
-                  } else {
-                    setServiceAreas([...KECAMATAN_LIST]);
-                  }
-                }}
-                className="text-xs text-sky-600 dark:text-sky-400 hover:underline font-semibold"
-              >
-                {serviceAreas.length === KECAMATAN_LIST.length
-                  ? "Batalkan Semua"
-                  : "Pilih Seluruh Kota Serang"}
-              </button>
+              {!isStarterPlan ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (serviceAreas.length === KECAMATAN_LIST.length) {
+                      setServiceAreas([]);
+                    } else {
+                      setServiceAreas([...KECAMATAN_LIST]);
+                    }
+                  }}
+                  className="text-xs text-sky-600 dark:text-sky-400 hover:underline font-semibold"
+                >
+                  {serviceAreas.length === KECAMATAN_LIST.length
+                    ? "Batalkan Semua"
+                    : "Pilih Seluruh Kota Serang"}
+                </button>
+              ) : (
+                <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
+                  Terkunci 1 Kecamatan (Paket Starter)
+                </span>
+              )}
             </div>
+
+            {isStarterPlan && (
+              <div className="flex items-start gap-3 p-3.5 bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 rounded-2xl text-xs text-amber-900 dark:text-amber-200 animate-in fade-in duration-200">
+                <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-bold">
+                    Jangkauan Terkunci di Kecamatan Domisili Toko ({domicileDistrict})
+                  </p>
+                  <p className="text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-300/90">
+                    Paket Starter UMKM membatasi cakupan jasa Anda khusus untuk 1 kecamatan domisili toko Anda. Upgrade ke paket berbayar untuk membuka jangkauan ke seluruh 6 kecamatan Kota Serang.
+                  </p>
+                  <div className="pt-1">
+                    <Link
+                      href="/dashboard/billing"
+                      className="inline-flex items-center gap-1 font-semibold text-amber-700 dark:text-amber-300 hover:underline text-[11px]"
+                    >
+                      <span>Tingkatkan Paket Toko Sekarang &rarr;</span>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Centang wilayah kecamatan yang dapat Anda jangkau untuk pekerjaan ini:
+              {isStarterPlan
+                ? `Wilayah domisili toko Anda terdaftar di Kecamatan ${domicileDistrict}:`
+                : "Centang wilayah kecamatan yang dapat Anda jangkau untuk pekerjaan ini:"}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
               {KECAMATAN_LIST.map((kec) => {
-                const isChecked = serviceAreas.includes(kec);
+                const isChecked = effectiveServiceAreas.includes(kec);
+                const isDomicile =
+                  kec.toLowerCase() === domicileDistrict.toLowerCase();
+                const isDisabled = isStarterPlan && !isDomicile;
+
                 return (
                   <label
                     key={kec}
                     className={cn(
-                      "flex items-center gap-2.5 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-colors",
-                      isChecked
-                        ? "border-sky-500 bg-sky-50/70 dark:bg-sky-950/40 text-sky-900 dark:text-sky-200 shadow-2xs"
-                        : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      "flex items-center gap-2.5 p-3 rounded-xl border text-xs font-semibold transition-colors",
+                      isDisabled
+                        ? "border-slate-200 dark:border-slate-800/60 bg-slate-100/60 dark:bg-slate-900/40 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60"
+                        : isChecked
+                          ? "border-sky-500 bg-sky-50/70 dark:bg-sky-950/40 text-sky-900 dark:text-sky-200 shadow-2xs cursor-pointer"
+                          : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer",
                     )}
                   >
                     <input
                       type="checkbox"
                       checked={isChecked}
+                      disabled={isDisabled || (isStarterPlan && isDomicile)}
                       onChange={(e) => {
+                        if (isStarterPlan) return;
                         if (e.target.checked) {
                           setServiceAreas((prev) => [...prev, kec]);
                         } else {
@@ -710,9 +872,16 @@ export function ProductForm({
                           );
                         }
                       }}
-                      className="rounded border-slate-300 text-sky-600 focus:ring-sky-500 w-4 h-4"
+                      className="rounded border-slate-300 text-sky-600 focus:ring-sky-500 w-4 h-4 disabled:opacity-50"
                     />
-                    <span>{kec}</span>
+                    <div className="flex flex-col">
+                      <span>{kec}</span>
+                      {isStarterPlan && isDomicile && (
+                        <span className="text-[10px] text-sky-600 dark:text-sky-400 font-normal">
+                          (Domisili Toko)
+                        </span>
+                      )}
+                    </div>
                   </label>
                 );
               })}
@@ -813,14 +982,26 @@ export function ProductForm({
                       onChange={(e) => setNewCatParent(Number(e.target.value))}
                       className="bg-white dark:bg-slate-900 px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-xl outline-none w-full text-xs cursor-pointer"
                     >
-                      <option value={0}>
-                        — Tanpa Induk (Kategori Utama) —
-                      </option>
-                      {flatCategories.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
+                      {businessType === "service" ? (
+                        jasaParentCategory ? (
+                          <option value={jasaParentCategory.id}>
+                            {jasaParentCategory.name} (Kategori Utama Terkunci)
+                          </option>
+                        ) : (
+                          <option value={0}>— Kategori Layanan Jasa —</option>
+                        )
+                      ) : (
+                        <>
+                          <option value={0}>
+                            — Tanpa Induk (Kategori Utama) —
+                          </option>
+                          {parentCategories.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </>
+                      )}
                     </select>
                   </div>
                 </div>
@@ -840,75 +1021,144 @@ export function ProductForm({
               </div>
             )}
 
-            {/* LANGKAH 1: PILIH KATEGORI UTAMA */}
-            <div className="space-y-2">
-              <span className={cn('text-xs', 'text-slate-500', 'dark:text-slate-400', 'font-medium')}>
-                1. Pilih Kategori Utama (Parent):
-              </span>
-              <div className={cn('grid', 'grid-cols-2', 'sm:grid-cols-3', 'gap-2')}>
-                {parentCategories.map((parent) => {
-                  const isSelected = selectedParentId === parent.id;
-                  return (
-                    <button
-                      key={parent.id}
-                      type="button"
-                      onClick={() => handleSelectParentCategory(parent.id)}
-                      className={cn(
-                        "p-3 rounded-xl border text-left text-xs font-semibold transition-all flex items-center justify-between",
-                        isSelected
-                          ? "bg-blue-50 border-[#093c96] text-[#093c96] dark:bg-blue-950/50 dark:border-blue-500 dark:text-blue-300 ring-2 ring-[#093c96]/20 shadow-2xs"
-                          : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
-                      )}
-                    >
-                      <span className="truncate">{parent.name}</span>
-                      {isSelected && <Check className={cn('w-4', 'h-4', 'shrink-0', 'text-[#093c96]', 'dark:text-blue-400')} />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* LANGKAH 2: PILIH SUBKATEGORI (MUNCUL OTOMATIS SESUAI PARENT TERPILIH) */}
-            {selectedParentId && (
-              <div className={cn('space-y-2', 'animate-in', 'fade-in', 'duration-200', 'pt-2', 'border-t', 'border-slate-100', 'dark:border-slate-800')}>
-                <div className={cn('flex', 'items-center', 'justify-between')}>
-                  <span className={cn('text-xs', 'text-slate-500', 'dark:text-slate-400', 'font-medium')}>
-                    2. Pilih Subkategori (Pilih satu atau lebih):
+            {/* SEKSI KATEGORI BERDASARKAN MODE BISNIS */}
+            {businessType === "service" ? (
+              <div className="space-y-3 pt-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                    Kategori Utama:
                   </span>
-                  <span className={cn('text-[11px]', 'text-slate-400')}>
-                    {subcategories.length > 0 ? `${subcategories.length} Subkategori tersedia` : "Tanpa subkategori"}
+                  <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/60 px-2.5 py-0.5 rounded-full border border-sky-200 dark:border-sky-800">
+                    Terkunci Otomatis ke Layanan Jasa
                   </span>
                 </div>
+                <div className="p-3 bg-sky-50/70 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 rounded-xl flex items-center justify-between text-xs text-sky-950 dark:text-sky-100 font-semibold shadow-2xs">
+                  <div className="flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                    <span>Layanan Jasa & Keahlian</span>
+                  </div>
+                  <Check className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                </div>
 
-                {subcategories.length > 0 ? (
-                  <div className={cn('p-3', 'bg-slate-50', 'dark:bg-slate-900/50', 'rounded-xl', 'border', 'border-slate-200', 'dark:border-slate-800', 'max-h-52', 'overflow-y-auto', 'space-y-1.5')}>
-                    {subcategories.map((sub) => {
-                      const isChecked = selectedCategoryIds.includes(sub.id);
+                {/* Subkategori Layanan Jasa Langsung Tampil */}
+                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-600 dark:text-slate-300 font-semibold">
+                      Pilih Subkategori Bidang Jasa <span className="text-rose-500">*</span>:
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      {subcategories.length > 0
+                        ? `${subcategories.length} Bidang keahlian tersedia`
+                        : "Memuat bidang keahlian..."}
+                    </span>
+                  </div>
+
+                  {subcategories.length > 0 ? (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 max-h-52 overflow-y-auto space-y-1.5">
+                      {subcategories.map((sub) => {
+                        const isChecked = selectedCategoryIds.includes(sub.id);
+                        return (
+                          <label
+                            key={sub.id}
+                            className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-white dark:hover:bg-slate-800/80 transition-colors cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleToggleSubcategory(sub.id)}
+                              className="rounded border-slate-300 text-sky-600 focus:ring-sky-500 w-4 h-4"
+                            />
+                            <span className="flex-1">{sub.name}</span>
+                            {sub.count !== undefined && (
+                              <span className="text-[10px] text-slate-400">
+                                ({sub.count})
+                              </span>
+                            )}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-xs text-slate-500 text-center">
+                      Kategori utama Layanan Jasa belum memiliki subkategori. Layanan akan didaftarkan pada kategori umum Layanan Jasa.
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* Mode Produk Fisik: Langkah 1 & 2 Normal (Layanan Jasa tersembunyi) */
+              <>
+                {/* LANGKAH 1: PILIH KATEGORI UTAMA */}
+                <div className="space-y-2">
+                  <span className={cn('text-xs', 'text-slate-500', 'dark:text-slate-400', 'font-medium')}>
+                    1. Pilih Kategori Utama (Parent):
+                  </span>
+                  <div className={cn('grid', 'grid-cols-2', 'sm:grid-cols-3', 'gap-2')}>
+                    {parentCategories.map((parent) => {
+                      const isSelected = selectedParentId === parent.id;
                       return (
-                        <label
-                          key={sub.id}
-                          className={cn('flex', 'items-center', 'gap-2.5', 'p-2', 'rounded-lg', 'hover:bg-white', 'dark:hover:bg-slate-800/80', 'transition-colors', 'cursor-pointer', 'text-xs', 'font-medium', 'text-slate-700', 'dark:text-slate-300')}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => handleToggleSubcategory(sub.id)}
-                            className={cn('rounded', 'border-slate-300', 'text-[#093c96]', 'focus:ring-[#093c96]', 'w-4', 'h-4')}
-                          />
-                          <span className="flex-1">{sub.name}</span>
-                          {sub.count !== undefined && (
-                            <span className={cn('text-[10px]', 'text-slate-400')}>({sub.count})</span>
+                        <button
+                          key={parent.id}
+                          type="button"
+                          onClick={() => handleSelectParentCategory(parent.id)}
+                          className={cn(
+                            "p-3 rounded-xl border text-left text-xs font-semibold transition-all flex items-center justify-between",
+                            isSelected
+                              ? "bg-blue-50 border-[#093c96] text-[#093c96] dark:bg-blue-950/50 dark:border-blue-500 dark:text-blue-300 ring-2 ring-[#093c96]/20 shadow-2xs"
+                              : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
                           )}
-                        </label>
+                        >
+                          <span className="truncate">{parent.name}</span>
+                          {isSelected && <Check className={cn('w-4', 'h-4', 'shrink-0', 'text-[#093c96]', 'dark:text-blue-400')} />}
+                        </button>
                       );
                     })}
                   </div>
-                ) : (
-                  <div className={cn('p-3', 'bg-slate-50', 'dark:bg-slate-900/50', 'rounded-xl', 'border', 'border-dashed', 'border-slate-200', 'dark:border-slate-800', 'text-xs', 'text-slate-500', 'text-center')}>
-                    Kategori utama ini belum memiliki subkategori. Produk akan didaftarkan pada kategori utama.
+                </div>
+
+                {/* LANGKAH 2: PILIH SUBKATEGORI */}
+                {selectedParentId && (
+                  <div className={cn('space-y-2', 'animate-in', 'fade-in', 'duration-200', 'pt-2', 'border-t', 'border-slate-100', 'dark:border-slate-800')}>
+                    <div className={cn('flex', 'items-center', 'justify-between')}>
+                      <span className={cn('text-xs', 'text-slate-500', 'dark:text-slate-400', 'font-medium')}>
+                        2. Pilih Subkategori (Pilih satu atau lebih):
+                      </span>
+                      <span className={cn('text-[11px]', 'text-slate-400')}>
+                        {subcategories.length > 0 ? `${subcategories.length} Subkategori tersedia` : "Tanpa subkategori"}
+                      </span>
+                    </div>
+
+                    {subcategories.length > 0 ? (
+                      <div className={cn('p-3', 'bg-slate-50', 'dark:bg-slate-900/50', 'rounded-xl', 'border', 'border-slate-200', 'dark:border-slate-800', 'max-h-52', 'overflow-y-auto', 'space-y-1.5')}>
+                        {subcategories.map((sub) => {
+                          const isChecked = selectedCategoryIds.includes(sub.id);
+                          return (
+                            <label
+                              key={sub.id}
+                              className={cn('flex', 'items-center', 'gap-2.5', 'p-2', 'rounded-lg', 'hover:bg-white', 'dark:hover:bg-slate-800/80', 'transition-colors', 'cursor-pointer', 'text-xs', 'font-medium', 'text-slate-700', 'dark:text-slate-300')}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => handleToggleSubcategory(sub.id)}
+                                className={cn('rounded', 'border-slate-300', 'text-[#093c96]', 'focus:ring-[#093c96]', 'w-4', 'h-4')}
+                              />
+                              <span className="flex-1">{sub.name}</span>
+                              {sub.count !== undefined && (
+                                <span className={cn('text-[10px]', 'text-slate-400')}>({sub.count})</span>
+                              )}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className={cn('p-3', 'bg-slate-50', 'dark:bg-slate-900/50', 'rounded-xl', 'border', 'border-dashed', 'border-slate-200', 'dark:border-slate-800', 'text-xs', 'text-slate-500', 'text-center')}>
+                        Kategori utama ini belum memiliki subkategori. Produk akan didaftarkan pada kategori utama.
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
 

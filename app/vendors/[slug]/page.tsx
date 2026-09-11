@@ -25,12 +25,16 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import { getVendorBySlug, getVendorProducts } from "@/lib/api/wordpress";
-import { generateWhatsAppVendorUrl, formatIndonesianDate } from "@/lib/utils";
+import {
+  generateWhatsAppVendorUrl,
+  formatIndonesianDate,
+  decodeHtmlEntities,
+  cn,
+} from "@/lib/utils";
 import { checkStoreStatus } from "@/lib/storeStatus";
 import { StoreHours } from "@/types";
 import { VendorWhatsAppChat } from "@/components/chat/VendorWhatsAppChat";
 import { VendorJsonLd } from "@/components/seo/VendorJsonLd";
-import { cn } from "../../../lib/utils";
 
 // Halaman ini menampilkan status buka/tutup toko yang dinamis
 export const dynamic = "force-dynamic";
@@ -58,11 +62,11 @@ export async function generateMetadata({
     vendor.store_seo?.seoTitle ||
     `${vendor.store_name} - Toko Resmi di Kota Serang | Mas Chan Digital`;
 
-  const rawDescription = vendor.description?.trim();
+  const rawDescription = decodeHtmlEntities(vendor.description);
   const fallbackDescription = `Kunjungi profil toko ${vendor.store_name} di Kota Serang. Lihat katalog produk dan pesan langsung via WhatsApp.`;
   const seoDesc =
     rawDescription ||
-    vendor.store_seo?.metaDescription ||
+    decodeHtmlEntities(vendor.store_seo?.metaDescription) ||
     fallbackDescription;
 
   // Foto Profil / Avatar Toko, dengan fallback avatar default
@@ -433,7 +437,7 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                 <span>Tentang Toko</span>
               </h2>
               <p className={cn('text-slate-600', 'dark:text-slate-300', 'text-xs', 'sm:text-sm', 'leading-relaxed')}>
-                {vendor.description ||
+                {decodeHtmlEntities(vendor.description) ||
                   "Penyedia produk dan layanan lokal berkualitas di wilayah Kota Serang."}
               </p>
 

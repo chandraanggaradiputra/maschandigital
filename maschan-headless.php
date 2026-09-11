@@ -447,8 +447,13 @@ function maschan_format_product_data($product_id) {
             if (is_array($decoded)) $service_areas = $decoded;
         }
     }
-    if (empty($service_areas) && $business_type === 'service') {
-        $service_areas = ['Serang', 'Cipocok Jaya', 'Kasemen', 'Curug', 'Taktakan', 'Walantaka'];
+    if ($business_type === 'service') {
+        if (maschan_is_vendor_starter($author_id)) {
+            $domicile = maschan_normalize_serang_district($vendor_info['location_district'] ?? '');
+            $service_areas = [$domicile];
+        } elseif (empty($service_areas)) {
+            $service_areas = ['Serang', 'Cipocok Jaya', 'Kasemen', 'Curug', 'Taktakan', 'Walantaka'];
+        }
     }
 
     return [
@@ -547,7 +552,14 @@ function maschan_migrate_service_vendors() {
             }
             $curr_areas = get_post_meta($p_id, '_maschan_service_areas', true);
             if (empty($curr_areas)) {
-                update_post_meta($p_id, '_maschan_service_areas', $serang_districts);
+                $p_author = (int)get_post_field('post_author', $p_id);
+                if (maschan_is_vendor_starter($p_author)) {
+                    $v_info = maschan_extract_full_vendor($p_author);
+                    $domicile = maschan_normalize_serang_district($v_info['location_district'] ?? '');
+                    update_post_meta($p_id, '_maschan_service_areas', [$domicile]);
+                } else {
+                    update_post_meta($p_id, '_maschan_service_areas', $serang_districts);
+                }
             }
         }
     }
@@ -959,6 +971,36 @@ function maschan_calculate_new_end_date($current_end_date, $duration_days) {
     $current_ts = !empty($current_end_date) ? strtotime($current_end_date) : 0;
     $base_ts = max($now, $current_ts);
     return date('c', strtotime("+{$duration_days} days", $base_ts));
+}
+
+/**
+ * Normalisasi nama kecamatan Kota Serang (Zero Silent Fallback & validasi eksplisit)
+ */
+function maschan_normalize_serang_district($district) {
+    $serang_districts = ['Serang', 'Cipocok Jaya', 'Kasemen', 'Curug', 'Taktakan', 'Walantaka'];
+    if (empty($district) || !is_string($district)) {
+        return 'Serang';
+    }
+    $trimmed = trim($district);
+    foreach ($serang_districts as $d) {
+        if (strcasecmp($d, $trimmed) === 0 || stripos($trimmed, $d) !== false) {
+            return $d;
+        }
+    }
+    return 'Serang';
+}
+
+/**
+ * Cek apakah vendor tergolong akun Starter (Free Forever / Tanpa Langganan Berbayar Aktif)
+ */
+function maschan_is_vendor_starter($user_id) {
+    if (!$user_id) return true;
+    if (maschan_is_subscription_exempt($user_id)) return false;
+    $sub = maschan_get_vendor_subscription($user_id);
+    if (!$sub) return true;
+    if (($sub['plan_id'] ?? '') === 'free_forever') return true;
+    if (($sub['status'] ?? '') !== 'active' && ($sub['status'] ?? '') !== 'trial') return true;
+    return false;
 }
 
 /**
@@ -1919,6 +1961,16 @@ add_action('rest_api_init', function () {
             $service_action = in_array(($params['service_action'] ?? ''), ['appointment', 'reservation', 'consultation'], true) ? $params['service_action'] : 'consultation';
             $service_areas = isset($params['service_areas']) && is_array($params['service_areas']) ? array_values(array_map('sanitize_text_field', $params['service_areas'])) : [];
 
+            if ($business_type === 'service') {
+                if (maschan_is_vendor_starter($user_id)) {
+                    $vendor_info = maschan_extract_full_vendor($user_id);
+                    $domicile = maschan_normalize_serang_district($vendor_info['location_district'] ?? '');
+                    $service_areas = [$domicile];
+                } elseif (empty($service_areas)) {
+                    $service_areas = ['Serang', 'Cipocok Jaya', 'Kasemen', 'Curug', 'Taktakan', 'Walantaka'];
+                }
+            }
+
             update_post_meta($post_id, '_maschan_business_type', $business_type);
             update_post_meta($post_id, '_maschan_price_model', $price_model);
             update_post_meta($post_id, '_maschan_service_action', $service_action);
@@ -2094,6 +2146,12 @@ add_action('rest_api_init', function () {
             }
             if (isset($params['service_areas']) && is_array($params['service_areas'])) {
                 $service_areas = array_values(array_map('sanitize_text_field', $params['service_areas']));
+                $post_author = (int)get_post_field('post_author', $post_id);
+                if (maschan_is_vendor_starter($post_author)) {
+                    $vendor_info = maschan_extract_full_vendor($post_author);
+                    $domicile = maschan_normalize_serang_district($vendor_info['location_district'] ?? '');
+                    $service_areas = [$domicile];
+                }
                 update_post_meta($post_id, '_maschan_service_areas', $service_areas);
             }
 

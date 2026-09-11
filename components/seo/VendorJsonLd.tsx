@@ -1,5 +1,6 @@
 import React from "react";
 import { Vendor } from "@/types";
+import { decodeHtmlEntities } from "@/lib/utils";
 
 interface VendorJsonLdProps {
   vendor: Vendor;
@@ -52,7 +53,7 @@ export function VendorJsonLd({ vendor, vendorUrl }: VendorJsonLdProps) {
       vendor.banner ||
       "https://maschandigital.id/mas-chan-digital.webp",
     description:
-      vendor.description ||
+      decodeHtmlEntities(vendor.description) ||
       `Profil toko resmi ${vendor.store_name} di Marketplace Mas Chan Digital Kota Serang. Transaksi langsung via WhatsApp tanpa perantara.`,
     url: currentUrl,
     telephone: vendor.whatsapp_number

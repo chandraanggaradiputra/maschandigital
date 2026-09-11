@@ -154,6 +154,58 @@ export const tutorialData: TutorialItem[] = [
       },
     ],
   },
+  {
+    id: "variable-products-guide",
+    title: "Panduan Menjual Produk Variasi (Ukuran, Rasa, & Bobot)",
+    summary:
+      "Hemat kuota etalase toko Anda dengan menyatukan opsi ukuran, pilihan rasa, atau bobot dalam satu halaman produk tunggal yang profesional.",
+    category: "Katalog & Testimoni",
+    iconName: "Layers",
+    badge: "Fitur Baru",
+    steps: [
+      {
+        title: "1. Aktifkan Opsi Produk Variasi",
+        description:
+          "Saat mengisi atau mengedit produk di formulir dasbor (/dashboard/products/new), centang toggle 'Produk Variasi (Multi Varian)'.",
+      },
+      {
+        title: "2. Masukkan Pilihan Varian & Harga",
+        description:
+          "Tambahkan minimal 2 variasi (contoh: '250 Gram' seharga Rp 35.000 dan '500 Gram' seharga Rp 65.000). Atur nama varian, harga satuan, dan ketersediaan stok masing-masing.",
+      },
+      {
+        title: "3. Tampilan Cerdas di Etalase & Pesanan WhatsApp",
+        description:
+          "Setelah disimpan, kartu produk di etalase toko Anda otomatis menyajikan rentang harga pintar (misal: 'Rp 35.000 - Rp 65.000'). Pembeli dapat memilih varian secara instan saat memesan via WhatsApp.",
+      },
+    ],
+  },
+  {
+    id: "service-commerce-guide",
+    title: "Panduan Layanan Jasa & Keahlian Lokal Kota Serang",
+    summary:
+      "Daftarkan jasa servis AC, instalasi kanopi, konsultasi legalitas, atau reparasi komputer dengan skema tarif transparan dan jangkauan wilayah kecamatan.",
+    category: "Katalog & Testimoni",
+    iconName: "Wrench",
+    badge: "Layanan Jasa",
+    steps: [
+      {
+        title: "1. Pilih Mode Layanan Jasa & Keahlian",
+        description:
+          "Pada bagian awal formulir produk, pilih opsi '🛠️ Layanan Jasa & Keahlian'. Formulir akan beradaptasi secara otomatis dan mengunci kategori utama ke 'Layanan Jasa'.",
+      },
+      {
+        title: "2. Tentukan Skema Tarif & Tombol WhatsApp",
+        description:
+          "Pilih model tarif yang sesuai: Mulai Dari (Starting At), Konsultasi / Survei, atau Tarif Tetap. Tentukan tombol Call-to-Action WhatsApp (Panggil Teknisi, Reservasi Jadwal, atau Konsultasi Kebutuhan).",
+      },
+      {
+        title: "3. Tentukan Cakupan Wilayah Kecamatan",
+        description:
+          "Pilih kecamatan yang Anda jangkau di Kota Serang. Toko dengan Paket Starter mencakup 1 kecamatan domisili toko Anda, sedangkan Paket Langganan Berbayar dapat menjangkau seluruh 6 kecamatan Kota Serang.",
+      },
+    ],
+  },
 
   // -------------------------------------------------------------
   // KATEGORI: PENJUALAN & WHATSAPP
