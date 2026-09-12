@@ -168,7 +168,7 @@ export function ProductCard({
   return (
     <article
       aria-labelledby={`product-title-${product.id}`}
-      className={`@container group flex flex-col bg-white dark:bg-surface-darkCard rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-subtle hover:shadow-card-hover transition-all duration-300 overflow-hidden ${className || ""}`}
+      className={`@container group flex flex-col h-full bg-white dark:bg-surface-darkCard rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-subtle hover:shadow-card-hover transition-all duration-300 overflow-hidden ${className || ""}`}
     >
       {/* Media */}
       <figure className="relative bg-slate-100 dark:bg-slate-900 m-0 w-full aspect-square overflow-hidden">
@@ -222,7 +222,7 @@ export function ProductCard({
       </figure>
 
       {/* Product Content & Details */}
-      <div className="flex flex-col flex-1 p-4 sm:p-5">
+      <div className="flex flex-col justify-between flex-1 p-4 sm:p-5">
         <header className="mb-1.5">
           <div className="flex justify-between items-center gap-1 mb-1">
             <Link
@@ -336,18 +336,19 @@ export function ProductCard({
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons: Vertical Stack on Mobile, Flex Row on Tablet/Desktop */}
         <footer
           suppressHydrationWarning
-          className="flex @[280px]:flex-row flex-col gap-2 pt-1 border-slate-100 dark:border-slate-800/80 border-t"
+          className="flex flex-col sm:flex-row gap-2 mt-4 pt-3 border-slate-100 dark:border-slate-800/80 border-t w-full"
         >
+          {/* Tombol 1: Aksi Utama (Lebar Penuh di Mobile) */}
           {storeStatus.isVacation ? (
             <Button
               variant="outline"
               size="sm"
               fullWidth
               disabled
-              className="bg-slate-100 dark:bg-slate-900 opacity-75 py-2.5 border-slate-200 dark:border-slate-800 text-slate-400 text-xs cursor-not-allowed"
+              className="w-full sm:flex-1 bg-slate-100 dark:bg-slate-900 opacity-75 py-2.5 border-slate-200 dark:border-slate-800 text-slate-400 text-xs cursor-not-allowed"
               title="Pemesanan ditutup sementara karena toko sedang libur"
             >
               <XCircle
@@ -362,7 +363,7 @@ export function ProductCard({
               size="sm"
               fullWidth
               disabled
-              className="bg-slate-100 dark:bg-slate-900 opacity-75 py-2.5 border-slate-200 dark:border-slate-800 text-slate-400 text-xs cursor-not-allowed"
+              className="w-full sm:flex-1 bg-slate-100 dark:bg-slate-900 opacity-75 py-2.5 border-slate-200 dark:border-slate-800 text-slate-400 text-xs cursor-not-allowed"
               title="Pemesanan dibuka kembali saat jam operasional toko aktif"
             >
               <Lock
@@ -372,94 +373,113 @@ export function ProductCard({
               <span>Toko Sedang Tutup</span>
             </Button>
           ) : product.business_type === "service" ? (
-            <Link
-              href={`/products/${product.slug}`}
-              className="flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-              aria-label={`Lihat layanan ${product.name}`}
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                trackWhatsAppClick({
+                  vendorName: product.vendor?.store_name || "Unknown",
+                  productId: String(product.id),
+                  productName: product.name,
+                  kecamatan: product.vendor ? resolveVendorDistrict(product.vendor) : "Unknown",
+                });
+              }}
+              className="w-full sm:flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              aria-label={`Konsultasi layanan jasa ${product.name} via WhatsApp`}
             >
               <Button
                 variant="whatsapp"
                 size="sm"
                 fullWidth
-                className="text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white"
+                className="w-full text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white py-2.5 shadow-sm"
               >
                 <MessageCircle
-                  className="fill-white mr-1 w-4 h-4"
+                  className="fill-white mr-1.5 w-4 h-4 shrink-0"
                   aria-hidden="true"
                 />
                 <span>Konsultasi Jasa</span>
               </Button>
-            </Link>
+            </a>
           ) : isVariable ? (
             <Link
               href={`/products/${product.slug}`}
-              className="flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="w-full sm:flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               aria-label={`Pilih varian produk ${product.name}`}
             >
               <Button
                 variant="primary"
                 size="sm"
                 fullWidth
-                className="text-xs font-bold"
+                className="w-full text-xs font-bold py-2.5 shadow-sm bg-[#093c96] hover:bg-blue-800 text-white"
               >
                 <span>Pilih Varian</span>
               </Button>
             </Link>
-          ) : (
-            <>
-              <a
-                href={waUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => {
-                  trackWhatsAppClick({
-                    vendorName: product.vendor?.store_name || "Unknown",
-                    productId: String(product.id),
-                    productName: product.name,
-                    kecamatan: product.vendor ? resolveVendorDistrict(product.vendor) : "Unknown",
-                  });
-                }}
-                className="flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp-500"
-                aria-label={`Pesan ${product.name} lewat chat WhatsApp ke ${product.vendor?.store_name}`}
+          ) : isAffiliate ? (
+            <a
+              href={product.external_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              aria-label={`Beli ${product.name} melalui tautan affiliasi resmi vendor`}
+            >
+              <Button
+                variant="primary"
+                size="sm"
+                fullWidth
+                className="w-full text-xs font-bold py-2.5 shadow-sm bg-[#093c96] hover:bg-blue-800 text-white"
               >
-                <Button
-                  variant="whatsapp"
-                  size="sm"
-                  fullWidth
-                  className="text-xs"
-                >
-                  <MessageCircle
-                    className="fill-white mr-1 w-4 h-4"
-                    aria-hidden="true"
-                  />
-                  <span>Pesan via WhatsApp</span>
-                </Button>
-              </a>
-
-              {isAffiliate && (
-                <a
-                  href={product.external_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-                  aria-label={`Beli ${product.name} melalui tautan affiliasi resmi vendor`}
-                >
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    fullWidth
-                    className="text-xs"
-                  >
-                    <ExternalLink
-                      className="mr-1 w-3.5 h-3.5"
-                      aria-hidden="true"
-                    />
-                    <span>{product.button_text || "Beli via Link"}</span>
-                  </Button>
-                </a>
-              )}
-            </>
+                <ExternalLink
+                  className="mr-1.5 w-3.5 h-3.5 shrink-0"
+                  aria-hidden="true"
+                />
+                <span>{product.button_text || "Beli via Link"}</span>
+              </Button>
+            </a>
+          ) : (
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                trackWhatsAppClick({
+                  vendorName: product.vendor?.store_name || "Unknown",
+                  productId: String(product.id),
+                  productName: product.name,
+                  kecamatan: product.vendor ? resolveVendorDistrict(product.vendor) : "Unknown",
+                });
+              }}
+              className="w-full sm:flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp-500"
+              aria-label={`Pesan ${product.name} lewat chat WhatsApp ke ${product.vendor?.store_name}`}
+            >
+              <Button
+                variant="whatsapp"
+                size="sm"
+                fullWidth
+                className="w-full text-xs font-bold py-2.5 shadow-sm"
+              >
+                <MessageCircle
+                  className="fill-white mr-1.5 w-4 h-4 shrink-0"
+                  aria-hidden="true"
+                />
+                <span>Pesan via WhatsApp</span>
+              </Button>
+            </a>
           )}
+
+          {/* Tombol 2: Lihat Detail (Sekunder - Lebar Penuh di Mobile) */}
+          <Link
+            href={`/products/${product.slug}`}
+            className="w-full sm:flex-1 py-2 px-3 text-xs font-semibold flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 hover:bg-slate-100 dark:bg-slate-800/40 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            aria-label={`Lihat detail produk ${product.name}`}
+          >
+            <ExternalLink
+              className="h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-400"
+              aria-hidden="true"
+            />
+            <span>Lihat Detail</span>
+          </Link>
         </footer>
       </div>
     </article>
