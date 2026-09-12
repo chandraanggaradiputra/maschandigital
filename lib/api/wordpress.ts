@@ -493,6 +493,9 @@ function formatGraphQLVendor(v: RawApiNode): Vendor {
           property_id: "",
           widget_id: "",
         },
+    is_exempt: Boolean(v.isExempt ?? v.is_exempt),
+    subscription: v.subscription,
+    plan_id: v.plan_id || v.planId,
   };
 }
 

@@ -191,6 +191,9 @@ export interface Vendor {
   vacation_mode?: VacationMode;
   store_seo?: StoreSEO;
   chat_integration?: ChatIntegration;
+  is_exempt?: boolean;
+  subscription?: VendorSubscription | null;
+  plan_id?: PlanId;
 }
 
 export interface VendorAuthSession {

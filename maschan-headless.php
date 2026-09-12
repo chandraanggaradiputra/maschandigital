@@ -278,6 +278,8 @@ function maschan_extract_full_vendor($user_id) {
         'vacation_mode'     => $vacation_mode,
         'store_seo'         => $store_seo,
         'chat_integration'  => $chat_integration,
+        'is_exempt'         => maschan_is_subscription_exempt($user_id),
+        'subscription'      => maschan_get_vendor_subscription($user_id),
     ];
 }
 
@@ -902,6 +904,8 @@ function maschan_get_plan($plan_id) {
 }
 
 function maschan_is_subscription_exempt($user_id) {
+    if (!$user_id) return false;
+    if (user_can($user_id, 'manage_options')) return true;
     return get_user_meta($user_id, 'maschan_subscription_exempt', true) === 'yes';
 }
 
@@ -2354,11 +2358,21 @@ add_action('rest_api_init', function () {
         ],
     ]);
 
-    // GET SINGLE VENDOR BY ID
-    register_rest_route('maschan/v1', '/vendors/(?P<id>\d+)', [
+    // GET SINGLE VENDOR BY ID OR SLUG
+    register_rest_route('maschan/v1', '/vendors/(?P<id>[a-zA-Z0-9-]+)', [
         'methods'  => 'GET',
         'callback' => function ($request) {
-            $user_id = intval($request['id']);
+            $id_param = $request['id'];
+            if (is_numeric($id_param)) {
+                $user_id = intval($id_param);
+            } else {
+                $user = get_user_by('slug', sanitize_title($id_param));
+                if (!$user) {
+                    $user = get_user_by('login', sanitize_user($id_param));
+                }
+                $user_id = $user ? $user->ID : 0;
+            }
+
             $v = maschan_extract_full_vendor($user_id);
             if (!$v) {
                 return new WP_Error('vendor_not_found', 'Vendor tidak ditemukan.', ['status' => 404]);

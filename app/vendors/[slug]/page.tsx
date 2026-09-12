@@ -17,13 +17,13 @@ import {
   Phone,
   Clock,
   XCircle,
-  MessageSquare,
 } from "lucide-react";
 import { SectionContainer } from "@/components/layout/SectionContainer";
 import { ProductCard } from "@/components/cards/ProductCard";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
+import { VendorOwnerQuotaBanner } from "@/components/vendors/VendorOwnerQuotaBanner";
 import { getVendorBySlug, getVendorProducts } from "@/lib/api/wordpress";
 import {
   generateWhatsAppVendorUrl,
@@ -128,19 +128,20 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
     vendor.vacation_mode,
   );
 
-  // 1. Logika Pembatasan Etalase Publik Sesuai Status Langganan
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const vendorSub = (vendor as any).subscription;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const vendorPlanId = (vendor as any).plan_id || vendorSub?.plan_id;
+  // 1. Logika Pembatasan Etalase Publik Sesuai Status Langganan & Akun Bebas Kuota (Exempt)
+  const vendorSub = vendor.subscription;
+  const vendorPlanId = vendor.plan_id || vendorSub?.plan_id;
+
+  const isExempt = Boolean(vendor.is_exempt || vendor.slug === "chanstore");
 
   const isPaidActive = Boolean(
+    isExempt ||
     (vendorSub && vendorSub.status === "active" && vendorSub.plan_id !== "free_forever") ||
     (vendorPlanId && vendorPlanId !== "free_forever")
   );
 
-  // Kuota etalase publik: jika paket berbayar aktif tampilkan semua, jika Starter batasi 3 produk
-  const maxPublicLimit = isPaidActive ? (vendorSub?.max_products ?? 999) : 3;
+  // Kuota etalase publik: jika akun exempt atau paket berbayar aktif, tampilkan semua tanpa batasan kuota 3 produk
+  const maxPublicLimit = isPaidActive ? (vendorSub?.max_products && vendorSub.max_products > 0 ? vendorSub.max_products : 999) : 3;
   const publicProducts = allProducts.slice(0, maxPublicLimit);
   const archivedProductsCount = Math.max(0, allProducts.length - publicProducts.length);
 
@@ -626,29 +627,12 @@ export default async function SingleVendorPage({ params }: VendorPageProps) {
                   ))}
                 </div>
 
-                {/* Catatan Halus jika Toko Memiliki Produk yang Terarsip */}
-                {archivedProductsCount > 0 && (
-                  <div className={cn('space-y-2', 'bg-slate-50', 'dark:bg-slate-900/50', 'p-4', 'sm:p-5', 'border', 'border-slate-200', 'dark:border-slate-800', 'border-dashed', 'rounded-2xl', 'text-center')}>
-                    <div className={cn('flex', 'justify-center', 'items-center', 'gap-1.5', 'font-bold', 'text-slate-700', 'dark:text-slate-300', 'text-xs')}>
-                      <MessageSquare className={cn('w-4', 'h-4', 'text-[#093c96]', 'dark:text-blue-400')} />
-                      <span>Menampilkan {publicProducts.length} Produk Unggulan</span>
-                    </div>
-                    <p className={cn('mx-auto', 'max-w-md', 'text-slate-500', 'dark:text-slate-400', 'text-xs', 'leading-relaxed')}>
-                      Toko ini masih memiliki <strong>{archivedProductsCount} produk pilihan lainnya</strong> yang belum ditampilkan di katalog web. Anda dapat menanyakan katalog lengkap atau ketersediaan stok produk lainnya langsung ke WhatsApp penjual.
-                    </p>
-                    <div className="pt-1">
-                      <a
-                        href={waVendorUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={cn('inline-flex', 'items-center', 'gap-1.5', 'bg-emerald-50', 'hover:bg-emerald-100', 'dark:bg-emerald-950/40', 'px-3.5', 'py-1.5', 'border', 'border-emerald-200', 'dark:border-emerald-800', 'rounded-xl', 'font-semibold', 'text-emerald-700', 'dark:text-emerald-300', 'text-xs', 'transition-colors')}
-                      >
-                        <MessageCircle className={cn('fill-emerald-600', 'w-3.5', 'h-3.5', 'text-emerald-600')} />
-                        <span>Tanya Katalog Lain via WhatsApp</span>
-                      </a>
-                    </div>
-                  </div>
-                )}
+                {/* Banner Edukasi Kuota Khusus Pemilik Toko (Hanya Terlihat Saat Vendor Login & Memiliki Produk Terarsip) */}
+                <VendorOwnerQuotaBanner
+                  vendorId={vendor.id}
+                  publicCount={publicProducts.length}
+                  archivedCount={archivedProductsCount}
+                />
               </div>
             ) : (
               <div className={cn('space-y-3', 'bg-white', 'dark:bg-surface-darkCard', 'p-10', 'border', 'border-slate-200/80', 'dark:border-slate-800', 'rounded-3xl', 'text-center')}>
