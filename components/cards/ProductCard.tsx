@@ -336,19 +336,19 @@ export function ProductCard({
           </div>
         </div>
 
-        {/* Action Buttons: Vertical Stack on Mobile, Flex Row on Tablet/Desktop */}
+        {/* Action Buttons: Strictly Vertical Stack (flex-col) on all devices */}
         <footer
           suppressHydrationWarning
-          className="flex flex-col sm:flex-row gap-2 mt-4 pt-3 border-slate-100 dark:border-slate-800/80 border-t w-full"
+          className="flex flex-col gap-2 mt-4 pt-3 border-slate-100 dark:border-slate-800/80 border-t w-full"
         >
-          {/* Tombol 1: Aksi Utama (Lebar Penuh di Mobile) */}
+          {/* Tombol 1: Aksi Utama (Lebar Penuh w-full) */}
           {storeStatus.isVacation ? (
             <Button
               variant="outline"
               size="sm"
               fullWidth
               disabled
-              className="w-full sm:flex-1 bg-slate-100 dark:bg-slate-900 opacity-75 py-2.5 border-slate-200 dark:border-slate-800 text-slate-400 text-xs cursor-not-allowed"
+              className="w-full bg-slate-100 dark:bg-slate-900 opacity-75 py-2.5 border-slate-200 dark:border-slate-800 text-slate-400 text-xs cursor-not-allowed"
               title="Pemesanan ditutup sementara karena toko sedang libur"
             >
               <XCircle
@@ -363,7 +363,7 @@ export function ProductCard({
               size="sm"
               fullWidth
               disabled
-              className="w-full sm:flex-1 bg-slate-100 dark:bg-slate-900 opacity-75 py-2.5 border-slate-200 dark:border-slate-800 text-slate-400 text-xs cursor-not-allowed"
+              className="w-full bg-slate-100 dark:bg-slate-900 opacity-75 py-2.5 border-slate-200 dark:border-slate-800 text-slate-400 text-xs cursor-not-allowed"
               title="Pemesanan dibuka kembali saat jam operasional toko aktif"
             >
               <Lock
@@ -385,7 +385,7 @@ export function ProductCard({
                   kecamatan: product.vendor ? resolveVendorDistrict(product.vendor) : "Unknown",
                 });
               }}
-              className="w-full sm:flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
               aria-label={`Konsultasi layanan jasa ${product.name} via WhatsApp`}
             >
               <Button
@@ -404,7 +404,7 @@ export function ProductCard({
           ) : isVariable ? (
             <Link
               href={`/products/${product.slug}`}
-              className="w-full sm:flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               aria-label={`Pilih varian produk ${product.name}`}
             >
               <Button
@@ -421,7 +421,7 @@ export function ProductCard({
               href={product.external_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full sm:flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               aria-label={`Beli ${product.name} melalui tautan affiliasi resmi vendor`}
             >
               <Button
@@ -450,7 +450,7 @@ export function ProductCard({
                   kecamatan: product.vendor ? resolveVendorDistrict(product.vendor) : "Unknown",
                 });
               }}
-              className="w-full sm:flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp-500"
+              className="w-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-whatsapp-500"
               aria-label={`Pesan ${product.name} lewat chat WhatsApp ke ${product.vendor?.store_name}`}
             >
               <Button
@@ -468,10 +468,10 @@ export function ProductCard({
             </a>
           )}
 
-          {/* Tombol 2: Lihat Detail (Sekunder - Lebar Penuh di Mobile) */}
+          {/* Tombol 2: Lihat Detail (Sekunder - Lebar Penuh w-full) */}
           <Link
             href={`/products/${product.slug}`}
-            className="w-full sm:flex-1 py-2 px-3 text-xs font-semibold flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 hover:bg-slate-100 dark:bg-slate-800/40 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="w-full py-2 px-3 text-xs font-semibold flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 hover:bg-slate-100 dark:bg-slate-800/40 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             aria-label={`Lihat detail produk ${product.name}`}
           >
             <ExternalLink
