@@ -1,12 +1,12 @@
-// Service Worker untuk PWA Mas Chan Digital Kota Serang
-const CACHE_NAME = "maschan-pwa-v4";
+// --- SERVICE WORKER MAS CHAN DIGITAL ---
+const CACHE_NAME = 'mcd-pwa-v1';
 const STATIC_PRECACHE = [
-  "/",
-  "/offline",
-  "/manifest.webmanifest",
+  '/',
+  '/offline',
+  '/manifest.webmanifest',
 ];
 
-self.addEventListener("install", (event) => {
+self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_PRECACHE).catch(() => {});
@@ -15,22 +15,18 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-self.addEventListener("activate", (event) => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      );
-    })
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    )
   );
-  self.clients.claim();
+  return self.clients.claim();
 });
 
-self.addEventListener("fetch", (event) => {
-  // a. Hanya proses request method 'GET'
-  if (event.request.method !== "GET") return;
+// --- FETCH LISTENER DENGAN CACHE BYPASS UNTUK API ---
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
 
   let url;
   try {
@@ -39,30 +35,29 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // b. Lewati (bypass) jika request berasal dari domain luar
+  // Lewati jika request berasal dari domain eksternal
   if (url.origin !== self.location.origin) return;
 
-  // c. Lewati (bypass) jika request memuat '/wp-json/', '/api/', '/graphql', atau query 'gtm_debug'
+  // Lewati request API, WordPress REST, GraphQL, atau GTM debug
   const urlStr = url.href;
   if (
-    urlStr.includes("gtm_debug") ||
-    urlStr.includes("/wp-json/") ||
-    urlStr.includes("/graphql") ||
-    urlStr.includes("/api/")
+    urlStr.includes('gtm_debug') ||
+    urlStr.includes('/wp-json/') ||
+    urlStr.includes('/graphql') ||
+    urlStr.includes('/api/')
   ) {
     return;
   }
 
-  // d. Terapkan strategi Stale-While-Revalidate aman
+  // Strategi Stale-While-Revalidate untuk PWA
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      // Helper fetch data terbaru di latar belakang untuk memperbarui cache
       const fetchPromise = fetch(event.request)
         .then((networkResponse) => {
           if (
             networkResponse &&
             networkResponse.status === 200 &&
-            networkResponse.type === "basic"
+            networkResponse.type === 'basic'
           ) {
             const responseToCache = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
@@ -72,63 +67,60 @@ self.addEventListener("fetch", (event) => {
           return networkResponse;
         })
         .catch(async () => {
-          if (event.request.mode === "navigate") {
-            const offlinePage = await caches.match("/offline");
+          if (event.request.mode === 'navigate') {
+            const offlinePage = await caches.match('/offline');
             if (offlinePage) return offlinePage;
           }
           return new Response(
-            "Anda sedang offline dan halaman tidak tersedia di cache.",
-            { status: 503, statusText: "Service Unavailable" }
+            'Anda sedang offline dan halaman tidak tersedia di cache.',
+            { status: 503, statusText: 'Service Unavailable' }
           );
         });
 
-      // Jika ada di cache: kembalikan cachedResponse seketika, dan fetch terbaru di latar belakang
       if (cachedResponse) {
         event.waitUntil(fetchPromise);
         return cachedResponse;
       }
 
-      // Jika tidak ada di cache: lakukan fetch ke network
       return fetchPromise;
     })
   );
 });
 
-// =======================================================================
-// PWA WEB PUSH NOTIFICATION LISTENERS
-// =======================================================================
-self.addEventListener('push', function (event) {
+// --- EVENT: TERIMA PUSH NOTIFICATION DARI SERVER ---
+self.addEventListener('push', (event) => {
   if (!event.data) return;
 
+  let payload;
   try {
-    const payload = event.data.json();
-    const title = payload.title || 'Mas Chan Digital';
-    const options = {
-      body: payload.body || 'Pemberitahuan baru dari Mas Chan Digital',
-      icon: payload.icon || '/icon-192.png',
-      badge: '/icon-192.png',
-      vibrate: [150, 50, 150],
-      data: {
-        url: payload.url || '/admin/moderasi',
-      },
-      tag: payload.tag || 'maschan-notification',
-      renotify: true,
-    };
-
-    event.waitUntil(self.registration.showNotification(title, options));
-  } catch (err) {
-    console.error('Error saat memproses payload push:', err);
+    payload = event.data.json();
+  } catch {
+    payload = { title: 'Mas Chan Digital', body: event.data.text() };
   }
+
+  const title = payload.title || 'Promo Menarik - Mas Chan Digital';
+  const options = {
+    body: payload.body || 'Ada produk baru dan promo spesial UMKM Kota Serang!',
+    icon: '/logo.png', // Logo resmi Mas Chan Digital
+    badge: '/logo.png',
+    data: {
+      url: payload.url || '/',
+    },
+    vibrate: [150, 50, 150],
+    requireInteraction: false,
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
-self.addEventListener('notificationclick', function (event) {
+// --- EVENT: KLIK NOTIFIKASI OLEH PELANGGAN ---
+self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = event.notification.data?.url || '/admin/moderasi';
+  const targetUrl = event.notification.data?.url || '/';
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
-      for (let i = 0; i < clientList.length; i++) {
-        const client = clientList[i];
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
         if (client.url.includes(targetUrl) && 'focus' in client) {
           return client.focus();
         }
@@ -139,4 +131,3 @@ self.addEventListener('notificationclick', function (event) {
     })
   );
 });
-

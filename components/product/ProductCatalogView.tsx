@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Product, ProductCategory } from "@/types";
 import { ProductCard } from "@/components/cards/ProductCard";
+import { PushNotificationPrompt } from "@/components/pwa/PushNotificationPrompt";
 import { checkStoreStatus } from "@/lib/storeStatus";
 import { resolveVendorDistrict } from "@/lib/utils";
 import { KECAMATAN_LIST } from "@/lib/constants/serangDistricts";
@@ -1006,6 +1007,9 @@ export function ProductCatalogView({
           </button>
         </div>
       )}
+
+      {/* Ajakan Notifikasi Promo Belanja */}
+      <PushNotificationPrompt className="my-2 sm:my-3" />
 
       {/* Results Header Count */}
       <div className="flex justify-between items-center px-1">

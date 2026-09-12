@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  Radio,
 } from "lucide-react";
 import { getVendorSession } from "@/lib/api/auth";
 import {
@@ -45,8 +46,9 @@ import { AdminBillingTab } from "@/components/admin/AdminBillingTab";
 import { AdminProductsTab } from "@/components/admin/AdminProductsTab";
 import { AdminVendorsTab } from "@/components/admin/AdminVendorsTab";
 import { AdminSettingsTab } from "@/components/admin/AdminSettingsTab";
+import { AdminBroadcastTab } from "@/components/admin/AdminBroadcastTab";
 
-type MainTab = "reviews" | "billing" | "products" | "vendors" | "settings";
+type MainTab = "reviews" | "billing" | "products" | "vendors" | "settings" | "broadcast";
 
 export default function AdminModerasiPage() {
   const router = useRouter();
@@ -190,6 +192,20 @@ export default function AdminModerasiPage() {
 
       setToken(session.token);
       setIsAuthorized(true);
+
+      // Periksa parameter tab pada URL (misal: ?tab=broadcast)
+      if (typeof window !== "undefined") {
+        const urlParams = new URLSearchParams(window.location.search);
+        const requestedTab = urlParams.get("tab") as MainTab | null;
+        if (
+          requestedTab &&
+          ["reviews", "billing", "products", "vendors", "settings", "broadcast"].includes(
+            requestedTab
+          )
+        ) {
+          setActiveMainTab(requestedTab);
+        }
+      }
 
       // Fetch tab ulasan default dan invoice count untuk header badge
       fetchReviewsData(session.token, reviewSubTab);
@@ -563,6 +579,19 @@ export default function AdminModerasiPage() {
               <Settings className="w-3.5 h-3.5" />
               <span>Pengaturan</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => handleMainTabSwitch("broadcast")}
+              className={`py-2 px-3 text-xs font-bold rounded-xl whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 ${
+                activeMainTab === "broadcast"
+                  ? "bg-brand-800 text-white shadow-sm"
+                  : "bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:bg-slate-200/60"
+              }`}
+            >
+              <Radio className="w-3.5 h-3.5" />
+              <span>Broadcast Promo</span>
+            </button>
           </nav>
         </div>
       </header>
@@ -636,6 +665,8 @@ export default function AdminModerasiPage() {
             onRefresh={fetchSettingsData}
           />
         )}
+
+        {activeMainTab === "broadcast" && <AdminBroadcastTab />}
       </div>
 
       {/* Modal Universal: Lightbox Zoom Foto (Ulasan & Struk Transfer) */}

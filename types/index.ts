@@ -345,6 +345,36 @@ export interface StoredPushSubscription {
   updatedAt: string;
 }
 
+export interface PushSubscriptionKeys {
+  p256dh: string;
+  auth: string;
+}
+
+export interface PushSubscriptionRecord {
+  endpoint: string;
+  keys: PushSubscriptionKeys;
+  subscribedAt: string;
+  role?: "admin" | "vendor" | "guest";
+}
+
+export interface PushSubscriptionInput {
+  endpoint: string;
+  expirationTime?: number | null;
+  keys: PushSubscriptionKeys;
+}
+
+export interface BroadcastNotificationPayload {
+  title: string;
+  body: string;
+  url?: string;
+}
+
+export interface BroadcastNotificationResult {
+  success: boolean;
+  message: string;
+  sentCount?: number;
+}
+
 declare global {
   var globalPushSubscriptions: StoredPushSubscription[] | undefined;
 }
